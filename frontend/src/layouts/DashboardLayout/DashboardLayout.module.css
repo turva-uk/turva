@@ -1,0 +1,54 @@
+.navbar {
+  background-color: light-dark(var(--mantine-color-violet-7), var(--mantine-color-violet-6));
+  width: rem(300px);
+  padding: var(--mantine-spacing-md);
+  padding-bottom: 0;
+  display: flex;
+  flex-direction: column;
+  border-right: rem(1px) solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+  height: 100%;
+}
+
+.header {
+  padding: var(--mantine-spacing-md);
+  padding-top: 0;
+  margin-left: calc(var(--mantine-spacing-md) * -1);
+  margin-right: calc(var(--mantine-spacing-md) * -1);
+  color: light-dark(var(--mantine-color-black), var(--mantine-color-white));
+  border-bottom: rem(1px) solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+}
+
+.title {
+  color: var(--mantine-color-gray-2);
+}
+
+.links {
+  flex: 1;
+  margin-left: calc(var(--mantine-spacing-md) * -1);
+  margin-right: calc(var(--mantine-spacing-md) * -1);
+}
+
+.bottomButtons {
+  margin-left: calc(var(--mantine-spacing-md) * -1) !important;
+  margin-right: calc(var(--mantine-spacing-md) * -1) !important;
+}
+
+.burger {
+  color: var(--mantine-color-text);
+}
+
+.topHeader {
+  padding: var(--mantine-spacing-md);
+  transition: none;
+  transition-property: none;
+  --app-shell-transition-duration: inherit;
+  --app-shell-transition-timing-function: inherit;
+}
+
+.navLink {
+  color: white !important;
+}
+
+.navLink:hover {
+  background-color: light-dark(var(--mantine-color-violet-4), var(--mantine-color-violet-6)) !important;
+}
