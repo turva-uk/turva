@@ -1,0 +1,54 @@
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      - "5173:5173"
+    environment:
+      - NODE_ENV=development
+    command: npm run vite dev -- --host
+
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    volumes:
+      - ./api:/app
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONPATH=/app
+      - ENVIRONMENT=development
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+
+  docs:
+    build:
+      context: .
+      dockerfile: docs/Dockerfile
+    volumes:
+      - ./docs:/docs
+    ports:
+      - "8001:8001"
+    command: mkdocs serve -a 0.0.0.0:8001
+
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - frontend
+      - api
+      - docs
+
+volumes:
+  caddy_data:
+  caddy_config:
