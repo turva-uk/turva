@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Clean up all containers, volumes, and cached images
+docker compose down -v
+docker compose rm -fsv
+docker system prune -f
