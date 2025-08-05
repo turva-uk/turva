@@ -1,4 +1,4 @@
-import { Group, UnstyledButton, Text, rem, Avatar, useMantineColorScheme } from "@mantine/core"
+import { Group, UnstyledButton, Text, rem, Avatar } from "@mantine/core"
 import { IconChevronRight } from '@tabler/icons-react';
 import classes from './UserButton.module.css';
 import { forwardRef, useContext } from "react";
@@ -16,13 +16,13 @@ const UserInitials = ({user}: {user: User}) => {
 }
 
 const UserButton = forwardRef<HTMLButtonElement, ComponentPropsWithoutRef<'button'>>(({ ...args}: ComponentPropsWithoutRef<'button'>, ref) => {
-  const { colorScheme } = useMantineColorScheme();
   const { user } = useContext(UserAuthContext);
+
   return (
     <UnstyledButton ref={ref} {...args} className={classes.user} c="white" pt="md" px="sm">
       <Group>
         { user && (
-          <Avatar radius="xl" color={colorScheme === 'light' ? "turva.4" : "gray.7"} variant="filled">
+          <Avatar radius="xl" variant="filled" color='turva.9'>
             <UserInitials user={user} />
           </Avatar>
         )}

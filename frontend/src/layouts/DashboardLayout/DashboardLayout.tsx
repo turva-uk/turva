@@ -56,7 +56,7 @@ const DashboardLayout = () => {
         withBorder={false}
         padding="md"
       >
-        <AppShell.Header className={classes.topHeader} bg="turva.7">
+        <AppShell.Header className={classes.topHeader}>
           <Group justify="left" gap="sm">
             <Burger
               opened={!configuration?.collapseNav}
