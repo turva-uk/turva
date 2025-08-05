@@ -17,6 +17,7 @@
     "@mantine/hooks": "^8.2.2",
     "@mantine/notifications": "^8.2.2",
     "@tabler/icons-react": "^3.31.0",
+    "@types/node": "^24.2.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-router": "^7.7.1"

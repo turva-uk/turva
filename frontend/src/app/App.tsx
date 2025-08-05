@@ -21,6 +21,7 @@ const router = createBrowserRouter(
       <Route path="/app">
         <Route element={<DashboardLayout />}>
           <Route index element={<DashboardPage />} />
+          <Route path="templates" element={<div>Templates</div>} />
           <Route path="settings" element={<div>Settings</div>} />
         </Route>
       </Route>

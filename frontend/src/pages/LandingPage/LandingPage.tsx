@@ -1,4 +1,4 @@
-import { Container, Title, rem, Image, Stack, Center, Box, Text, Anchor, Button } from '@mantine/core';
+import { Container, Title, rem, Image, Stack, Center, Box, Text, Button } from '@mantine/core';
 import TurvaLogo from '../../resources/images/turva-solid-yellow-purple-master-logo.svg';
 
 const LandingPage = () => {
@@ -9,7 +9,6 @@ const LandingPage = () => {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        // color: "#dec55e"
         color: "white"
       }}>
         <Stack>
@@ -54,8 +53,6 @@ const LandingPage = () => {
                 backgroundColor: '#dec55e',
                 color: 'black',
                 fontFamily: 'Greycliff CF, var(--mantine-font-family)',
-                // fontSize: rem(20),
-                // fontWeight: 700,
                 padding: `${rem(10)} ${rem(20)}`,
               }}
             >

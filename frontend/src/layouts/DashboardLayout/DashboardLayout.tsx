@@ -1,6 +1,6 @@
 import { useContext, type ReactNode } from "react";
 import { AppShell, Group, Menu, NavLink, ScrollArea, rem, Title, Burger, useMantineColorScheme, Box, Image } from "@mantine/core";
-import { IconBuilding, IconDashboard, IconDoorExit, IconMoon, IconSettings, IconSun } from "@tabler/icons-react";
+import { IconBuilding, IconDashboard, IconDoorExit, IconMoon, IconSettings, IconSun, IconTemplate } from "@tabler/icons-react";
 import classes from "./DashboardLayout.module.css";
 import { Outlet, useNavigate } from "react-router";
 import UserButton from "./components/UserButton/UserButton";
@@ -22,6 +22,11 @@ const navButtons: DashboardNavItem[] = [
     label: "Projects",
     icon: <IconDashboard size="1rem" stroke={1.5} />,
     href: "/",
+  },
+  {
+    label: "Templates",
+    icon: <IconTemplate size="1rem" stroke={1.5} />,
+    href: "/templates",
   },
   {
     label: "Organisations",
@@ -51,22 +56,26 @@ const DashboardLayout = () => {
         withBorder={false}
         padding="md"
       >
-        <AppShell.Header className={classes.topHeader}>
+        <AppShell.Header className={classes.topHeader} bg="violet.7">
           <Group justify="left" gap="sm">
             <Burger
               opened={!configuration?.collapseNav}
               onClick={() => updateConfigurationEntry('collapseNav', !configuration?.collapseNav)}
               className={classes.burger}
               size="sm"
-              color={colorScheme === 'dark' ? 'white' : 'black'}
+              // color={colorScheme === 'dark' ? 'white' : 'black'}
+              color="white"
             />
             <Image
               src={TurvaTransparentLogo}
               alt="Turva Logo"
-              height={rem(40)}
-              width={rem(40)}
-              style={{ width: rem(40) }}
+              height={rem(30)}
+              width={rem(30)}
+              style={{ width: rem(30) }}
             />
+            <Title order={4} ta="center" c="white">
+              Turva
+            </Title>
           </Group>
         </AppShell.Header>
         <AppShell.Navbar>
