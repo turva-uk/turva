@@ -1,5 +1,5 @@
 .navbar {
-  background-color: light-dark(var(--mantine-color-violet-7), var(--mantine-color-violet-6));
+  background-color: light-dark(var(--mantine-color-turva-7), var(--mantine-color-turva-6));
   width: rem(300px);
   padding: var(--mantine-spacing-md);
   padding-bottom: 0;
@@ -50,5 +50,5 @@
 }
 
 .navLink:hover {
-  background-color: light-dark(var(--mantine-color-violet-4), var(--mantine-color-violet-6)) !important;
+  background-color: light-dark(var(--mantine-color-turva-4), var(--mantine-color-turva-6)) !important;
 }

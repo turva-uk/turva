@@ -13,9 +13,21 @@ export const theme = createTheme({
       '#121212',
       '#181A1B',
       '#181A1B'
+    ],
+    turva: [
+      '#f3f2ff',
+      '#e3e2f0',
+      '#c5c3d9',
+      '#a5a2c2',
+      '#8a86ae',
+      '#7974a2',
+      '#716c9e',
+      '#5f5a8a',
+      '#54507c',
+      '#474470'
     ]
   },
-  primaryColor: 'violet',
+  primaryColor: 'turva',
   components: {
     Button: {
       defaultProps: {

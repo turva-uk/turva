@@ -22,7 +22,7 @@ const UserButton = forwardRef<HTMLButtonElement, ComponentPropsWithoutRef<'butto
     <UnstyledButton ref={ref} {...args} className={classes.user} c="white" pt="md" px="sm">
       <Group>
         { user && (
-          <Avatar radius="xl" color={colorScheme === 'light' ? "violet.4" : "gray.7"} variant="filled">
+          <Avatar radius="xl" color={colorScheme === 'light' ? "turva.4" : "gray.7"} variant="filled">
             <UserInitials user={user} />
           </Avatar>
         )}

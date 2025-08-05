@@ -15,7 +15,7 @@ const DashboardPage = () => {
                      size={80}
                      roundCaps
                      thickness={8}
-                     sections={[{ value: 40, color: 'violet.7' }]}
+                     sections={[{ value: 40, color: 'turva.7' }]}
                   />
                   <div>
                      <Text c="dimmed" size="xs" tt="uppercase" fw={700}>
@@ -33,7 +33,7 @@ const DashboardPage = () => {
                      size={80}
                      roundCaps
                      thickness={8}
-                     sections={[{ value: 50, color: 'violet.7' }]}
+                     sections={[{ value: 50, color: 'turva.7' }]}
                   />
                   <div>
                      <Text c="dimmed" size="xs" tt="uppercase" fw={700}>
