@@ -1,0 +1,18 @@
+turva.localhost {
+    # Frontend
+    handle /* {
+        reverse_proxy frontend:5173
+    }
+
+#    # API endpoints
+#    handle /api/* {
+#        uri strip_prefix /api
+#        reverse_proxy api:8000
+#    }
+
+#    # Documentation
+#    handle /docs/* {
+#        uri strip_prefix /docs
+#        reverse_proxy docs:8001
+#    }
+}
