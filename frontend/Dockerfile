@@ -3,7 +3,9 @@ FROM node:22-alpine
 WORKDIR /app
 
 # Copy dependency files
-COPY package.json yarn.lock ./
+COPY package.json yarn.lock .yarnrc.yml ./
+RUN mkdir -p .yarn/releases
+COPY .yarn/releases/* ./.yarn/releases/
 
 # Install dependencies
 RUN yarn install

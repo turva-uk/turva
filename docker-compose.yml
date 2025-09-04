@@ -1,28 +1,32 @@
 services:
   frontend:
+    container_name: "turva-frontend"
     build:
       context: ./frontend
       dockerfile: Dockerfile
     volumes:
       - ./frontend:/app
+      - frontend_node_modules:/app/node_modules
     ports:
       - "5173:5173"
     environment:
       - NODE_ENV=development
 
-  # commented out for now, as this part has not yet been built
-  # api:
-  #   build:
-  #     context: ./api
-  #     dockerfile: Dockerfile
-  #   volumes:
-  #     - ./api:/app
-  #   ports:
-  #     - "8000:8000"
-  #   environment:
-  #     - PYTHONPATH=/app
-  #     - ENVIRONMENT=development
-  #   command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+  api:
+    container_name: "turva-api"
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    volumes:
+      - ./api:/app
+    ports:
+      - "8000:8000"
+    env_file:
+      - api/.env
+    environment:
+      - PYTHONPATH=/app
+      - DEBUG=true
+    command: uvicorn app:app --host 0.0.0.0 --port 8000 --reload
 
   # docs:
   #   build:
@@ -34,21 +38,34 @@ services:
   #     - "8001:8001"
   #   command: mkdocs serve -a 0.0.0.0:8001
 
-  # caddy:
-  #   image: caddy:2-alpine
-  #   ports:
-  #     - "80:80"
-  #     - "443:443"
-  #   volumes:
-  #     - ./Caddyfile:/etc/caddy/Caddyfile
-  #     - caddy_data:/data
-  #     - caddy_config:/config
-  #   depends_on:
-  #     - frontend
-  #   #  - api
-  #     - docs
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - frontend
+      - api
+      # - docs
+
+  postgres:
+    container_name: "turva-postgres"
+    image: postgres:latest
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: thisismypassword
+      POSTGRES_DB: postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
 
 volumes:
   caddy_data:
   caddy_config:
   frontend_node_modules:
+  postgres_data:

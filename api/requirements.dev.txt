@@ -1,0 +1,14 @@
+fastapi
+asyncpg
+uvicorn
+pytest
+pytest-asyncio
+httpx
+black
+mypy
+bandit
+python-dateutil
+ormar
+psycopg2-binary
+alembic
+argon2-cffi==25.1.0

@@ -18,7 +18,7 @@ export const UserAuthProvider = ({ children }: PropsWithChildren): JSX.Element =
   if (!user) {
     const userFromStorage = localStorage.getItem('user');
     if (userFromStorage) {
-      // TODO: ensure the user data is valid
+      // TODO: ensure the user data is valid against a schema
       setContextUser(JSON.parse(userFromStorage));
     }
   }

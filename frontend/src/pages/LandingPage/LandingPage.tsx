@@ -1,4 +1,4 @@
-import { Container, Title, rem, Image, Stack, Center, Box, Text, Button } from '@mantine/core';
+import { Container, Title, rem, Image, Stack, Center, Box, Text, Button, Group } from '@mantine/core';
 import TurvaLogo from '../../resources/images/turva-solid-yellow-purple-master-logo.svg';
 
 const LandingPage = () => {
@@ -40,24 +40,40 @@ const LandingPage = () => {
               fontWeight: 700,
               marginBottom: '2rem'
             }}>
-              Coming soon!
+              Public access release coming soon!
             </Text>
 
-            <Button
-              component="a"
-              href="https://github.com/digital-clinical-safety-alliance/turva"
-              target="_blank"
-              size="lg"
-              rel="noopener noreferrer"
-              style={{
-                backgroundColor: '#dec55e',
-                color: 'black',
-                fontFamily: 'Greycliff CF, var(--mantine-font-family)',
-                padding: `${rem(10)} ${rem(20)}`,
-              }}
-            >
-              Visit our GitHub
-            </Button>
+            <Group justify="center" gap="md">
+              <Button
+                component="a"
+                href="https://github.com/digital-clinical-safety-alliance/turva"
+                target="_blank"
+                size="lg"
+                rel="noopener noreferrer"
+                style={{
+                  backgroundColor: '#dec55e',
+                  color: 'black',
+                  fontFamily: 'Greycliff CF, var(--mantine-font-family)',
+                  padding: `${rem(10)} ${rem(20)}`,
+                }}
+              >
+                Visit our GitHub
+              </Button>
+
+              <Button
+                component="a"
+                href="/app"
+                size="lg"
+                style={{
+                  backgroundColor: '#dec55e',
+                  color: 'black',
+                  fontFamily: 'Greycliff CF, var(--mantine-font-family)',
+                  padding: `${rem(10)} ${rem(20)}`,
+                }}
+              >
+                Early access login
+              </Button>
+            </Group>
           </div>
 
         </Stack>

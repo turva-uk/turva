@@ -19,12 +19,12 @@ interface DashboardNavItem {
 
 const navButtons: DashboardNavItem[] = [
   {
-    label: "Projects",
+    label: "My projects",
     icon: <IconDashboard size="1rem" stroke={1.5} />,
     href: "/",
   },
   {
-    label: "Templates",
+    label: "Community projects",
     icon: <IconTemplate size="1rem" stroke={1.5} />,
     href: "/templates",
   },
@@ -114,9 +114,13 @@ const DashboardLayout = () => {
                   active={
                     !!(
                       button.href && (
-                        window.location.pathname === button.href || window.location.pathname.startsWith(`/app${button.href}`)
-                      ) || (
-                        button.href === '/' && (window.location.pathname === '/app' || window.location.pathname === '/app/')
+                        (button.href === "/app" || button.href === "/app/") && (window.location.pathname === '/' || window.location.pathname === '/app') ||
+                        (
+                          button.href !== "/app" && (
+                            window.location.pathname === `/app${button.href}` ||
+                            window.location.pathname.startsWith(`/app${button.href}/`)
+                          )
+                        )
                       )
                     )
                   }
