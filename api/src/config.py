@@ -89,3 +89,23 @@ class Config:
         is_testing_environment: bool | None = parseBoolean("TESTING", False)
         session_cookie_name: str = parseString("SESSION_COOKIE_NAME", True)
         session_cookie_lifetime: int = parseInteger("SESSION_COOKIE_LIFETIME", True)
+        frontend_base_url: str = parseString("FRONTEND_BASE_URL", True)
+        api_path: str = parseString("API_PATH", True)
+
+    class SMTP:
+        host: str = parseString("SMTP_HOST", True)
+        port: int = parseInteger("SMTP_PORT", True)
+        user: str | None = parseString("SMTP_USER", False)
+        password: str | None = parseString("SMTP_PASSWORD", False)
+        use_tls: bool = parseBoolean("SMTP_USE_TLS", True)
+        from_address: str = parseString("SMTP_FROM_ADDRESS", True)
+        from_name: str | None = parseString("SMTP_FROM_NAME", False)
+
+
+# Ensure api_path starts with a slash but does not end with a slash
+if Config.Application.api_path == "/":
+    Config.Application.api_path = ""
+elif not Config.Application.api_path.startswith("/"):
+    Config.Application.api_path = "/" + Config.Application.api_path
+elif Config.Application.api_path.endswith("/"):
+    Config.Application.api_path = Config.Application.api_path[:-1]

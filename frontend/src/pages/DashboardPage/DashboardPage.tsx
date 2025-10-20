@@ -47,7 +47,7 @@ const DashboardPage = () => {
             </Paper>
          </SimpleGrid>
 
-         <Button mt="md" onClick={() => navigate('/app/templates')}>Add project</Button>
+         <Button mt="md" onClick={() => navigate('/templates')}>Add project</Button>
 
          <Table mt="md">
             <Table.Tbody>

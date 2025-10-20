@@ -99,8 +99,12 @@ function useREST<InputType, ReturnType>(
           "Content-Type": "application/json",
         },
       }
-
-      let queryUrl = `http://localhost:8000/api${resource}`;
+      let queryUrl = '';
+      if (import.meta.env.MODE === 'development') {
+        queryUrl = `https://localhost${import.meta.env.BASE_URL}api${resource}`;
+      } else {
+        queryUrl = `https://api.turva.org/${resource}`;
+      }
 
       if (input) {
         if (method !== 'GET') {
@@ -118,7 +122,7 @@ function useREST<InputType, ReturnType>(
       console.debug(`Sending ${method} request to ${queryUrl}`)
       const res = await fetch(queryUrl, params);
 
-      if (res.status === 401) {
+      if (res.status === 401 && window.location.pathname !== '/auth') {
         // Clear user data and redirect to login
         localStorage.removeItem('user');
         setData(null);
@@ -127,9 +131,8 @@ function useREST<InputType, ReturnType>(
         setLoading(false);
         setSuccess(false);
         // If the current page is the login page, don't redirect
-        if (window.location.pathname !== '/app/auth') {
-          navigate('/app/auth', { replace: true });
-          return
+        if (window.location.pathname !== '/auth') {
+          navigate('/auth', { replace: true });
         }
       }
 

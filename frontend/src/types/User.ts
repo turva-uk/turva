@@ -3,4 +3,5 @@ export default interface User {
   firstName: string;
   lastName: string | null;
   emailAddress: string;
+  isVerified: boolean;
 }

@@ -1,0 +1,27 @@
+[tool.pytest.ini_options]
+pythonpath = [
+  "."
+]
+asyncio_mode = 'auto'
+addopts = "--cov=. --cov-report html --cov-config=../pyproject.toml"
+
+[tool.bandit]
+exclude_dirs = [".venv", ".*_cache", "__pycache__", "tests/", "async_database_utils.py"]
+
+[tool.coverage.run]
+omit = [
+  '*/async_database_utils.py',
+  '*/tests/*',
+  '*/alembic/*',
+  '*/models/*',
+]
+
+[tool.mypy]
+python_version = "3.11"
+exclude = ['tests/', 'alembic/', 'models/']
+ignore_missing_imports = true
+plugins = [
+  "sqlalchemy.ext.mypy.plugin",
+  "pydantic.mypy",
+]
+check_untyped_defs = true

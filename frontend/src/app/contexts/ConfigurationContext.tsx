@@ -1,6 +1,7 @@
 import React, { createContext, useEffect, useMemo, useState } from 'react';
 import type Configuration from '../../types/Configuration';
 import type { PropsWithChildren } from 'react';
+import { useMantineColorScheme } from '@mantine/core';
 
 export interface ConfigurationInterface {
   configuration?: Configuration;
@@ -14,11 +15,22 @@ export const ConfigurationContext = createContext<ConfigurationInterface>({
 
 export const ConfigurationProvider = ({ children }: PropsWithChildren): React.JSX.Element => {
   const [configuration, setConfiguration] = useState<Configuration | undefined>();
+  const {colorScheme, setColorScheme} = useMantineColorScheme();
+  
+  // Sync dark mode with configuration
+  useEffect(() => {
+    if (configuration?.darkMode && colorScheme !== 'dark') {
+      setColorScheme('dark');
+    } else if (!configuration?.darkMode && colorScheme !== 'light') {
+      setColorScheme('light');
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [configuration, colorScheme]);
 
   // Default configuration
   useEffect(() => {
     setConfiguration({
-      darkMode: true,
+      darkMode: false,
       collapseNav: false
     });
     const fromLocalStorage = localStorage.getItem('configuration');

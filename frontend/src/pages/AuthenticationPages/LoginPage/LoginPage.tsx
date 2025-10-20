@@ -1,4 +1,4 @@
-import { Anchor, Box, Button, Group, LoadingOverlay, PasswordInput, TextInput } from "@mantine/core";
+import { Anchor, Box, Button, LoadingOverlay, PasswordInput, Text, TextInput } from "@mantine/core";
 import { useNavigate } from "react-router";
 import useREST from "../../../hooks/useREST";
 import { Form, useForm } from "@mantine/form";
@@ -16,6 +16,7 @@ interface LoginResponse {
   firstName: string;
   lastName: string;
   emailAddress: string;
+  isVerified: boolean;
 }
 
 const LoginPage = () => {
@@ -30,6 +31,7 @@ const LoginPage = () => {
     },
     validate: {
       emailAddress: (value) => (/^\S+@\S+$/.test(value) ? null : 'Invalid email address'),
+      password: (value) => (value.length == 0 ? 'Password is required' : null)
     }
   });
 
@@ -40,12 +42,13 @@ const LoginPage = () => {
         id: data.id,
         firstName: data.firstName,
         lastName: data.lastName,
-        emailAddress: data.emailAddress
+        emailAddress: data.emailAddress,
+        isVerified: data.isVerified
       });
 
-      console.log('Login successful:', data);
-      navigate('/app/'); // Redirect to dashboard or another page
+      navigate('/'); // Redirect to dashboard
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data]);
 
   return (
@@ -53,21 +56,25 @@ const LoginPage = () => {
       <LoadingOverlay visible={loading} />
       <ErrorDisplay title="An error occured logging you in" error={error} />
       <Form form={form} onSubmit={submitFn}>
-        <TextInput label="Email" required {...form.getInputProps('emailAddress')} />
-        <PasswordInput label="Password" required mt="md" {...form.getInputProps('password')} />
-        <Group justify="end" mt="lg">
-          <Anchor size="sm" onClick={() => navigate('/app/auth/forgot')}>
+        <TextInput label="Email" {...form.getInputProps('emailAddress')} />
+        <PasswordInput label="Password" mt="md" {...form.getInputProps('password')} />
+        
+        {/* <Group justify="end" mt="lg">
+          <Anchor size="sm" onClick={() => navigate('/auth/forgot')}>
             Forgot password?
           </Anchor>
-        </Group>
+        </Group> */}
 
-        <Button fullWidth mt="lg" type="submit">
+        <Button fullWidth mt="xl" type="submit">
           Sign in
         </Button>
 
-        <Button fullWidth variant="outline" mt="sm" onClick={() => navigate('/app/auth/register')}>
-          Create an account
-        </Button>
+        <Text ta="center" mt="md" size="sm" c="dimmed">
+          Don't have an account?{' '}
+          <Anchor size="sm" onClick={() => navigate('/auth/register')}>
+            Create one here
+          </Anchor>
+        </Text>
       </Form>
     </Box>
   )

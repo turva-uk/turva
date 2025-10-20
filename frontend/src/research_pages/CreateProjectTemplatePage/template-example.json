@@ -1,0 +1,73 @@
+{
+  "files": [
+    {
+      "id": "main-md",
+      "name": "main.md",
+      "type": "file"
+    },
+    {
+      "id": "1760268485597",
+      "name": "hazards",
+      "type": "folder",
+      "children": [
+        {
+          "id": "1760268495392",
+          "name": "hazard.md",
+          "type": "file",
+          "parent_id": "1760268485597"
+        }
+      ],
+      "is_repeating": true,
+      "repeating_template_file_id": "1760268495392"
+    },
+    {
+      "id": "1760268592630",
+      "name": "clinical-safety-management-system.md",
+      "type": "file"
+    },
+    {
+      "id": "1760268601851",
+      "name": "clinical-safety-management-plan.md",
+      "type": "file"
+    },
+    {
+      "id": "1760268615654",
+      "name": "clinical-safety-case-report.md",
+      "type": "file"
+    }
+  ],
+  "file_contents": {
+    "main_md": "# Clinical Safety Documentation\n\nThis is the intro/landing page!",
+    "1760268495392": "# Hazard\n\nTitle: @@Hazard title@@\nDescription: @@Hazard description@@\nLikelihood: @@Likelihood@@\nSeverity: @@Severity@@",
+    "1760268592630": "# Clinical Safety Management System\n",
+    "1760268601851": "# Clinical Safety Management Plan",
+    "1760268615654": "# Clinical Safety Case Report"
+  },
+  "placeholders": [
+    {
+      "id": "1760268510614",
+      "title": "Hazard title",
+      "description": null
+    },
+    {
+      "id": "1760268515179",
+      "title": "Hazard description",
+      "description": null
+    },
+    {
+      "id": "1760268522007",
+      "title": "Likelihood",
+      "description": null
+    },
+    {
+      "id": "1760268525506",
+      "title": "Severity",
+      "description": null
+    }
+  ],
+  "metadata": {
+    "name": "Project Template",
+    "created_at": "2025-10-12T11:30:39.350Z",
+    "updated_at": "2025-10-12T11:30:39.350Z"
+  }
+}

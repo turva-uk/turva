@@ -30,7 +30,7 @@ const ResourceNotFoundPage: React.FC = () => {
         <Group justify="center">
           <Button
             size="sm"
-            onClick={() => navigate('/app')}
+            onClick={() => navigate('/')}
           >
             To the home page
           </Button>

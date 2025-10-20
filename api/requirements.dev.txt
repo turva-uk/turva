@@ -11,4 +11,16 @@ python-dateutil
 ormar
 psycopg2-binary
 alembic
+pytz
+itsdangerous
+python-dotenv
+aiosqlite
+sqlalchemy_utils
+greenlet
+pytest-cov
+sqlalchemy-stubs
+sqlalchemy2-stubs
+types-pytz
 argon2-cffi==25.1.0
+email-validator
+pytest-freezegun

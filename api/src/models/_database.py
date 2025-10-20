@@ -40,6 +40,9 @@ ormar_config = ormar.OrmarConfig(
 
 engine = create_async_engine(DATABASE_URL)
 
+
 class DateFieldsMixins:
     created_date: datetime.datetime = ormar.DateTime(default=datetime.datetime.now)
-    updated_date: datetime.datetime = ormar.DateTime(default=datetime.datetime.now)
+    updated_date: datetime.datetime = ormar.DateTime(
+        default=datetime.datetime.now, onupdate=datetime.datetime.now
+    )

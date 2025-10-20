@@ -4,6 +4,11 @@ from endpoints import endpoints_base
 from contextlib import asynccontextmanager
 from databases import Database
 from models._database import database
+from config import Config
+from authentication.middleware import TurvaAuthenticationBackend
+from starlette.middleware.authentication import AuthenticationMiddleware
+from starlette.middleware.sessions import SessionMiddleware
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -20,24 +25,32 @@ async def lifespan(app: FastAPI):
             await database_.disconnect()
 
 
-app = FastAPI(
-    lifespan=lifespan
-)
+app = FastAPI(lifespan=lifespan)
 app.state.database = database
 
 # CORS configuration
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "https://turva.org",
-        "http://localhost:5173"
+        "https://app.turva.org",
+        "http://localhost:5173",
+        "https://localhost/",
+        "http://localhost/",
     ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-app.include_router(endpoints_base, prefix="/api")
+app.add_middleware(AuthenticationMiddleware, backend=TurvaAuthenticationBackend())
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=Config.Application.secret_key,
+    session_cookie=Config.Application.session_cookie_name,
+    max_age=Config.Application.session_cookie_lifetime,
+)
+
+app.include_router(endpoints_base, prefix=Config.Application.api_path)
 
 
 @app.get("/")
@@ -45,5 +58,5 @@ async def read_root():
     return {
         "author": "https://www.turva.org",
         "description": "Turva API",
-        "github": "https://github.com/digital-clinical-safety-alliance/turva/"
+        "github": "https://github.com/digital-clinical-safety-alliance/turva/",
     }

@@ -46,6 +46,7 @@ export const MockUserAuthProvider = ({ children }: PropsWithChildren) => (
       firstName: 'Test',
       lastName: 'User',
       emailAddress: 'test.user@example.com',
+      isVerified: true,
     }, updateUser: () => ({}) }), [])
   }>
     {children}
@@ -60,6 +61,7 @@ export const MockAdminAuthProvider = ({ children }: PropsWithChildren) => (
       firstName: 'Test',
       lastName: 'User',
       emailAddress: 'test.user@example.com',
+      isVerified: true,
     }, updateUser: () => ({}) }), [])
   }>
     {children}

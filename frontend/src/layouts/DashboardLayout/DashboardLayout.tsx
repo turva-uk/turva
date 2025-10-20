@@ -126,7 +126,7 @@ const DashboardLayout = () => {
                   }
                   onClick={() => {
                     if (button.href) {
-                      navigate(`/app${button.href}`, { replace: false })
+                      navigate(`${button.href}`, { replace: false })
                     }
                   }}
                   variant="filled"
