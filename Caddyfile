@@ -1,4 +1,8 @@
-turva.localhost {
+{
+	default_bind 0.0.0.0
+}
+
+localhost {
 	# Frontend
 	handle /* {
 		reverse_proxy frontend:5173
