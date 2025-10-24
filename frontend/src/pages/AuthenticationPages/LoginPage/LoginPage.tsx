@@ -17,6 +17,7 @@ interface LoginResponse {
   lastName: string;
   emailAddress: string;
   isVerified: boolean;
+  isCSO: boolean;
 }
 
 const LoginPage = () => {
@@ -43,7 +44,8 @@ const LoginPage = () => {
         firstName: data.firstName,
         lastName: data.lastName,
         emailAddress: data.emailAddress,
-        isVerified: data.isVerified
+        isVerified: data.isVerified,
+        isCSO: data.isCSO
       });
 
       navigate('/'); // Redirect to dashboard
