@@ -45,6 +45,7 @@ async def login(data: LoginRequest):
             "last_name": user.last_name,
             "email_address": user.email_address,
             "is_verified": user.is_verified,
+            "is_cso": user.is_cso,
         }
     )
 

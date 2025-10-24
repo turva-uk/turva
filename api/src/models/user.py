@@ -28,6 +28,7 @@ class User(ormar.Model, DateFieldsMixins, BaseUser):
     is_active: bool = ormar.Boolean(default=True)
     organisation: str | None = ormar.String(max_length=100, nullable=True)
     job_role: str | None = ormar.String(max_length=100, nullable=True)
+    is_cso: bool = ormar.Boolean(default=False)
 
     @classmethod
     async def generate_password_hash(cls, password: str):
