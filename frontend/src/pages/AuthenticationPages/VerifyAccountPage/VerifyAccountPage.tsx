@@ -17,6 +17,8 @@ const VerifyAccountPage = () => {
   useEffect(() => {
     if (searchParams.get('token') && searchParams.get('user_id')) {
       submitFn({ token: searchParams.get('token')! });
+    } else {
+      navigate('/auth/');
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
@@ -42,8 +44,6 @@ const VerifyAccountPage = () => {
           </Box>
         )
       }
-      {searchParams.get('token') || 'na'}
-      {searchParams.get('user_id') || 'na'}
     </Box>
   )
 }

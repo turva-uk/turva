@@ -7,6 +7,8 @@ import AuthenticationLayout from "../AuthenticationLayout";
 import fetchMock from "fetch-mock";
 import { reactRouterParameters } from 'storybook-addon-remix-react-router';
 
+// TODO: investigate GET parameters not working in storybook stories
+
 const meta = preview.meta({
   title: "Pages/Auth/VerifyAccountPage",
   component: VerifyAccountPage,

@@ -17,10 +17,10 @@ const meta = preview.meta({
   decorators: [
     () => (
       <MockUserAuthProvider>
-        <MemoryRouter initialEntries={["/"]}>
+        <MemoryRouter initialEntries={["/auth"]}>
           <Routes>
             <Route index element={<>Dashboard Page</>} />
-            <Route path="/" element={<AuthenticationLayout />}>
+            <Route path="/auth" element={<AuthenticationLayout />}>
               <Route index element={<LoginPage />} />,
               <Route path="register" element={<CreateAccountPage />} />,
               <Route path="forgot" element={<ForgotPasswordPage />} />

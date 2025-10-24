@@ -3,9 +3,7 @@ import { MantineProvider } from '@mantine/core';
 import { Notifications } from '@mantine/notifications';
 import { theme } from '../theme';
 import ResourceNotFoundPage from '../pages/ResourceNotFoundPage/ResourceNotFoundPage';
-import DashboardLayout from '../layouts/DashboardLayout/DashboardLayout';
 import { UserAuthContext, UserAuthProvider } from './contexts/UserAuthContext';
-import DashboardPage from '../pages/DashboardPage/DashboardPage';
 import { ConfigurationProvider } from './contexts/ConfigurationContext';
 import AuthenticationLayout from '../pages/AuthenticationPages/AuthenticationLayout';
 import LoginPage from '../pages/AuthenticationPages/LoginPage/LoginPage';
@@ -14,6 +12,8 @@ import ForgotPasswordPage from '../pages/AuthenticationPages/ForgotPasswordPage/
 import { useContext } from 'react';
 import VerifyAccountPage from '#src/pages/AuthenticationPages/VerifyAccountPage/VerifyAccountPage.tsx';
 import VerifyNoticePage from '#src/pages/AuthenticationPages/VerifyNoticePage/VerifyNoticePage.tsx';
+import DashboardLayout from '#src/pages/DashboardPages/DashboardLayout.tsx';
+import MyProjectsPage from '#src/pages/DashboardPages/MyProjectsPage/MyProjectsPage.tsx';
 
 const RequiresVerifiedLogin = () => {
   const { user } = useContext(UserAuthContext);
@@ -42,7 +42,7 @@ const router = createBrowserRouter(
       </Route>
       <Route path="/" element={<RequiresVerifiedLogin />}>
         <Route element={<DashboardLayout />}>
-          <Route index element={<DashboardPage />} />
+          <Route index element={<MyProjectsPage />} />
           <Route path="templates" element={<div>Templates</div>} />
           <Route path="organisations" element={<div>Organisations</div>} />
         </Route>
