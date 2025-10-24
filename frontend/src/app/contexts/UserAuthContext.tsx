@@ -47,6 +47,22 @@ export const MockUserAuthProvider = ({ children }: PropsWithChildren) => (
       lastName: 'User',
       emailAddress: 'test.user@example.com',
       isVerified: true,
+      isCSO: false,
+    }, updateUser: () => ({}) }), [])
+  }>
+    {children}
+  </UserAuthContext.Provider>
+);
+
+export const MockUserCSOAuthProvider = ({ children }: PropsWithChildren) => (
+  <UserAuthContext.Provider value={
+    useMemo(() => ({user: {
+      id: '1',
+      firstName: 'CSO',
+      lastName: 'User',
+      emailAddress: 'cso.user@example.com',
+      isVerified: true,
+      isCSO: true,
     }, updateUser: () => ({}) }), [])
   }>
     {children}
@@ -62,6 +78,7 @@ export const MockAdminAuthProvider = ({ children }: PropsWithChildren) => (
       lastName: 'User',
       emailAddress: 'test.user@example.com',
       isVerified: true,
+      isCSO: false,
     }, updateUser: () => ({}) }), [])
   }>
     {children}

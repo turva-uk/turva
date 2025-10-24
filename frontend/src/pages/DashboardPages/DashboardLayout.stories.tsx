@@ -1,7 +1,7 @@
 import preview from "#.storybook/preview";
 
 import { MemoryRouter, Route, Routes } from "react-router";
-import { MockUserAuthProvider } from "../../app/contexts/UserAuthContext";
+import { MockUserAuthProvider, MockUserCSOAuthProvider } from "../../app/contexts/UserAuthContext";
 import fetchMock from "fetch-mock";
 import DashboardLayout from "./DashboardLayout";
 import { Box } from "@mantine/core";
@@ -40,6 +40,17 @@ export const LoggedInUser = meta.story({
     )
   ],
 });
+
+export const LoggedInCSOUser = meta.story({
+  decorators: [
+    (Story) => (
+      <MockUserCSOAuthProvider>
+        <Story />
+      </MockUserCSOAuthProvider>
+    )
+  ],
+});
+
 export const LoggedOutUser = meta.story({
   decorators: [
     (Story) => (
