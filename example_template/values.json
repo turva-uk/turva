@@ -1,0 +1,31 @@
+{
+    "user_name": "John Doe",
+    "hazards": [
+        {
+            "hazard_name": "Hazard Name 1",
+            "hazard_description": "Description of Hazard 1",
+            "initial_severity_level": "High",
+            "initial_likelihood_level": "Medium",
+            "initial_risk_level": "High",
+            "initial_risk_outcome": "Potential for serious injury",
+            "mitigation_measures": "Implement safety protocols and provide training",
+            "residual_severity_level": "Medium",
+            "residual_likelihood_level": "Low",
+            "risk_level": "Medium",
+            "risk_outcome": "Reduced risk of injury"
+        },
+        {
+            "hazard_name": "Hazard Name 2",
+            "hazard_description": "Description of Hazard 2",
+            "initial_severity_level": "Medium",
+            "initial_likelihood_level": "High",
+            "initial_risk_level": "High",
+            "initial_risk_outcome": "Potential for equipment damage",
+            "mitigation_measures": "Regular maintenance and inspections",
+            "residual_severity_level": "Low",
+            "residual_likelihood_level": "Medium",
+            "risk_level": "Low",
+            "risk_outcome": "Minimized equipment damage"
+        }
+    ]
+}
