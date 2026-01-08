@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Stop containers first to ensure the volume is not in use
+docker compose down
+
+# Remove the frontend node_modules volume
+docker volume rm -f turva_frontend_node_modules
+
+echo "Node modules volume has been removed. Run 's/up' to rebuild with fresh dependencies."
