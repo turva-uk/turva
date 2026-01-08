@@ -14,6 +14,7 @@ import VerifyAccountPage from '#src/pages/AuthenticationPages/VerifyAccountPage/
 import VerifyNoticePage from '#src/pages/AuthenticationPages/VerifyNoticePage/VerifyNoticePage.tsx';
 import DashboardLayout from '#src/pages/DashboardPages/DashboardLayout.tsx';
 import MyProjectsPage from '#src/pages/DashboardPages/MyProjectsPage/MyProjectsPage.tsx';
+import CommunityProjectsPage from '#src/pages/DashboardPages/CommunityProjectsPage/CommunityProjectsPage.tsx';
 
 const RequiresVerifiedLogin = () => {
   const { user } = useContext(UserAuthContext);
@@ -43,7 +44,7 @@ const router = createBrowserRouter(
       <Route path="/" element={<RequiresVerifiedLogin />}>
         <Route element={<DashboardLayout />}>
           <Route index element={<MyProjectsPage />} />
-          <Route path="templates" element={<div>Templates</div>} />
+          <Route path="community" element={<CommunityProjectsPage />} />
           <Route path="organisations" element={<div>Organisations</div>} />
         </Route>
       </Route>

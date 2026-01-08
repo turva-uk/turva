@@ -26,7 +26,7 @@ const navButtons: DashboardNavItem[] = [
   {
     label: "Community projects",
     icon: <IconTemplate size="1rem" stroke={1.5} />,
-    href: "/templates",
+    href: "/community",
   },
   {
     label: "Organisations",
