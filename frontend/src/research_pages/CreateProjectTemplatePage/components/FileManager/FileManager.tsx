@@ -25,9 +25,6 @@ interface FileItem {
   type: 'file' | 'folder';
   children?: FileItem[];
   parentId?: string;
-  // Repeating folder support
-  isRepeating?: boolean;
-  repeatingTemplateFileId?: string;
 }
 
 interface FileManagerProps {
@@ -59,17 +56,6 @@ export const FileManager = ({ onFileSelect, fileChanges = {}, onFilesChange }: F
     onFilesChange?.(files);
   }, [files, onFilesChange]);
 
-  const findItemById = (items: FileItem[], id: string): FileItem | undefined => {
-    for (const item of items) {
-      if (item.id === id) return item;
-      if (item.children) {
-        const found = findItemById(item.children, id);
-        if (found) return found;
-      }
-    }
-    return undefined;
-  };
-
   const checkNameExists = (name: string, parentId?: string): boolean => {
     if (parentId) {
       // Check within a specific folder
@@ -91,6 +77,10 @@ export const FileManager = ({ onFileSelect, fileChanges = {}, onFilesChange }: F
     }
   };
 
+  const hazardTemplateExists = (parentId?: string): boolean => {
+    return checkNameExists('hazard-template.md', parentId);
+  };
+
   const isValidFileName = (name: string): boolean => {
     // Allow alphanumeric characters, hyphens, underscores, and dots
     const validNameRegex = /^[a-zA-Z0-9._-]+$/;
@@ -100,16 +90,10 @@ export const FileManager = ({ onFileSelect, fileChanges = {}, onFilesChange }: F
   const updateFileTree = (items: FileItem[], parentId: string, newItem: FileItem): FileItem[] => {
     return items.map(item => {
       if (item.id === parentId && item.type === 'folder') {
-        // If repeating and adding first file, record template file id
-        const nextChildren = [...(item.children || []), newItem];
-        const next: FileItem = {
+        return {
           ...item,
-          children: nextChildren,
-          ...(item.isRepeating && newItem.type === 'file' && !item.repeatingTemplateFileId
-            ? { repeatingTemplateFileId: newItem.id }
-            : {})
+          children: [...(item.children || []), newItem]
         };
-        return next;
       }
       if (item.children) {
         return {
@@ -121,8 +105,8 @@ export const FileManager = ({ onFileSelect, fileChanges = {}, onFilesChange }: F
     });
   };
 
-  const createItem = (type: 'file' | 'folder', parentId?: string, isRepeatingFolder: boolean = false) => {
-    const name = prompt(`Enter ${isRepeatingFolder ? 'repeated folder' : type} name:`);
+  const createItem = (type: 'file' | 'folder', parentId?: string) => {
+    const name = prompt(`Enter ${type} name:`);
     if (!name) return;
 
     // Validate name format
@@ -137,29 +121,35 @@ export const FileManager = ({ onFileSelect, fileChanges = {}, onFilesChange }: F
       return;
     }
 
-    // Enforce repeating folder constraints (parent cannot be repeating for new folders; only one file allowed)
-    if (parentId) {
-      const parent = findItemById(files, parentId);
-      if (parent && parent.type === 'folder' && parent.isRepeating) {
-        if (type === 'folder') {
-          alert('A repeating folder cannot contain sub-folders.');
-          return;
-        }
-        const fileCount = (parent.children || []).filter(c => c.type === 'file').length;
-        if (fileCount >= 1) {
-          alert('A repeating folder can only contain a single file (the template).');
-          return;
-        }
-      }
-    }
-
     const newItem: FileItem = {
       id: Date.now().toString(),
       name,
       type,
       children: type === 'folder' ? [] : undefined,
-      parentId,
-      ...(type === 'folder' && isRepeatingFolder ? { isRepeating: true } : {})
+      parentId
+    };
+
+    if (parentId) {
+      setFiles(prev => updateFileTree(prev, parentId, newItem));
+    } else {
+      setFiles(prev => [...prev, newItem]);
+    }
+  };
+
+  const createHazardTemplate = (parentId?: string) => {
+    const name = 'hazard-template.md';
+
+    // Check if name already exists in the same directory
+    if (checkNameExists(name, parentId)) {
+      alert(`A file with the name "${name}" already exists in this location.`);
+      return;
+    }
+
+    const newItem: FileItem = {
+      id: Date.now().toString(),
+      name,
+      type: 'file',
+      parentId
     };
 
     if (parentId) {
@@ -182,15 +172,10 @@ export const FileManager = ({ onFileSelect, fileChanges = {}, onFilesChange }: F
   const removeFromTree = (items: FileItem[], id: string): FileItem[] => {
     return items
       .filter(item => item.id !== id)
-      .map(item => {
-        const children = item.children ? removeFromTree(item.children, id) : undefined;
-        const next: FileItem = { ...item, children };
-        // If a repeating folder pointed to this file as template, clear it
-        if (item.type === 'folder' && item.repeatingTemplateFileId === id) {
-          delete next.repeatingTemplateFileId;
-        }
-        return next;
-      });
+      .map(item => ({
+        ...item,
+        children: item.children ? removeFromTree(item.children, id) : undefined
+      }));
   };
 
   const toggleFolder = (id: string) => {
@@ -237,9 +222,6 @@ export const FileManager = ({ onFileSelect, fileChanges = {}, onFilesChange }: F
           
           <Group gap="xs" flex={1}>
             <Text size="sm">{item.name}</Text>
-            {item.type === 'folder' && item.isRepeating && (
-              <Badge size="xs" color="grape" variant="light">Repeating</Badge>
-            )}
             {item.type === 'file' && fileChanges[item.id] && (
               <Badge size="xs" color="orange" variant="filled" style={{ minWidth: 'auto', padding: '2px 4px' }}>
                 •
@@ -262,23 +244,15 @@ export const FileManager = ({ onFileSelect, fileChanges = {}, onFilesChange }: F
                     </ActionIcon>
                   </Menu.Target>
                   <Menu.Dropdown>
-                    <Menu.Item
-                      onClick={() => createItem('file', item.id)}
-                      disabled={item.isRepeating && (item.children || []).some(c => c.type === 'file')}
-                    >
+                    <Menu.Item onClick={() => createItem('file', item.id)}>
                       New File
                     </Menu.Item>
-                    <Menu.Item
-                      onClick={() => createItem('folder', item.id)}
-                      disabled={item.isRepeating}
-                    >
+                    <Menu.Item onClick={() => createItem('folder', item.id)}>
                       New Folder
                     </Menu.Item>
-                    <Menu.Item
-                      onClick={() => createItem('folder', item.id, true)}
-                      disabled={item.isRepeating}
-                    >
-                      Create Repeated Folder
+                    <Menu.Divider />
+                    <Menu.Item onClick={() => createHazardTemplate(item.id)}>
+                      New Hazard Template
                     </Menu.Item>
                     <Menu.Item
                       color="red"
@@ -329,8 +303,9 @@ export const FileManager = ({ onFileSelect, fileChanges = {}, onFilesChange }: F
             <Menu.Item onClick={() => createItem('folder')}>
               New Folder
             </Menu.Item>
-            <Menu.Item onClick={() => createItem('folder', undefined, true)}>
-              Create Repeated Folder
+            <Menu.Divider />
+            <Menu.Item onClick={() => createHazardTemplate()} disabled={hazardTemplateExists()}>
+              New Hazard Template
             </Menu.Item>
           </Menu.Dropdown>
         </Menu>
