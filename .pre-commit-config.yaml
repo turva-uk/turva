@@ -28,8 +28,11 @@ repos:
       - id: markdownlint
         args: ["--config", ".markdownlint.json"]
 
-  - repo: https://github.com/psf/black
-    rev: 24.10.0
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.4
     hooks:
-      - id: black
+      - id: ruff
+        args: [--fix]
+        files: ^api/
+      - id: ruff-format
         files: ^api/

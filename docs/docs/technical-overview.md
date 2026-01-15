@@ -29,7 +29,7 @@ Docker Compose orchestrates three services: `frontend`, `api`, and Caddy reverse
 ### Code Quality
 
 - **Prettier** - Automatic formatting on save for markdown, JSON, and YAML
-- **Black** - Python code formatter (100 char line length)
+- **Ruff** - Fast Python linter and formatter (replaces Black, Flake8, isort)
 - **ESLint** - JavaScript/TypeScript linting
 - **Markdownlint** - Markdown style checking
 - **Code Spell Checker** - Spell checking with custom dictionary (`cspell.config.json`)

@@ -3,7 +3,7 @@
     "esbenp.prettier-vscode",
     "davidanson.vscode-markdownlint",
     "yzhang.markdown-all-in-one",
-    "ms-python.black-formatter",
+    "charliermarsh.ruff",
     "ms-python.python"
   ]
 }
