@@ -49,6 +49,8 @@
     ".git",
     "*.min.js",
     "*.min.css",
+    "*.toml",
+    "**/*.toml",
     "package-lock.json",
     "yarn.lock",
     ".vscode",

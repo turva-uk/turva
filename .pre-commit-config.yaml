@@ -27,3 +27,9 @@ repos:
     hooks:
       - id: markdownlint
         args: ["--config", ".markdownlint.json"]
+
+  - repo: https://github.com/psf/black
+    rev: 24.10.0
+    hooks:
+      - id: black
+        files: ^api/

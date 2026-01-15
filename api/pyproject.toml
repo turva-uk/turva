@@ -16,6 +16,21 @@ omit = [
   '*/models/*',
 ]
 
+[tool.black]
+line-length = 100
+target-version = ['py311']
+exclude = '''
+/(
+    \.eggs
+  | \.git
+  | \.venv
+  | _build
+  | build
+  | dist
+  | alembic/versions
+)/
+'''
+
 [tool.mypy]
 python_version = "3.11"
 exclude = ['tests/', 'alembic/', 'models/']
