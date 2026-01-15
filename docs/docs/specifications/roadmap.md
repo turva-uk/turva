@@ -5,6 +5,7 @@ This roadmap tracks the implementation status of Turva features based on the [sp
 ## Foundation & Infrastructure
 
 ### User Management & Authentication
+
 - [x] User model with password hashing (Argon2)
 - [x] User registration endpoint
 - [x] User login endpoint
@@ -18,6 +19,7 @@ This roadmap tracks the implementation status of Turva features based on the [sp
 - [ ] Clinical Safety Officer designation
 
 ### Database & Data Layer
+
 - [x] PostgreSQL database setup
 - [x] Alembic migrations
 - [x] User table
@@ -32,6 +34,7 @@ This roadmap tracks the implementation status of Turva features based on the [sp
 - [ ] Change record table
 
 ### API Infrastructure
+
 - [x] FastAPI framework setup
 - [x] Docker containerization
 - [x] NGINX reverse proxy
@@ -42,6 +45,7 @@ This roadmap tracks the implementation status of Turva features based on the [sp
 - [ ] OpenAPI documentation
 
 ### Frontend Infrastructure
+
 - [x] React with TypeScript
 - [x] Vite build system
 - [x] Mantine UI component library
@@ -55,6 +59,7 @@ This roadmap tracks the implementation status of Turva features based on the [sp
 ## Core Domain Features
 
 ### Projects
+
 - [ ] Create new project
 - [ ] Project listing (My Projects)
 - [ ] Project listing (Community/Public Projects)
@@ -67,6 +72,7 @@ This roadmap tracks the implementation status of Turva features based on the [sp
 - [ ] Project permissions system
 
 ### Organizations
+
 - [ ] Organization model
 - [ ] Create organization
 - [ ] Organization profile
@@ -75,6 +81,7 @@ This roadmap tracks the implementation status of Turva features based on the [sp
 - [ ] Multi-organization support for users
 
 ### Hazards
+
 - [ ] Hazard model with versioning
 - [ ] Create hazard
 - [ ] Edit hazard (with version control)
@@ -89,6 +96,7 @@ This roadmap tracks the implementation status of Turva features based on the [sp
 - [ ] Hazard export
 
 ### Risk Assessment
+
 - [ ] Risk assessment model
 - [ ] Initial risk assessment creation
 - [ ] Residual risk assessment creation
@@ -101,6 +109,7 @@ This roadmap tracks the implementation status of Turva features based on the [sp
 - [ ] Risk assessment approval workflow
 
 ### Mitigations
+
 - [ ] Mitigation model
 - [ ] Create mitigation
 - [ ] Link mitigations to hazards
@@ -110,6 +119,7 @@ This roadmap tracks the implementation status of Turva features based on the [sp
 - [ ] Mitigation status tracking
 
 ### Safety Case
+
 - [ ] Safety case model
 - [ ] Safety case report generation
 - [ ] Link safety case to hazards
@@ -120,6 +130,7 @@ This roadmap tracks the implementation status of Turva features based on the [sp
 - [ ] Safety case export (PDF/Markdown)
 
 ### Clinical Risk Management System
+
 - [ ] Clinical risk management plan template
 - [ ] Process documentation
 - [ ] Role definitions
@@ -129,6 +140,7 @@ This roadmap tracks the implementation status of Turva features based on the [sp
 ## Governance & Compliance
 
 ### Audit & Version Control
+
 - [ ] Complete audit trail for all safety artefacts
 - [ ] Version control for hazards
 - [ ] Version control for risk assessments
@@ -140,6 +152,7 @@ This roadmap tracks the implementation status of Turva features based on the [sp
 - [ ] Audit trail export
 
 ### Roles & Permissions
+
 - [ ] Role-based access control (RBAC)
 - [ ] Project Owner role
 - [ ] Project Member role
@@ -150,6 +163,7 @@ This roadmap tracks the implementation status of Turva features based on the [sp
 - [ ] Granular permission controls
 
 ### Review & Approval Workflows
+
 - [ ] Review request system
 - [ ] Approval workflow engine
 - [ ] Sign-off capture
@@ -159,6 +173,7 @@ This roadmap tracks the implementation status of Turva features based on the [sp
 - [ ] Escalation mechanisms
 
 ### Incident Management
+
 - [ ] Clinical safety incident model
 - [ ] Incident reporting
 - [ ] Link incidents to hazards
@@ -168,6 +183,7 @@ This roadmap tracks the implementation status of Turva features based on the [sp
 ## Reporting & Documentation
 
 ### Reports
+
 - [ ] Hazard summary report
 - [ ] Risk profile report
 - [ ] Safety case report
@@ -177,6 +193,7 @@ This roadmap tracks the implementation status of Turva features based on the [sp
 - [ ] DCB0160 compliance report
 
 ### Export & Interoperability
+
 - [ ] Export hazard log (CSV/Excel)
 - [ ] Export safety case (PDF)
 - [ ] Export safety case (Markdown)
@@ -187,23 +204,27 @@ This roadmap tracks the implementation status of Turva features based on the [sp
 ## VMPT Stack Features
 
 ### Version Control (V)
+
 - [ ] Git-based version control for safety documents
 - [ ] Branch management for major changes
 - [ ] Merge conflict resolution
 - [ ] Tag releases
 
 ### Markdown (M)
+
 - [ ] Markdown editor for safety documentation
 - [ ] Markdown preview
 - [ ] Markdown templates
 - [ ] Rich text formatting support
 
 ### Placeholders (P)
+
 - [ ] Dynamic placeholder system
 - [ ] Auto-population of common fields
 - [ ] Context-aware suggestions
 
 ### Templates (T)
+
 - [ ] Safety case templates
 - [ ] Hazard templates
 - [ ] Risk assessment templates
@@ -215,6 +236,7 @@ This roadmap tracks the implementation status of Turva features based on the [sp
 ## User Experience
 
 ### Dashboard
+
 - [x] Dashboard layout
 - [x] Navigation structure
 - [ ] Dashboard widgets
@@ -224,6 +246,7 @@ This roadmap tracks the implementation status of Turva features based on the [sp
 - [ ] Search functionality
 
 ### UI/UX Improvements
+
 - [ ] Responsive design for mobile
 - [ ] Dark mode support
 - [ ] Accessibility (WCAG 2.1 AA)
@@ -234,6 +257,7 @@ This roadmap tracks the implementation status of Turva features based on the [sp
 - [ ] Tooltips and guides
 
 ### Collaboration
+
 - [ ] Commenting on hazards
 - [ ] @mentions in discussions
 - [ ] Activity notifications
@@ -243,6 +267,7 @@ This roadmap tracks the implementation status of Turva features based on the [sp
 ## Advanced Features
 
 ### Analytics & Intelligence
+
 - [ ] Risk trend analysis
 - [ ] Hazard pattern recognition
 - [ ] Predictive risk scoring
@@ -250,6 +275,7 @@ This roadmap tracks the implementation status of Turva features based on the [sp
 - [ ] Benchmark against similar projects
 
 ### Integration & Automation
+
 - [ ] CI/CD pipeline integration
 - [ ] Link hazards to code changes
 - [ ] Automated hazard triggers on file changes
@@ -258,6 +284,7 @@ This roadmap tracks the implementation status of Turva features based on the [sp
 - [ ] Slack/Teams notifications
 
 ### Search & Discovery
+
 - [ ] Full-text search across projects
 - [ ] Search public safety cases
 - [ ] Import hazards from other projects
@@ -265,6 +292,7 @@ This roadmap tracks the implementation status of Turva features based on the [sp
 - [ ] Similar hazard detection
 
 ### Data Management
+
 - [ ] Data retention policies
 - [ ] Archive old projects
 - [ ] Data export for compliance
@@ -274,6 +302,7 @@ This roadmap tracks the implementation status of Turva features based on the [sp
 ## Testing & Quality
 
 ### Testing
+
 - [x] Unit tests for user model
 - [x] Integration tests for authentication
 - [ ] Unit tests for all models
@@ -285,6 +314,7 @@ This roadmap tracks the implementation status of Turva features based on the [sp
 - [ ] Browser compatibility testing
 
 ### Documentation
+
 - [x] Specification document
 - [x] README
 - [ ] API documentation (OpenAPI/Swagger)
@@ -298,6 +328,7 @@ This roadmap tracks the implementation status of Turva features based on the [sp
 ## Deployment & Operations
 
 ### Deployment
+
 - [x] Docker Compose setup
 - [x] Development environment
 - [ ] Production deployment configuration
@@ -308,6 +339,7 @@ This roadmap tracks the implementation status of Turva features based on the [sp
 - [ ] Load balancing
 
 ### Monitoring & Operations
+
 - [ ] Application logging
 - [ ] Error tracking (Sentry)
 - [ ] Performance monitoring
@@ -318,6 +350,7 @@ This roadmap tracks the implementation status of Turva features based on the [sp
 - [ ] Health check endpoints
 
 ### Security
+
 - [ ] Security audit
 - [ ] Penetration testing
 - [ ] HTTPS enforcement
@@ -332,6 +365,7 @@ This roadmap tracks the implementation status of Turva features based on the [sp
 ## Compliance & Certification
 
 ### Standards Compliance
+
 - [ ] DCB0129 alignment verification
 - [ ] DCB0160 alignment verification
 - [ ] GDPR compliance
@@ -340,6 +374,7 @@ This roadmap tracks the implementation status of Turva features based on the [sp
 - [ ] Regulatory documentation
 
 ### Certification & Audit
+
 - [ ] Internal audit process
 - [ ] External audit preparation
 - [ ] Certification documentation
@@ -348,6 +383,7 @@ This roadmap tracks the implementation status of Turva features based on the [sp
 ## Future Considerations
 
 ### Extensibility
+
 - [ ] Plugin system
 - [ ] Custom safety artefact types
 - [ ] Custom workflow definitions
@@ -355,11 +391,13 @@ This roadmap tracks the implementation status of Turva features based on the [sp
 - [ ] API for third-party integrations
 
 ### Internationalization
+
 - [ ] Multi-language support
 - [ ] Localized risk matrices
 - [ ] Regional compliance variations
 
 ### Advanced Governance
+
 - [ ] Delegated authority tracking
 - [ ] Multi-level approval chains
 - [ ] Automated compliance checks
