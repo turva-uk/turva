@@ -66,7 +66,8 @@
     "Vallance",
     "Vite",
     "VMPT",
-    "WCAG"
+    "WCAG",
+    "WSGI"
   ],
   "ignorePaths": [
     "node_modules",
@@ -80,10 +81,13 @@
     "*.min.css",
     "*.toml",
     "**/*.toml",
+    "docker-compose.yml",
+    "docker-compose.*.yml",
     "package-lock.json",
     "yarn.lock",
     ".vscode",
     "htmlcov",
-    ".gitignore"
+    ".gitignore",
+    "JustFile"
   ]
 }

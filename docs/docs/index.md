@@ -6,6 +6,10 @@ Welcome to the Turva documentation. Turva is a framework for managing safety cas
 
 - [Technical overview](technical-overview.md)
 
+## Getting started
+
+- [Getting started](getting-started.md)
+
 ## LLM
 
 - [Large Language Modules (LLM)](llm/index.md)

@@ -332,6 +332,8 @@ This roadmap tracks the implementation status of Turva features based on the [sp
 - [x] Docker Compose setup
 - [x] Development environment
 - [ ] Production deployment configuration
+- [ ] Pin version numbers for all Docker images (PostgreSQL, Node, Python, Caddy, etc.) before production
+- [ ] Pin version numbers for all dependencies (Python packages, npm packages) before production
 - [ ] Kubernetes deployment
 - [ ] Database backup strategy
 - [ ] Disaster recovery plan
@@ -405,6 +407,6 @@ This roadmap tracks the implementation status of Turva features based on the [sp
 
 ---
 
-**Last Updated:** 15 January 2026  
-**Current Phase:** Foundation & Infrastructure  
+**Last Updated:** 15 January 2026
+**Current Phase:** Foundation & Infrastructure
 **Next Milestone:** Core Domain Features (Projects & Hazards)

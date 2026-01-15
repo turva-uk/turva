@@ -1,0 +1,54 @@
+set shell := ["bash", "-c"]
+
+default:
+    just --list
+
+initialise:= 'set -euxo pipefail
+    initialise() {
+        # Clear the terminal window title on exit
+        echo -ne "\033]0; \007"
+    }
+    trap initialise EXIT
+    just _terminal-description'
+
+
+_terminal-description message=" ":
+    echo -ne "\033]0;{{message}}\007"
+
+alias aj := abbreviate-just
+# Set up the description for terminal windows
+abbreviate-just:
+    #!/usr/bin/env bash
+    {{initialise}} abbreviate-just
+    alias_definition="alias j='just'"
+
+    if grep -Fxq "$alias_definition" ~/.zshrc
+    then
+        echo "Alias already exists in ~/.zshrc"
+    else
+        echo "$alias_definition" >> ~/.zshrc
+        echo "Alias added to ~/.zshrc"
+    fi
+
+    echo "Please run the following command to apply the changes to this terminal:"
+    echo "source ~/.zshrc"
+
+
+alias sd := start-dev
+# Start the dev app (build: 'b' will also build the images)
+start-dev build="":
+    #!/usr/bin/env bash
+    {{initialise}} "start-dev"
+
+    if [ "{{build}}" = "b" ]; then \
+        docker compose -f docker-compose.yml up --build; \
+    else \
+        docker compose -f docker-compose.yml up; \
+    fi
+
+alias sc := stop
+# Stop the containers
+stop:
+    #!/usr/bin/env bash
+    {{initialise}} "stop"
+    docker compose -f compose.yml -f docker-compose.yml down
