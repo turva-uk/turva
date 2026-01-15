@@ -1,6 +1,33 @@
 {
   "version": "0.2",
   "language": "en-GB",
+  "enabledLanguageIds": [
+    "markdown",
+    "python",
+    "javascript",
+    "typescript",
+    "javascriptreact",
+    "typescriptreact"
+  ],
+  "languageSettings": [
+    {
+      "languageId": "python",
+      "includeRegExpList": [
+        "/#.*/",
+        "/'''[\\s\\S]*?'''/",
+        "/\"\"\"[\\s\\S]*?\"\"\"/",
+        "/#.*$/gm"
+      ]
+    },
+    {
+      "languageId": "javascript,typescript,javascriptreact,typescriptreact",
+      "includeRegExpList": [
+        "//.*$/gm",
+        "/\\/\\*[\\s\\S]*?\\*\\//gm",
+        "/\\/\\*\\*[\\s\\S]*?\\*\\//gm"
+      ]
+    }
+  ],
   "words": [
     "Alembic",
     "Argon",
@@ -10,6 +37,7 @@
     "Caddyfile",
     "challengeable",
     "Channing",
+    "datname",
     "datetime",
     "dcb",
     "decommissioning",

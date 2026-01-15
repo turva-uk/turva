@@ -57,9 +57,9 @@ async def test_extend_session_extends_expiry(test_client, freezer):
 
     assert refreshed.expires_at.replace(tzinfo=timezone.utc) > original_expires
     # Extended by an hour
-    assert refreshed.expires_at.replace(
-        tzinfo=timezone.utc
-    ) - original_expires == timedelta(hours=1)
+    assert refreshed.expires_at.replace(tzinfo=timezone.utc) - original_expires == timedelta(
+        hours=1
+    )
 
 
 @pytest.mark.asyncio

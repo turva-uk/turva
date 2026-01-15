@@ -11,9 +11,7 @@ async def test_generate_password_hash():
     hashed_password = await User.generate_password_hash(password)
     assert hashed_password is not None
     assert isinstance(hashed_password, str)
-    assert (
-        hashed_password != password
-    )  # Ensure the hash is different from the original password
+    assert hashed_password != password  # Ensure the hash is different from the original password
 
     # Verify the hash using argon2 directly
     ph = PasswordHasher()

@@ -17,15 +17,11 @@ class RegisterRequest(BaseModel):
 
 
 @router.post("/register/")
-async def register(
-    request: Request, body: RegisterRequest, background_tasks: BackgroundTasks
-):
+async def register(request: Request, body: RegisterRequest, background_tasks: BackgroundTasks):
     # Check if user already exists
     existing_user = await User.objects.get_or_none(email_address=body.email)
     if existing_user:
-        raise HTTPException(
-            status_code=400, detail="A user with this email already exists."
-        )
+        raise HTTPException(status_code=400, detail="A user with this email already exists.")
 
     # Validate email format
     try:

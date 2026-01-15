@@ -103,9 +103,7 @@ async def create_database(url, encoding="utf8", template=None):
 
     elif dialect_name == "mysql":
         async with engine.begin() as conn:
-            text = "CREATE DATABASE {} CHARACTER SET = '{}'".format(
-                quote(conn, database), encoding
-            )
+            text = "CREATE DATABASE {} CHARACTER SET = '{}'".format(quote(conn, database), encoding)
             await conn.execute(sa.text(text))
 
     elif dialect_name == "sqlite" and database != ":memory:":

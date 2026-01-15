@@ -18,9 +18,7 @@ def parseInteger(env_var: str, required: bool) -> int | None:
     value = os.getenv(env_var)
     if value is None:
         if required is True:
-            raise ConfigurationError(
-                f"Missing required integer value for key {env_var}"
-            )
+            raise ConfigurationError(f"Missing required integer value for key {env_var}")
         else:
             return None
 
@@ -60,9 +58,7 @@ def parseBoolean(env_var: str, required: bool) -> bool | None:
     value = os.getenv(env_var)
     if value is None:
         if required is True:
-            raise ConfigurationError(
-                f"Missing required boolean value for key {env_var}"
-            )
+            raise ConfigurationError(f"Missing required boolean value for key {env_var}")
         else:
             return None
 

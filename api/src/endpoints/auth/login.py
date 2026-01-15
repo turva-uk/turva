@@ -17,9 +17,7 @@ router = APIRouter()
 @router.post("/login/")
 async def login(data: LoginRequest):
     if not data.email_address or not data.password:
-        raise HTTPException(
-            status_code=400, detail="Username and password are required"
-        )
+        raise HTTPException(status_code=400, detail="Username and password are required")
 
     # Validate email format
     try:

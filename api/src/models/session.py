@@ -39,6 +39,4 @@ class Session(ormar.Model, DateFieldsMixins):
         )
 
     def is_expired(self) -> bool:
-        return datetime.now(timezone.utc) >= self.expires_at.replace(
-            tzinfo=timezone.utc
-        )
+        return datetime.now(timezone.utc) >= self.expires_at.replace(tzinfo=timezone.utc)

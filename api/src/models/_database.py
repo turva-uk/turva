@@ -21,7 +21,9 @@ random_test_db_file_name = "".join(
 
 _test_database_url = f"sqlite+aiosqlite:///./{random_test_db_file_name}.db"
 
-_prod_database_url = f"{base_database_url}/{Config.Database.database}?options=-csearch_path={Config.Database.schema}"
+_prod_database_url = (
+    f"{base_database_url}/{Config.Database.database}?options=-csearch_path={Config.Database.schema}"
+)
 
 DATABASE_URL = _test_database_url if is_testing_environment else _prod_database_url
 

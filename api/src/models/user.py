@@ -22,9 +22,7 @@ class User(ormar.Model, DateFieldsMixins, BaseUser):
     email_address: str = ormar.String(max_length=100, unique=True)
     is_verified: bool = ormar.Boolean(default=False)
     verification_token: str | None = ormar.String(max_length=100, nullable=True)
-    verification_token_created_at: datetime | None = ormar.DateTime(
-        nullable=True, timezone=True
-    )
+    verification_token_created_at: datetime | None = ormar.DateTime(nullable=True, timezone=True)
     is_active: bool = ormar.Boolean(default=True)
     organisation: str | None = ormar.String(max_length=100, nullable=True)
     job_role: str | None = ormar.String(max_length=100, nullable=True)
@@ -65,11 +63,8 @@ class User(ormar.Model, DateFieldsMixins, BaseUser):
             raise ValueError("Verification token cannot be recycled yet.")
 
         if (
-            self.verification_token is None
-            or self.verification_token_created_at is None
-        ) or datetime.now(
-            tz=timezone.utc
-        ) - self.verification_token_created_at > token_lifetime:
+            self.verification_token is None or self.verification_token_created_at is None
+        ) or datetime.now(tz=timezone.utc) - self.verification_token_created_at > token_lifetime:
             # Token has expired or was never created, generate a new one
             self.verification_token = secrets.token_urlsafe(48)
             self.verification_token_created_at = datetime.now(tz=timezone.utc)

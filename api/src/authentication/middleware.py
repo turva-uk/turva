@@ -19,9 +19,7 @@ class TurvaAuthenticationBackend(AuthenticationBackend):
     request.
     """
 
-    async def authenticate(
-        self, conn: HTTPConnection
-    ) -> Tuple[AuthCredentials, BaseUser] | None:
+    async def authenticate(self, conn: HTTPConnection) -> Tuple[AuthCredentials, BaseUser] | None:
         # We could also check if the user's valid in LDAP,
         # but that would hit the LDAP server on every
         # request, which is not ideal, but possible.
