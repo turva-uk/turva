@@ -19,6 +19,10 @@
       "source.fixAll": "explicit"
     }
   },
+  "python.linting.enabled": false,
+  "python.linting.flake8Enabled": false,
+  "python.linting.pylintEnabled": false,
+  "python.linting.mypyEnabled": false,
   "files.associations": {
     "*.md": "markdown"
   }
