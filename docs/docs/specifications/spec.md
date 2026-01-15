@@ -53,6 +53,29 @@ The system serves multiple roles within clinical safety governance:
 
 ## Core Concepts
 
+### Typed Safety Artefacts
+
+Turva manages multiple types of safety artefacts, each representing a distinct kind of safety information. While hazards are the most prominent, the system treats several categories of safety information as first-class artefacts:
+
+- **Hazards**: Potential sources of harm requiring assessment and mitigation
+- **Clinical safety incidents**: Actual occurrences of harm or near misses
+- **Compliance sign-offs**: Formal approvals and regulatory attestations
+- **Officers and accountable roles**: Named individuals with specific safety responsibilities
+- **Risk assessments**: Evaluations of severity, likelihood, and risk level
+- **Mitigations**: Control measures reducing risk
+- **Safety case reports**: Structured arguments demonstrating acceptable safety
+
+These typed artefacts share common characteristics:
+
+- **Versioning**: Changes are tracked over time with complete history
+- **Ownership**: Each artefact is assigned to a named, accountable individual
+- **Audit trail**: All modifications are attributed, timestamped, and traceable
+- **Visibility control**: Access is governed by project permissions and governance rules
+- **Lifecycle management**: Artefacts have status (open, closed, under review) and progression through defined states
+- **Evidence linkage**: Supporting documentation and justifications are attached
+
+This common structure enables consistent governance, auditability, and transparency across different kinds of safety information. The domain model supports extension: new types of safety artefacts may be introduced as clinical safety practice evolves, without violating core safety principles. The underlying pattern is generic, even though specific artefact types have distinct properties and workflows.
+
 ### Project
 
 A project represents a single healthcare IT system or service undergoing clinical safety assessment. Each project has its own safety documentation, hazard log, and audit trail.
@@ -67,6 +90,13 @@ A project exists because each healthcare IT system requires separate clinical ri
 Projects are owned by a named individual (typically the Clinical Safety Officer or a senior clinician) and may have multiple team members with different permissions.
 
 Projects relate to organisations (the entity responsible for the system), users (people involved in safety management), and hazards (the risks being managed).
+
+**Project visibility is an intentional governance decision**. Each project is explicitly designated as public or private:
+
+- **Public projects**: Safety information is openly accessible to enable external scrutiny, learning across organisations, and public accountability. Public safety cases demonstrate commitment to transparency and invite challenge and improvement.
+- **Private projects**: Access is restricted to named project members and authorised personnel. This may be necessary for commercially sensitive information, early-stage development, or where disclosure could introduce security risks.
+
+Visibility is not incidental or accidental. It is a deliberate choice made by the project owner and Clinical Safety Officer, reflecting the organisation's transparency policy and the specific circumstances of the system. The default posture is openness, but controlled access is supported where justified. Changing a project's visibility status is a governance action, subject to approval and audit.
 
 ### Hazard
 
@@ -128,6 +158,8 @@ Risk assessment uses a severity-likelihood matrix:
 3. Undesirable: Attempts should be made to eliminate or control
 4. Mandatory risk elimination: Must reduce to acceptable level
 5. Unacceptable: Cannot proceed until risk is reduced
+
+**Risk level is derived, not entered**. This is a fundamental safety principle: the risk level is calculated automatically from the assessed severity and likelihood scores. Users assess severity (impact) and likelihood (probability) independently based on clinical judgement and evidence. The risk level emerges from these assessments according to the risk matrix. Users cannot arbitrarily assign a risk level that contradicts the severity and likelihood scores. This constraint ensures consistency, prevents subjective downgrading of serious risks, and makes risk decisions auditable and challengeable.
 
 Risk assessments relate to hazards, mitigations, and the broader safety case.
 
@@ -460,6 +492,17 @@ Each hazard is assigned to a named individual responsible for:
 
 By default, hazards are assigned to the Clinical Safety Officer, but may be delegated to others with appropriate competence.
 
+### Collaborative Contribution with Explicit Accountability
+
+Clinical safety work is collaborative. Development teams, clinicians, quality staff, and external reviewers may all contribute to hazard identification, risk assessment, and mitigation design. Turva supports this collaboration while maintaining clear accountability:
+
+- **Multiple contributors**: Safety artefacts may be edited or updated by multiple individuals. Teams contribute knowledge, evidence, and technical input.
+- **Contribution is not approval**: Adding information to a hazard log, proposing a mitigation, or documenting evidence is distinct from approving a safety decision. Contributors provide input; approvers accept accountability.
+- **Delegation does not remove accountability**: A Clinical Safety Officer may delegate work on specific hazards to team members, but ultimate clinical responsibility remains with the CSO. Delegation is documented and traceable.
+- **Named ownership at all times**: Every safety artefact has a named owner. If ownership is transferred, the transfer is explicit, approved, and recorded.
+
+This model enables efficient teamwork without diffusing accountability. It recognises that safety work benefits from diverse expertise, but safety decisions require named, accountable individuals with appropriate authority and competence.
+
 ### Review and Sign-Off
 
 Safety documentation (hazard logs, risk assessments, safety case reports) must be reviewed and approved by appropriate personnel.
@@ -597,6 +640,25 @@ Version control is superior to manual document versioning because it:
 - Shows exactly what changed and when
 - Attributes changes to specific individuals
 - Prevents accidental or malicious alteration of history
+
+### Safety Decisions Are Time-Bound to System State
+
+A critical principle: **safety decisions are valid only in the context of the specific system state in which they were made**.
+
+When a Clinical Safety Officer accepts a residual risk, that acceptance applies to the system as it exists at that moment. If the system changes:
+
+- Previous risk assessments may no longer be valid
+- Accepted risks may need reassessment
+- New hazards may be introduced
+- Existing mitigations may be affected
+
+This has several implications:
+
+- **Past safety decisions are not automatically valid after change**: Each change triggers review of affected hazards. A system that was safe yesterday may not be safe today if it has been modified.
+- **Historical safety positions must remain inspectable**: Auditors and reviewers must be able to see what the system looked like when a risk was accepted, and what the reasoning was at that time. This requires immutable historical records.
+- **Safety assurance is continuous, not one-off**: Deployment approval is not permanent. Ongoing changes require ongoing safety evaluation.
+
+This principle prevents complacency and ensures that safety management responds to the actual state of the system, not outdated assessments. It also demonstrates why version control and change tracking are essential safety capabilities, not merely administrative conveniences.
 
 ### Decision Provenance
 
@@ -942,6 +1004,22 @@ Not all healthcare IT systems require the same level of clinical risk management
 - Complex, high-risk systems require comprehensive hazard management
 
 The system should not impose unnecessary overhead on low-risk projects.
+
+### Extensible Safety Artefacts
+
+Turva is not limited to a fixed, immutable list of safety artefact types. The domain model supports extension:
+
+- New types of safety artefacts can be introduced as clinical safety practice evolves
+- Emerging regulatory requirements may necessitate new categories of safety information
+- Organisations may define domain-specific artefact types to suit their governance needs
+
+This extensibility is intentional. It ensures that the platform can adapt to future needs without requiring fundamental architectural change. However, extensibility is constrained by safety principles:
+
+- New artefact types must support versioning, audit trails, and ownership
+- Safety governance rules (approval, review, visibility) apply consistently
+- Core safety concepts (hazards, risk assessments, mitigations) remain stable
+
+This is a forward-compatibility commitment: Turva will accommodate evolution of clinical safety practice without compromising auditability, accountability, or regulatory compliance.
 
 ---
 

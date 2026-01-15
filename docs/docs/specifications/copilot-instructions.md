@@ -6,6 +6,11 @@ Turva is a **clinical safety management platform** for healthcare IT systems. It
 
 **Domain context**: This is safety-critical healthcare software. Clinical Safety Officers (CSOs) assess risks, track hazards, and ensure patient safety. The system supports DCB0129/DCB0160 compliance for NHS Digital standards.
 
+## Reading material
+
+- [spec](spec.md)
+- [roadmap](roadmap.md)
+
 ## Architecture
 
 **Monorepo** with three Docker services orchestrated via docker-compose and Caddy reverse proxy:
