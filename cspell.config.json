@@ -90,6 +90,8 @@
     "**/*.toml",
     "docker-compose.yml",
     "docker-compose.*.yml",
+    "**/Dockerfile",
+    "**/Dockerfile.*",
     "package-lock.json",
     "yarn.lock",
     ".vscode",

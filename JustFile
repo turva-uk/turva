@@ -34,6 +34,33 @@ abbreviate-just:
     echo "source ~/.zshrc"
 
 
+alias c := clean
+# Clean up all containers, volumes, and cached images
+clean:
+    #!/usr/bin/env bash
+    {{initialise}} "clean"
+    docker compose down -v
+    docker compose rm -fsv
+    docker system prune -f
+
+alias d := docs
+# Start the MkDocs documentation server on port 8001 with hot reload
+docs:
+    #!/usr/bin/env bash
+    {{initialise}} "docs"
+    echo "Starting MkDocs documentation server with hot reload..."
+    echo "Documentation will be available at http://localhost:8001"
+    cd docs && mkdocs serve -a localhost:8001
+
+
+alias l := logs
+# Follow logs for all services or a specific service (e.g., 'j l api')
+logs service="":
+    #!/usr/bin/env bash
+    {{initialise}} "logs"
+    docker compose logs -f {{service}}
+
+
 alias sd := start-dev
 # Start the dev app (build: 'b' will also build the images)
 start-dev build="":
@@ -46,19 +73,14 @@ start-dev build="":
         docker compose -f docker-compose.yml up; \
     fi
 
-alias sc := stop
+alias dd := dev-down
 # Stop the containers
-stop:
+dev-down:
     #!/usr/bin/env bash
     {{initialise}} "stop"
     docker compose -f docker-compose.yml down
 
-alias l := logs
-# Follow logs for all services or a specific service (e.g., 'j l api')
-logs service="":
-    #!/usr/bin/env bash
-    {{initialise}} "logs"
-    docker compose logs -f {{service}}
+
 
 alias r := restart
 # Restart all services or a specific service (e.g., 'j r frontend')
@@ -66,12 +88,3 @@ restart service="":
     #!/usr/bin/env bash
     {{initialise}} "restart"
     docker compose restart {{service}}
-
-alias c := clean
-# Clean up all containers, volumes, and cached images
-clean:
-    #!/usr/bin/env bash
-    {{initialise}} "clean"
-    docker compose down -v
-    docker compose rm -fsv
-    docker system prune -f
