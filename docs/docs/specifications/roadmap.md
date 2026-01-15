@@ -301,6 +301,45 @@ This roadmap tracks the implementation status of Turva features based on the [sp
 
 ## Testing & Quality
 
+### Code Quality & Formatting
+
+#### Python
+
+- [x] Ruff formatter and linter
+- [x] Format-on-save in VS Code
+- [x] Line length set to 100 characters
+- [x] Import sorting configured
+- [ ] Type checking with mypy
+- [ ] Docstring linting
+- [ ] Complexity analysis
+
+#### TypeScript/JavaScript
+
+- [x] ESLint configuration
+- [x] Prettier formatter
+- [x] Format-on-save in VS Code
+- [x] React hooks linting
+- [x] TypeScript strict mode
+- [ ] Import sorting
+- [ ] Unused code detection
+- [ ] Bundle size analysis
+
+#### Pre-commit Hooks
+
+- [x] Pre-commit framework installed
+- [x] Trailing whitespace check
+- [x] End-of-file fixer
+- [x] YAML/JSON validation
+- [x] Spell checking (cspell)
+- [x] Python formatting (Ruff)
+- [x] Python linting (Ruff)
+- [x] Markdown formatting (Prettier)
+- [x] Markdown linting (markdownlint)
+- [ ] TypeScript/JavaScript formatting in pre-commit
+- [ ] TypeScript/JavaScript linting in pre-commit
+- [ ] Commit message linting (commitlint)
+- [ ] Branch name validation
+
 ### Testing
 
 - [x] Unit tests for user model
