@@ -32,6 +32,7 @@ Docker Compose orchestrates three services: `frontend`, `api`, and Caddy reverse
 - **ESLint** - JavaScript/TypeScript linting
 - **Markdownlint** - Markdown style checking
 - **Code Spell Checker** - Spell checking with custom dictionary (`cspell.config.json`)
+- **Pre-commit** - Git hooks enforce spelling, formatting, and linting before commits
 
 ### Testing
 
