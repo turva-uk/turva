@@ -29,6 +29,7 @@
     "offs",
     "Ormar",
     "postgresql",
+    "pytest",
     "Starlette",
     "Tabler",
     "turva",
