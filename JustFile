@@ -51,4 +51,27 @@ alias sc := stop
 stop:
     #!/usr/bin/env bash
     {{initialise}} "stop"
-    docker compose -f compose.yml -f docker-compose.yml down
+    docker compose -f docker-compose.yml down
+
+alias l := logs
+# Follow logs for all services or a specific service (e.g., 'j l api')
+logs service="":
+    #!/usr/bin/env bash
+    {{initialise}} "logs"
+    docker compose logs -f {{service}}
+
+alias r := restart
+# Restart all services or a specific service (e.g., 'j r frontend')
+restart service="":
+    #!/usr/bin/env bash
+    {{initialise}} "restart"
+    docker compose restart {{service}}
+
+alias c := clean
+# Clean up all containers, volumes, and cached images
+clean:
+    #!/usr/bin/env bash
+    {{initialise}} "clean"
+    docker compose down -v
+    docker compose rm -fsv
+    docker system prune -f
