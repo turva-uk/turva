@@ -19,7 +19,7 @@ Turva is a **clinical safety management platform** for healthcare IT systems. It
 - **api/** - FastAPI + Ormar ORM + PostgreSQL (port 8000)
 - **docs/** - MkDocs documentation (currently commented out)
 
-```
+```text
 http://localhost → Caddy → /api/* → api:8000
                          → /*     → frontend:5173
 ```
