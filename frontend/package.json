@@ -17,7 +17,8 @@
     "typecheck": "tsc --noEmit",
     "preview": "vite preview",
     "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build"
+    "build-storybook": "storybook build -o ../docs/docs/code/storybook",
+    "docs:build": "typedoc"
   },
   "dependencies": {
     "@mantine/core": "^8.2.2",
@@ -62,6 +63,8 @@
     "storybook-addon-remix-react-router": "^5.0.0",
     "stylelint": "^17.0.0",
     "stylelint-config-standard": "^40.0.0",
+    "typedoc": "^0.28.0",
+    "typedoc-plugin-markdown": "^4.5.1",
     "typescript": "~5.8.3",
     "typescript-eslint": "^8.35.1",
     "vite": "^7.0.4",

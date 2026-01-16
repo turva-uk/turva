@@ -52,9 +52,13 @@ jobs:
         working-directory: frontend
         run: yarn install --immutable
 
+      - name: Build TypeScript docs
+        working-directory: frontend
+        run: yarn docs:build
+
       - name: Build Storybook
         working-directory: frontend
-        run: yarn build-storybook --output-dir ../site/storybook
+        run: yarn build-storybook
 
       # ---------- MkDocs site (Python 3.13) ----------
       - name: Set up Python

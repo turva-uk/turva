@@ -14,6 +14,7 @@ import { IconDeviceFloppy } from "@tabler/icons-react";
 import { HeaderTabs } from "./components/HeaderTabs/HeaderTabs";
 import { FileManager } from "./components/FileManager/FileManager";
 import { TemplateEditor } from "./components/TemplateEditor/TemplateEditor";
+import type { Placeholder } from "./components/TemplateEditor/TemplateEditor";
 import useREST from "../../hooks/useREST";
 
 interface FileItem {
@@ -38,9 +39,7 @@ const CreateProjectTemplatePage = () => {
     [fileId: string]: string;
   }>({});
   const [files, setFiles] = useState<FileItem[]>([]);
-  const [placeholders, setPlaceholders] = useState<Record<string, unknown>[]>(
-    [],
-  );
+  const [placeholders, setPlaceholders] = useState<Placeholder[]>([]);
 
   // Align with hook definition (resource excludes /api prefix)
   const { success, loading, submitFn, resetData } = useREST<

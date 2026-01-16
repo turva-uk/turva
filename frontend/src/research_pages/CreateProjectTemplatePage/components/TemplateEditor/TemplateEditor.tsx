@@ -42,7 +42,7 @@ interface FileChanges {
   [fileId: string]: boolean;
 }
 
-interface Placeholder {
+export interface Placeholder {
   id: string;
   title: string;
   description: string;

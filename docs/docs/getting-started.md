@@ -130,9 +130,3 @@ Clean up and rebuild:
 docker compose down -v
 j sd b
 ```
-
-## Next Steps
-
-- Read the [Specification](specifications/spec.md) to understand Turva's domain model
-- Check the [Roadmap](specifications/roadmap.md) to see what's implemented
-- Review the [Development Guide](specifications/copilot-instructions.md) for coding conventions

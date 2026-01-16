@@ -197,7 +197,7 @@ jobs:
   # ---------- Auto-create PR to main after all checks pass ----------
   create_pr:
     runs-on: ubuntu-latest
-    name: Create PR to main
+    name: Create / updatePR to main
     needs: [python_checks, typescript_checks, frontend_security]
     if: github.event_name == 'push' && success()
     steps:
