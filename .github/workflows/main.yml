@@ -1,0 +1,99 @@
+name: Main branch workflows
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build MkDocs + Storybook
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      # ---------- Frontend Storybook (Node 22 + Yarn) ----------
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Enable Corepack & pin Yarn
+        run: |
+          corepack enable
+          corepack prepare yarn@4.10.3 --activate
+          yarn --version
+
+      - name: Cache Yarn dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            frontend/.yarn/cache
+            frontend/.yarn/install-state.gz
+            frontend/node_modules
+          key: ${{ runner.os }}-yarn4-nm-${{ hashFiles('frontend/yarn.lock', 'frontend/.yarnrc.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn4-nm-
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: yarn install --immutable
+
+      - name: Build Storybook
+        working-directory: frontend
+        run: yarn build-storybook --output-dir ../site/storybook
+
+      # ---------- MkDocs site (Python 3.13) ----------
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install MkDocs dependencies
+        working-directory: docs
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Build MkDocs site
+        working-directory: docs
+        run: mkdocs build --site-dir ../site
+
+      - name: Show final site tree (debug)
+        run: |
+          echo "Final site/ content:"
+          ls -laR site/ | head -50
+
+      # ---------- Upload for Pages ----------
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    permissions:
+      pages: write
+      id-token: write
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4
