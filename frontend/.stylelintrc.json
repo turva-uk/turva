@@ -1,0 +1,39 @@
+{
+  "extends": ["stylelint-config-standard"],
+  "customSyntax": "postcss",
+  "rules": {
+    "selector-class-pattern": null,
+    "custom-property-pattern": null,
+    "function-no-unknown": [
+      true,
+      {
+        "ignoreFunctions": ["light-dark", "rem"]
+      }
+    ],
+    "property-no-unknown": [
+      true,
+      {
+        "ignoreProperties": [
+          "--app-shell-transition-duration",
+          "--app-shell-transition-timing-function"
+        ]
+      }
+    ],
+    "value-keyword-case": [
+      "lower",
+      {
+        "ignoreKeywords": ["inherit"]
+      }
+    ],
+    "declaration-property-value-no-unknown": null,
+    "media-query-no-invalid": null,
+    "declaration-empty-line-before": null,
+    "rule-empty-line-before": [
+      "always-multi-line",
+      {
+        "except": ["first-nested"]
+      }
+    ],
+    "comment-empty-line-before": null
+  }
+}

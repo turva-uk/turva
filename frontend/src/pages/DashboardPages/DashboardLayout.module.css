@@ -1,11 +1,15 @@
 .navbar {
-  background-color: light-dark(var(--mantine-color-turva-7), var(--mantine-color-turva-7));
+  background-color: light-dark(
+    var(--mantine-color-turva-7),
+    var(--mantine-color-turva-7)
+  );
   width: rem(300px);
   padding: var(--mantine-spacing-md);
   padding-bottom: 0;
   display: flex;
   flex-direction: column;
-  border-right: rem(1px) solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+  border-right: rem(1px) solid
+    light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
   height: 100%;
 }
 
@@ -15,7 +19,8 @@
   margin-left: calc(var(--mantine-spacing-md) * -1);
   margin-right: calc(var(--mantine-spacing-md) * -1);
   color: light-dark(var(--mantine-color-black), var(--mantine-color-white));
-  border-bottom: rem(1px) solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+  border-bottom: rem(1px) solid
+    light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
 }
 
 .title {
@@ -38,10 +43,13 @@
 }
 
 .topHeader {
-  background-color: light-dark(var(--mantine-color-turva-7), var(--mantine-color-turva-7)) !important;
+  background-color: light-dark(
+    var(--mantine-color-turva-7),
+    var(--mantine-color-turva-7)
+  ) !important;
   padding: var(--mantine-spacing-md);
   transition: none;
-  transition-property: none;
+
   --app-shell-transition-duration: inherit;
   --app-shell-transition-timing-function: inherit;
 }
@@ -51,5 +59,8 @@
 }
 
 .navLink:hover {
-  background-color: light-dark(var(--mantine-color-turva-4), var(--mantine-color-turva-4)) !important;
+  background-color: light-dark(
+    var(--mantine-color-turva-4),
+    var(--mantine-color-turva-4)
+  ) !important;
 }

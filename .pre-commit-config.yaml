@@ -22,7 +22,7 @@ repos:
     rev: v4.0.0-alpha.8
     hooks:
       - id: prettier
-        types_or: [markdown, json, yaml, ts, tsx, javascript, jsx]
+        types_or: [markdown, json, yaml, ts, tsx, javascript, jsx, css]
         args: [--write]
 
   - repo: https://github.com/igorshubovych/markdownlint-cli
@@ -47,4 +47,18 @@ repos:
         entry: bash -c 'cd frontend && npm run lint'
         language: system
         files: ^frontend/.*\.(ts|tsx|js|jsx)$
+        pass_filenames: false
+
+      - id: stylelint
+        name: Stylelint (frontend CSS)
+        entry: bash -c 'cd frontend && npm run stylelint:fix'
+        language: system
+        files: ^frontend/.*\.css$
+        pass_filenames: false
+
+      - id: typescript
+        name: TypeScript type check
+        entry: bash -c 'cd frontend && npm run typecheck'
+        language: system
+        files: ^frontend/.*\.(ts|tsx)$
         pass_filenames: false

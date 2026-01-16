@@ -5,6 +5,9 @@
 }
 
 .user:hover {
-  background-color: light-dark(var(--mantine-color-turva-6), var(--mantine-color-turva-8)) !important;
+  background-color: light-dark(
+    var(--mantine-color-turva-6),
+    var(--mantine-color-turva-8)
+  ) !important;
   color: var(--mantine-color-dark-8);
 }

@@ -1,0 +1,168 @@
+name: Non-main branch workflows
+
+on:
+  push:
+    branches-ignore: [main, master]
+  pull_request:
+    branches-ignore: [main, master]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: nonmain-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ---------- Python ----------
+  python_checks:
+    runs-on: ubuntu-latest
+    name: Python ${{ matrix.task }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        task: [styling, unit]
+        python: ["3.13"]
+
+    env:
+      PRE_COMMIT_HOME: ${{ github.workspace }}/.pre-commit-cache
+      PIP_CACHE_DIR: ${{ github.workspace }}/.pip-cache
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      # ---- caches (pick per task) ----
+      - name: Cache pre-commit & venv (styling)
+        if: matrix.task == 'styling'
+        uses: actions/cache@v4
+        with:
+          path: |
+            .venv
+            ${{ env.PRE_COMMIT_HOME }}
+            ${{ env.PIP_CACHE_DIR }}
+          key: pc-styling-${{ runner.os }}-py${{ matrix.python }}-${{ hashFiles('.pre-commit-config.yaml') }}
+          restore-keys: |
+            pc-styling-${{ runner.os }}-py${{ matrix.python }}-
+            pc-styling-${{ runner.os }}-
+
+      # ---- styling steps ----
+      - name: Ensure venv + pre-commit (styling)
+        if: matrix.task == 'styling'
+        run: |
+          if [ ! -x .venv/bin/pre-commit ]; then
+            python -m venv .venv
+            . .venv/bin/activate
+            python -m pip install -U pip
+            python -m pip install "pre-commit>=3,<5"
+          else
+            echo "Using cached .venv with pre-commit."
+          fi
+
+      - name: Warm pre-commit hooks (styling)
+        if: matrix.task == 'styling'
+        run: |
+          . .venv/bin/activate
+          pre-commit install-hooks
+
+      - name: Run pre-commit (styling)
+        if: matrix.task == 'styling'
+        run: |
+          . .venv/bin/activate
+          pre-commit run --all-files --show-diff-on-failure --color=always
+
+      - name: Cache API venv & pip (unit)
+        if: matrix.task == 'unit'
+        uses: actions/cache@v4
+        with:
+          path: |
+            api/.venv
+            ${{ env.PIP_CACHE_DIR }}
+          key: pc-unit-${{ runner.os }}-py${{ matrix.python }}-${{ hashFiles('api/requirements.txt', 'api/requirements.dev.txt') }}
+          restore-keys: |
+            pc-unit-${{ runner.os }}-py${{ matrix.python }}-
+            pc-unit-${{ runner.os }}-
+
+      - name: Install API deps (unit)
+        if: matrix.task == 'unit'
+        working-directory: api
+        run: |
+          python -m venv .venv
+          . .venv/bin/activate
+          python -m pip install -U pip
+          python -m pip install -r requirements.txt -r requirements.dev.txt
+
+      - name: Pytest (unit)
+        if: matrix.task == 'unit'
+        working-directory: api/src
+        env:
+          TEST_ENVIRONMENT: "true"
+        run: |
+          . ../.venv/bin/activate
+          pytest -q --maxfail=1 --disable-warnings
+
+  # ---------- JS: run multiple tools in parallel via matrix ----------
+  typescript_checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        task: [lint, prettier, stylelint, typecheck, "test:ci"]
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Enable Corepack & pin Yarn
+        run: |
+          corepack enable
+          corepack prepare yarn@4.10.3 --activate
+          yarn --version
+
+      - name: Cache Yarn
+        uses: actions/cache@v4
+        with:
+          path: |
+            frontend/.yarn/cache
+            frontend/.yarn/install-state.gz
+            frontend/node_modules
+          key: ${{ runner.os }}-yarn4-nm-${{ hashFiles('frontend/yarn.lock', 'frontend/.yarnrc.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn4-nm-
+
+      - name: Install deps
+        working-directory: frontend
+        run: yarn install --immutable
+
+      - name: Run ${{ matrix.task }}
+        working-directory: frontend
+        run: yarn ${{ matrix.task }}
+
+  # ---------- Frontend security (Semgrep) ----------
+  frontend_security:
+    runs-on: ubuntu-latest
+    name: Semgrep (frontend SAST)
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+
+      # Install Semgrep via pipx (fast, isolated)
+      - name: Install Semgrep
+        run: pipx install semgrep
+
+      - name: Run Semgrep
+        working-directory: frontend
+        env:
+          SEMGREP_LOG_LEVEL: error
+          SEMGREP_DISABLE_ANALYTICS: "1"
+          SEMGREP_NO_VERSION_CHECK: "1"
+        run: semgrep --config .semgrep.yml --error
