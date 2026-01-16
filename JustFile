@@ -1,0 +1,90 @@
+set shell := ["bash", "-c"]
+
+default:
+    just --list
+
+initialise:= 'set -euxo pipefail
+    initialise() {
+        # Clear the terminal window title on exit
+        echo -ne "\033]0; \007"
+    }
+    trap initialise EXIT
+    just _terminal-description'
+
+
+_terminal-description message=" ":
+    echo -ne "\033]0;{{message}}\007"
+
+alias aj := abbreviate-just
+# Set up the description for terminal windows
+abbreviate-just:
+    #!/usr/bin/env bash
+    {{initialise}} abbreviate-just
+    alias_definition="alias j='just'"
+
+    if grep -Fxq "$alias_definition" ~/.zshrc
+    then
+        echo "Alias already exists in ~/.zshrc"
+    else
+        echo "$alias_definition" >> ~/.zshrc
+        echo "Alias added to ~/.zshrc"
+    fi
+
+    echo "Please run the following command to apply the changes to this terminal:"
+    echo "source ~/.zshrc"
+
+
+alias c := clean
+# Clean up all containers, volumes, and cached images
+clean:
+    #!/usr/bin/env bash
+    {{initialise}} "clean"
+    docker compose down -v
+    docker compose rm -fsv
+    docker system prune -f
+
+alias d := docs
+# Start the MkDocs documentation server on port 8001 with hot reload
+docs:
+    #!/usr/bin/env bash
+    {{initialise}} "docs"
+    echo "Starting MkDocs documentation server with hot reload..."
+    echo "Documentation will be available at http://localhost:8001"
+    cd docs && mkdocs serve -a localhost:8001
+
+
+alias l := logs
+# Follow logs for all services or a specific service (e.g., 'j l api')
+logs service="":
+    #!/usr/bin/env bash
+    {{initialise}} "logs"
+    docker compose logs -f {{service}}
+
+
+alias sd := start-dev
+# Start the dev app (build: 'b' will also build the images)
+start-dev build="":
+    #!/usr/bin/env bash
+    {{initialise}} "start-dev"
+
+    if [ "{{build}}" = "b" ]; then \
+        docker compose -f docker-compose.yml up --build; \
+    else \
+        docker compose -f docker-compose.yml up; \
+    fi
+
+alias dd := dev-down
+# Stop the containers
+dev-down:
+    #!/usr/bin/env bash
+    {{initialise}} "stop"
+    docker compose -f docker-compose.yml down
+
+
+
+alias r := restart
+# Restart all services or a specific service (e.g., 'j r frontend')
+restart service="":
+    #!/usr/bin/env bash
+    {{initialise}} "restart"
+    docker compose restart {{service}}

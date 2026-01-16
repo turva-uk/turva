@@ -8,9 +8,7 @@ from config import Config
 
 
 @pytest.mark.asyncio
-async def test_verify_success_marks_user_verified(
-    test_client: httpx.AsyncClient, freezer
-):
+async def test_verify_success_marks_user_verified(test_client: httpx.AsyncClient, freezer):
     freezer.move_to("2024-01-01T12:30:00Z")
     user = await User.objects.create(
         id=UUID("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"),
@@ -23,9 +21,7 @@ async def test_verify_success_marks_user_verified(
         verification_token_created_at=datetime(2024, 1, 1, 12, tzinfo=timezone.utc),
     )
 
-    res = await test_client.post(
-        f"/auth/verify/{user.id}/", json={"token": "token-123"}
-    )
+    res = await test_client.post(f"/auth/verify/{user.id}/", json={"token": "token-123"})
     assert res.status_code == 200
     assert res.json()["message"] == "Email verified successfully"
 
@@ -46,9 +42,7 @@ async def test_verify_invalid_token_returns_400(test_client: httpx.AsyncClient):
         verification_token_created_at=datetime(2024, 1, 1, tzinfo=timezone.utc),
     )
 
-    res = await test_client.post(
-        f"/auth/verify/{user.id}/", json={"token": "wrong-token"}
-    )
+    res = await test_client.post(f"/auth/verify/{user.id}/", json={"token": "wrong-token"})
     assert res.status_code == 400
     assert "Invalid verification token" in res.json()["detail"]
 
@@ -97,9 +91,7 @@ async def test_verify_already_verified_returns_message(test_client: httpx.AsyncC
 
 
 @pytest.mark.asyncio
-async def test_resend_requires_login_returns_401(
-    test_client: httpx.AsyncClient, monkeypatch
-):
+async def test_resend_requires_login_returns_401(test_client: httpx.AsyncClient, monkeypatch):
     # Patch the email handler to ensure it is not called
     mock_sender = AsyncMock()
     monkeypatch.setattr("endpoints.auth.verify.handle_verification_email", mock_sender)
@@ -191,9 +183,7 @@ async def test_resend_raises_value_error_returns_400(test_client: httpx.AsyncCli
 
 
 @pytest.mark.asyncio
-async def test_resend_others_verification_email(
-    test_client: httpx.AsyncClient, monkeypatch
-):
+async def test_resend_others_verification_email(test_client: httpx.AsyncClient, monkeypatch):
     mock_sender = AsyncMock()
     monkeypatch.setattr("endpoints.auth.verify.handle_verification_email", mock_sender)
 
@@ -230,12 +220,7 @@ async def test_resend_others_verification_email(
 
     test_client.cookies.set(Config.Application.session_cookie_name, session_cookie)
 
-    res = await test_client.post(
-        f"/auth/verify/{other_user.id}/", json={"resend": True}
-    )
+    res = await test_client.post(f"/auth/verify/{other_user.id}/", json={"resend": True})
     assert res.status_code == 403
-    assert (
-        res.json()["detail"]
-        == "You can only resend verification email for your own account"
-    )
+    assert res.json()["detail"] == "You can only resend verification email for your own account"
     mock_sender.assert_not_awaited()

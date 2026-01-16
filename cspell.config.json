@@ -1,0 +1,102 @@
+{
+  "version": "0.2",
+  "language": "en-GB",
+  "enabledLanguageIds": [
+    "markdown",
+    "python",
+    "javascript",
+    "typescript",
+    "javascriptreact",
+    "typescriptreact"
+  ],
+  "languageSettings": [
+    {
+      "languageId": "python",
+      "includeRegExpList": [
+        "/#.*/",
+        "/'''[\\s\\S]*?'''/",
+        "/\"\"\"[\\s\\S]*?\"\"\"/",
+        "/#.*$/gm"
+      ]
+    },
+    {
+      "languageId": "javascript,typescript,javascriptreact,typescriptreact",
+      "includeRegExpList": [
+        "//.*$/gm",
+        "/\\/\\*[\\s\\S]*?\\*\\//gm",
+        "/\\/\\*\\*[\\s\\S]*?\\*\\//gm"
+      ]
+    }
+  ],
+  "words": [
+    "Alembic",
+    "Argon",
+    "artefact",
+    "artefacts",
+    "Caddy",
+    "Caddyfile",
+    "challengeable",
+    "Channing",
+    "conftest",
+    "datetime",
+    "datname",
+    "dcb",
+    "decommissioning",
+    "deployers",
+    "FastAPI",
+    "Gunicorn",
+    "hazard",
+    "hazards",
+    "healthtech",
+    "htmlcov",
+    "inspectable",
+    "isort",
+    "Jinja2",
+    "Kuftinoff",
+    "Mantine",
+    "mitigation",
+    "mitigations",
+    "mkdocs",
+    "mypy",
+    "offs",
+    "Ormar",
+    "postgresql",
+    "pyproject.toml",
+    "pytest",
+    "pytest-asyncio",
+    "Starlette",
+    "Tabler",
+    "turva",
+    "Turva",
+    "Uvicorn",
+    "Vallance",
+    "vars",
+    "Vite",
+    "VMPT",
+    "WCAG",
+    "WSGI"
+  ],
+  "ignorePaths": [
+    "node_modules",
+    "**/node_modules",
+    "**/node_modules/**",
+    "node_modules/**",
+    "dist",
+    "build",
+    ".git",
+    "*.min.js",
+    "*.min.css",
+    "*.toml",
+    "**/*.toml",
+    "docker-compose.yml",
+    "docker-compose.*.yml",
+    "**/Dockerfile",
+    "**/Dockerfile.*",
+    "package-lock.json",
+    "yarn.lock",
+    ".vscode",
+    "htmlcov",
+    ".gitignore",
+    "JustFile"
+  ]
+}

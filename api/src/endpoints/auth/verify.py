@@ -57,9 +57,7 @@ async def verify_email(request: Request, body: VerifyRequest, user_id: str):
 
         if user.verification_token_created_at and datetime.now(
             tz=timezone.utc
-        ) - user.verification_token_created_at.replace(tzinfo=timezone.utc) < timedelta(
-            minutes=10
-        ):
+        ) - user.verification_token_created_at.replace(tzinfo=timezone.utc) < timedelta(minutes=10):
             raise HTTPException(
                 status_code=400,
                 detail="A verification token was recently sent, please wait before requesting another",

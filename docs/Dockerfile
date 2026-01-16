@@ -10,4 +10,4 @@ COPY docs/ .
 
 EXPOSE 8001
 
-CMD ["mkdocs", "serve", "-a", "0.0.0.0:8001"]
+CMD ["mkdocs", "serve", "-a", "0.0.0.0:8001", "--livereload", "--watch", "/docs/docs"]

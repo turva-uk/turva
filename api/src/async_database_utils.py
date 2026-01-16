@@ -5,11 +5,7 @@ import os
 import sqlalchemy as sa
 from sqlalchemy.exc import OperationalError, ProgrammingError
 from sqlalchemy.ext.asyncio import create_async_engine
-from sqlalchemy_utils.functions.database import (
-    _set_url_database,
-    _sqlite_file_exists,
-    make_url,
-)
+from sqlalchemy_utils.functions.database import _set_url_database, _sqlite_file_exists, make_url
 from sqlalchemy_utils.functions.orm import quote
 
 
@@ -28,7 +24,7 @@ async def database_exists(url):
     engine = None
     try:
         if dialect_name == "postgresql":
-            text = "SELECT 1 FROM pg_database WHERE datname='%s'" % database
+            text = f"SELECT 1 FROM pg_database WHERE datname='{database}'"
             for db in (database, "postgres", "template1", "template0", None):
                 url = _set_url_database(url, database=db)
                 engine = create_async_engine(url)
@@ -43,7 +39,7 @@ async def database_exists(url):
             engine = create_async_engine(url)
             text = (
                 "SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA "
-                "WHERE SCHEMA_NAME = '%s'" % database
+                f"WHERE SCHEMA_NAME = '{database}'"
             )
             return bool(await _get_scalar_result(engine, sa.text(text)))
 
@@ -96,16 +92,12 @@ async def create_database(url, encoding="utf8", template=None):
             template = "template1"
 
         async with engine.begin() as conn:
-            text = "CREATE DATABASE {} ENCODING '{}' TEMPLATE {}".format(
-                quote(conn, database), encoding, quote(conn, template)
-            )
+            text = f"CREATE DATABASE {quote(conn, database)} ENCODING '{encoding}' TEMPLATE {quote(conn, template)}"
             await conn.execute(sa.text(text))
 
     elif dialect_name == "mysql":
         async with engine.begin() as conn:
-            text = "CREATE DATABASE {} CHARACTER SET = '{}'".format(
-                quote(conn, database), encoding
-            )
+            text = f"CREATE DATABASE {quote(conn, database)} CHARACTER SET = '{encoding}'"
             await conn.execute(sa.text(text))
 
     elif dialect_name == "sqlite" and database != ":memory:":
@@ -157,14 +149,12 @@ async def drop_database(url):
             # Disconnect all users from the database we are dropping.
             version = conn.dialect.server_version_info  # type: ignore
             pid_column = "pid" if (version and version >= (9, 2)) else "procpid"
-            text = """
+            text = f"""
                 SELECT pg_terminate_backend(pg_stat_activity.{pid_column})
                 FROM pg_stat_activity
                 WHERE pg_stat_activity.datname = '{database}'
                 AND {pid_column} <> pg_backend_pid();
-                """.format(
-                pid_column=pid_column, database=database
-            )
+                """
             await conn.execute(sa.text(text))
 
             # Drop the database.

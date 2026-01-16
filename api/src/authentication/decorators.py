@@ -20,9 +20,7 @@ def needsValidatedUser(fn: Callable) -> Callable:
     @wraps(fn)
     async def wrapper(*args, **kwargs):
         if request_index is None:
-            raise TypeError(
-                f"Function {fn.__name__} does not have a request parameter."
-            )
+            raise TypeError(f"Function {fn.__name__} does not have a request parameter.")
 
         request: HTTPConnection = args[request_index]
 
