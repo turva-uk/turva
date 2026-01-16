@@ -22,3 +22,28 @@ theme:
         icon: material/brightness-4
         name: Switch to light mode
   navigation_depth: 4
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [../api/src]
+          options:
+            docstring_style: google
+            show_source: true
+            show_root_heading: true
+            heading_level: 2
+
+nav:
+  - Introduction: index.md
+  - Getting started: getting-started.md
+  - Technical overview: technical-overview.md
+  - LLM materials:
+      - Overview: specifications/index.md
+      - Copilot instructions: specifications/copilot-instructions.md
+      - Specifications: specifications/spec.md
+      - Roadmap: specifications/roadmap.md
+  - Code Reference:
+      - Frontend (TypeScript): code/frontend/README.md
+      - Backend (Python): code/api/index.md
