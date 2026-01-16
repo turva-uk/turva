@@ -99,6 +99,14 @@ start-dev build="":
     fi
 
 
+alias rb := remove-branches
+# Remove all local branches that have been merged into main
+remove-branches:
+    #!/usr/bin/env bash
+    {{initialise}} "remove-branches"
+    git fetch -p && git branch -vv | awk '/: gone]/{print $1}' | xargs git branch -d
+
+
 alias r := restart
 # Restart all services or a specific service (e.g., 'j r frontend')
 restart service="":
