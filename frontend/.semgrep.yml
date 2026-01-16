@@ -1,0 +1,107 @@
+rules:
+  # Security rules for React and TypeScript
+  - id: react-dangerouslysetinnerhtml
+    patterns:
+      - pattern: dangerouslySetInnerHTML={...}
+    message: "Avoid using dangerouslySetInnerHTML as it can lead to XSS vulnerabilities"
+    languages: [typescript, javascript]
+    severity: WARNING
+
+  - id: hardcoded-secret
+    patterns:
+      - pattern-regex: "(password|secret|token|api_key|apikey)\\s*=\\s*['\"][^'\"]{8,}['\"]"
+    message: "Potential hardcoded secret detected"
+    languages: [typescript, javascript]
+    severity: ERROR
+
+  - id: console-log
+    patterns:
+      - pattern: console.log(...)
+      - pattern: console.debug(...)
+    message: "Remove console.log statements before production"
+    languages: [typescript, javascript]
+    severity: INFO
+
+  - id: eval-usage
+    patterns:
+      - pattern: eval(...)
+    message: "Avoid using eval() as it can lead to code injection vulnerabilities"
+    languages: [typescript, javascript]
+    severity: ERROR
+
+  - id: localstorage-sensitive-data
+    patterns:
+      - pattern-regex: "localStorage\\.(setItem|getItem)\\(['\"]?(password|token|secret|api_key)"
+    message: "Avoid storing sensitive data in localStorage"
+    languages: [typescript, javascript]
+    severity: WARNING
+
+  # React-specific security issues
+  - id: react-href-javascript
+    patterns:
+      - pattern: href="javascript:..."
+    message: "Avoid javascript: URLs in href attributes"
+    languages: [typescript, javascript]
+    severity: ERROR
+
+  - id: insecure-random
+    patterns:
+      - pattern: Math.random()
+    message: "Use crypto.getRandomValues() for security-sensitive random values"
+    languages: [typescript, javascript]
+    severity: INFO
+    paths:
+      include:
+        - "**/auth/**"
+        - "**/security/**"
+
+  # TypeScript-specific checks
+  - id: any-type-usage
+    patterns:
+      - pattern-regex: ":\\s*any\\b"
+    message: "Avoid using 'any' type - use specific types instead"
+    languages: [typescript]
+    severity: INFO
+    paths:
+      exclude:
+        - "**/*.test.ts"
+        - "**/*.test.tsx"
+        - "**/*.stories.tsx"
+        - "**/common/restUtils.ts"
+        - "**/hooks/useREST.ts"
+
+  # API and fetch security
+  - id: fetch-without-credentials
+    patterns:
+      - pattern: "fetch($URL, {...})"
+      - pattern-not: 'fetch($URL, {credentials: "include", ...})'
+      - pattern-not: 'fetch($URL, {credentials: "same-origin", ...})'
+    message: "Consider whether credentials should be included in fetch requests"
+    languages: [typescript, javascript]
+    severity: INFO
+    paths:
+      include:
+        - "**/api/**"
+        - "**/hooks/**"
+        - "**/common/**"
+
+  - id: unvalidated-redirect
+    patterns:
+      - pattern: window.location = $VAR
+      - pattern: window.location.href = $VAR
+      - pattern: navigate($VAR)
+    message: "Ensure user-controlled redirects are validated to prevent open redirect vulnerabilities"
+    languages: [typescript, javascript]
+    severity: WARNING
+
+  # Include recommended rulesets
+  - id: react-security
+    patterns:
+      - pattern: "<$EL {...$PROPS} />"
+      - metavariable-pattern:
+          metavariable: $PROPS
+          patterns:
+            - pattern-regex: "dangerouslySetInnerHTML"
+    message: "React security check"
+    languages: [typescript, javascript]
+    severity: WARNING

@@ -44,3 +44,40 @@ Docker Compose orchestrates three services: `frontend`, `api`, and Caddy reverse
 ### Database
 
 PostgreSQL in production, SQLite for testing. Complete test isolation with fresh database per test via pytest fixtures.
+
+## CI/CD Pipeline
+
+### Non-main Branch Workflow
+
+Automated quality checks run on every push to feature branches and pull requests:
+
+#### Python Checks
+
+- **Styling**: Pre-commit hooks enforce code formatting (Ruff), markdown linting, spell checking, and YAML validation
+- **Unit Tests**: pytest suite runs in Docker containers with isolated test databases
+- Caching for virtual environments, pip packages, and pre-commit hooks speeds up subsequent runs
+
+#### TypeScript Checks
+
+Parallel execution of multiple quality checks via matrix strategy:
+
+- **lint**: ESLint rules for TypeScript and React
+- **prettier**: Code formatting verification
+- **stylelint**: CSS/styling validation
+- **typecheck**: TypeScript compiler checks
+- **test:ci**: Vitest test suite in CI mode
+
+Yarn dependencies cached with Corepack-managed Yarn 4.10.3.
+
+#### Security Scanning
+
+- **Semgrep**: Static analysis security testing (SAST) for frontend JavaScript/TypeScript
+- Runs with custom ruleset (`.semgrep.yml`)
+- Fails build on security findings
+
+### Optimizations
+
+- Concurrency groups cancel in-progress runs when new commits are pushed to the same branch
+- Aggressive caching for dependencies, pre-commit hooks, and build artifacts
+- Fail-fast disabled for matrix jobs to see all failures
+- 15-20 minute timeouts prevent runaway jobs
