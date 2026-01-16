@@ -44,7 +44,15 @@ nav:
       - Copilot instructions: specifications/copilot-instructions.md
       - Specifications: specifications/spec.md
       - Roadmap: specifications/roadmap.md
-  - Code:
-      - Frontend (TypeScript): code/frontend/README.md
-      - Component Library (Storybook): code/storybook/index.html
-      - API (Python): code/api/index.md
+      - Architecture:
+          - Overview: specifications/architecture/index.md
+          - Frontend (React/TypeScript): specifications/architecture/frontend.md
+          - Backend (FastAPI/Python): specifications/architecture/backend.md
+          - Reverse Proxy (Caddy): specifications/architecture/caddy.md
+          - Clinical Safety (VMPT): specifications/architecture/vmpt.md
+          - Documentation System: specifications/architecture/documentation.md
+
+  - Code Reference:
+      - Frontend API: code/frontend/README.md
+      - Backend API: code/api/index.md
+      - Component Library: code/storybook/index.html
