@@ -23,4 +23,4 @@ sqlalchemy2-stubs
 types-pytz
 argon2-cffi==25.1.0
 email-validator
-pytest-freezegun
+setuptools

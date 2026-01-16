@@ -105,3 +105,37 @@ restart service="":
     #!/usr/bin/env bash
     {{initialise}} "restart"
     docker compose restart {{service}}
+
+
+alias pt := python-test
+# Run Python unit tests in the API container
+python-test:
+    #!/usr/bin/env bash
+    {{initialise}} "python-test"
+    docker compose exec api pytest /app/src/tests/unit -v
+
+
+alias ti := test-integration
+# Run Python integration tests in the API container
+test-integration:
+    #!/usr/bin/env bash
+    {{initialise}} "test-integration"
+    docker compose exec api pytest /app/src/tests/integration -v
+
+
+alias ta := test-all
+# Run all Python tests (unit + integration) in the API container
+test-all:
+    #!/usr/bin/env bash
+    {{initialise}} "test-all"
+    docker compose exec api pytest /app/src -v
+
+
+alias tc := test-coverage
+# Run all tests with coverage report
+test-coverage:
+    #!/usr/bin/env bash
+    {{initialise}} "test-coverage"
+    docker compose exec api coverage run -m pytest /app/src --cov-config=/app/pyproject.toml
+    docker compose exec api coverage html
+    echo "Coverage report generated in api/src/htmlcov/index.html"
