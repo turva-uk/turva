@@ -104,6 +104,12 @@ jobs:
           . .venv/bin/activate
           pre-commit run --all-files --show-diff-on-failure --color=always
 
+      - name: Create minimal .env file (unit)
+        if: matrix.task == 'unit'
+        run: |
+          touch api/.env
+          echo "TEST_ENVIRONMENT=true" > api/.env
+
       - name: Build and start Docker containers (unit)
         if: matrix.task == 'unit'
         run: docker compose up -d --build
