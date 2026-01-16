@@ -194,7 +194,7 @@ jobs:
           SEMGREP_NO_VERSION_CHECK: "1"
         run: semgrep --config .semgrep.yml --error
 
-  # ---------- Auto-create PR to main after all checks pass ----------
+  # ---------- Auto-create PR to main after all checks pass! ----------
   create_pr:
     runs-on: ubuntu-latest
     name: Create PR to main
