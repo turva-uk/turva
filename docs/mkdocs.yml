@@ -1,1 +1,24 @@
-site_name: My Docs
+site_name: Turva Documentation
+site_url: https://turva-uk.github.io/turva/
+repo_url: https://github.com/turva-uk/turva
+
+theme:
+  name: material
+  palette:
+    # Light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: deep purple
+      accent: amber
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    # Dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: deep purple
+      accent: amber
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  navigation_depth: 4

@@ -75,7 +75,7 @@ Yarn dependencies cached with Corepack-managed Yarn 4.10.3.
 - Runs with custom ruleset (`.semgrep.yml`)
 - Fails build on security findings
 
-### Optimizations
+### Optimisations
 
 - Concurrency groups cancel in-progress runs when new commits are pushed to the same branch
 - Aggressive caching for dependencies, pre-commit hooks, and build artifacts
