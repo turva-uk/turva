@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: write
+  pull-requests: write
 
 concurrency:
   group: nonmain-${{ github.ref }}
@@ -192,3 +193,46 @@ jobs:
           SEMGREP_DISABLE_ANALYTICS: "1"
           SEMGREP_NO_VERSION_CHECK: "1"
         run: semgrep --config .semgrep.yml --error
+
+  # ---------- Auto-create PR to main after all checks pass ----------
+  create_pr:
+    runs-on: ubuntu-latest
+    name: Create PR to main
+    needs: [python_checks, typescript_checks, frontend_security]
+    if: github.event_name == 'push' && success()
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create or update PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          BRANCH="${{ github.ref_name }}"
+
+          # Check if PR already exists
+          EXISTING_PR=$(gh pr list --head "$BRANCH" --base main --json number --jq '.[0].number')
+
+          if [ -z "$EXISTING_PR" ]; then
+            # Create new PR
+            gh pr create \
+              --base main \
+              --head "$BRANCH" \
+              --title "Merge $BRANCH to main" \
+              --body "Automated PR created after successful CI checks.
+
+          **Branch:** \`$BRANCH\`
+          **Workflow:** ${{ github.workflow }}
+          **Run:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+          All quality checks passed:
+          - ✅ Python checks (styling, unit tests)
+          - ✅ TypeScript checks (lint, prettier, stylelint, typecheck, test:ci)
+          - ✅ Security scanning (Semgrep)
+          " \
+              --label "auto-generated"
+            echo "Created new PR for branch $BRANCH"
+          else
+            echo "PR #$EXISTING_PR already exists for branch $BRANCH"
+          fi
