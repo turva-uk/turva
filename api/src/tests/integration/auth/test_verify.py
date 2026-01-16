@@ -1,10 +1,12 @@
-import pytest
-import httpx
-from models import User, Session
-from datetime import datetime, timezone
-from uuid import UUID
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock
+from uuid import UUID
+
+import httpx
+import pytest
+
 from config import Config
+from models import Session, User
 
 
 @pytest.mark.asyncio
@@ -18,7 +20,7 @@ async def test_verify_success_marks_user_verified(test_client: httpx.AsyncClient
         password=await User.generate_password_hash("Password123!"),
         is_verified=False,
         verification_token="token-123",
-        verification_token_created_at=datetime(2024, 1, 1, 12, tzinfo=timezone.utc),
+        verification_token_created_at=datetime(2024, 1, 1, 12, tzinfo=UTC),
     )
 
     res = await test_client.post(f"/auth/verify/{user.id}/", json={"token": "token-123"})
@@ -39,7 +41,7 @@ async def test_verify_invalid_token_returns_400(test_client: httpx.AsyncClient):
         password=await User.generate_password_hash("Password123!"),
         is_verified=False,
         verification_token="right-token",
-        verification_token_created_at=datetime(2024, 1, 1, tzinfo=timezone.utc),
+        verification_token_created_at=datetime(2024, 1, 1, tzinfo=UTC),
     )
 
     res = await test_client.post(f"/auth/verify/{user.id}/", json={"token": "wrong-token"})
@@ -57,7 +59,7 @@ async def test_verify_missing_token_returns_400(test_client: httpx.AsyncClient):
         password=await User.generate_password_hash("Password123!"),
         is_verified=False,
         verification_token="token-abc",
-        verification_token_created_at=datetime(2024, 1, 1, tzinfo=timezone.utc),
+        verification_token_created_at=datetime(2024, 1, 1, tzinfo=UTC),
     )
 
     res = await test_client.post(f"/auth/verify/{user.id}/", json={})
@@ -159,7 +161,7 @@ async def test_resend_raises_value_error_returns_400(test_client: httpx.AsyncCli
         password=hashed,
         is_verified=False,
         verification_token="recent",
-        verification_token_created_at=datetime.now(tz=timezone.utc),
+        verification_token_created_at=datetime.now(tz=UTC),
     )
 
     # Get a session cookie

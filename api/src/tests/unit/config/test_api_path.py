@@ -1,5 +1,6 @@
 import os
 from importlib import reload
+
 import config
 
 
@@ -12,7 +13,8 @@ class EnvironmentContextManager:
         return self
 
     def __exit__(self, *args):
-        os.environ = self._env
+        os.environ.clear()
+        os.environ.update(self._env)
 
 
 def test_api_path_start_end_slash():

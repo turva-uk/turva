@@ -1,10 +1,13 @@
-from ._database import ormar_config, DateFieldsMixins
-import ormar
-from .user import User
+from datetime import UTC, datetime, timedelta
 from secrets import token_hex
-from config import Config
-from datetime import datetime, timedelta, timezone
 from uuid import UUID, uuid4
+
+import ormar
+
+from config import Config
+
+from ._database import DateFieldsMixins, ormar_config
+from .user import User
 
 
 class Session(ormar.Model, DateFieldsMixins):
@@ -23,7 +26,7 @@ class Session(ormar.Model, DateFieldsMixins):
     @classmethod
     async def create_session(cls, user: User) -> tuple["Session", str]:
         session_token = token_hex(32)
-        expires_at = datetime.now(timezone.utc) + timedelta(
+        expires_at = datetime.now(UTC) + timedelta(
             seconds=Config.Application.session_cookie_lifetime,
         )
 
@@ -34,9 +37,9 @@ class Session(ormar.Model, DateFieldsMixins):
 
     async def extend_session(self):
         await self.update(
-            expires_at=datetime.now(timezone.utc)
+            expires_at=datetime.now(UTC)
             + timedelta(seconds=Config.Application.session_cookie_lifetime)
         )
 
     def is_expired(self) -> bool:
-        return datetime.now(timezone.utc) >= self.expires_at.replace(tzinfo=timezone.utc)
+        return datetime.now(UTC) >= self.expires_at.replace(tzinfo=UTC)

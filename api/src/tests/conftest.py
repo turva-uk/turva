@@ -1,7 +1,16 @@
 import asyncio
 import os
-from dotenv import load_dotenv
+
 import email_validator
+import pytest_asyncio
+from dotenv import load_dotenv
+from httpx import ASGITransport, AsyncClient
+from sqlalchemy.ext.asyncio import create_async_engine
+
+from app import app
+from async_database_utils import create_database, database_exists, drop_database
+from config import Config
+from models._database import DATABASE_URL, metadata
 
 os.environ["TESTING"] = "true"
 load_dotenv("../.env.test")
@@ -13,14 +22,6 @@ coverage run -m pytest . --cov-config=../pyproject.toml
 coverage report
 coverage html
 """
-
-import pytest_asyncio
-from httpx import AsyncClient, ASGITransport
-from sqlalchemy.ext.asyncio import create_async_engine
-from app import app
-from async_database_utils import create_database, database_exists, drop_database
-from models._database import DATABASE_URL, metadata
-from config import Config
 
 
 # Creates the event loop and closes it after all tests are done

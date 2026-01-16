@@ -1,8 +1,10 @@
-from models import User
-import pytest
+from datetime import UTC, datetime
+
 import httpx
+import pytest
+
 from config import Config
-from datetime import datetime, timezone
+from models import User
 
 
 @pytest.mark.asyncio
@@ -19,7 +21,7 @@ async def test_successful_login(test_client: httpx.AsyncClient):
         organisation="ExampleOrg",
         job_role="Developer",
         verification_token="abcd",
-        verification_token_created_at=datetime(2024, 1, 1, tzinfo=timezone.utc),
+        verification_token_created_at=datetime(2024, 1, 1, tzinfo=UTC),
     )
 
     response = await test_client.post(
@@ -52,7 +54,7 @@ async def test_login_invalid_credentials(test_client: httpx.AsyncClient):
         organisation="ExampleOrg",
         job_role="Developer",
         verification_token="abcd",
-        verification_token_created_at=datetime(2024, 1, 1, tzinfo=timezone.utc),
+        verification_token_created_at=datetime(2024, 1, 1, tzinfo=UTC),
     )
 
     # Test with incorrect password

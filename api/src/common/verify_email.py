@@ -1,6 +1,7 @@
-import smtplib
-from config import Config
 import email.message
+import smtplib
+
+from config import Config
 from models import User
 
 

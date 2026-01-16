@@ -1,9 +1,10 @@
+from email_validator import EmailNotValidError, validate_email
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
-from models import User, Session
+
 from config import Config
-from email_validator import validate_email, EmailNotValidError
+from models import Session, User
 
 
 class LoginRequest(BaseModel):
@@ -22,8 +23,8 @@ async def login(data: LoginRequest):
     # Validate email format
     try:
         checked_email = validate_email(data.email_address, check_deliverability=False)
-    except EmailNotValidError:
-        raise HTTPException(status_code=401, detail="Invalid credentials")
+    except EmailNotValidError as err:
+        raise HTTPException(status_code=401, detail="Invalid credentials") from err
 
     # Check the user exists and has valid credentials
     user = await User.objects.get_or_none(email_address=checked_email.normalized)

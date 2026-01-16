@@ -7,6 +7,7 @@ This document serves as a template for documenting hazards, their initial risks,
 The placeholders (denoted by \{\{...\}\}) will be replaced with specific information relevant to the hazard being documented by Turva's templating implementation.
 
 ## Hazards index
+
 {% for hazard in hazards %}
 
 ### Hazard: {{hazard.hazard_name}}

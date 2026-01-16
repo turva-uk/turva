@@ -5,7 +5,7 @@ import { MemoryRouter, Route, Routes } from "react-router";
 import { MockUserAuthProvider } from "../../../app/contexts/UserAuthContext";
 import AuthenticationLayout from "../AuthenticationLayout";
 import fetchMock from "fetch-mock";
-import { reactRouterParameters } from 'storybook-addon-remix-react-router';
+import { reactRouterParameters } from "storybook-addon-remix-react-router";
 
 // TODO: investigate GET parameters not working in storybook stories
 
@@ -39,24 +39,24 @@ export const ResendSuccessful = meta.story({
       fetchMock.hardReset();
       fetchMock.mockGlobal();
       fetchMock.post(
-        'end:/auth/verify/1/',
+        "end:/auth/verify/1/",
         {},
-        { delay: 500, response: { status: 200 } }
+        { delay: 500, response: { status: 200 } },
       );
 
       return <Story />;
-    }
+    },
   ],
   parameters: {
     reactRouter: reactRouterParameters({
       location: {
-        searchParams: { 
-          user_id: '1',
-          token: 'valid-token'
+        searchParams: {
+          user_id: "1",
+          token: "valid-token",
         },
       },
     }),
-  }
+  },
 });
 
 // export const UnsuccessfulResend = meta.story({
@@ -78,7 +78,7 @@ export const ResendSuccessful = meta.story({
 
 // ResendSuccessful.test("renders button to resend", async ({ canvas }) => {
 //   // Check the verify API was called with correct parameters
-  
+
 //   await expect(fetchMock.callHistory.callLogs.length).toBe(1);
 //   await expect(fetchMock.callHistory.callLogs[0].url).toContain('/auth/verify/1/');
 // });

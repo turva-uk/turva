@@ -32,16 +32,20 @@ const meta = preview.meta({
     (Story) => {
       fetchMock.hardReset();
       fetchMock.mockGlobal();
-      fetchMock.post('end:/auth/login/', {
-        id: "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
-        firstName: "Test",
-        lastName: "User",
-        email: "test.user@example.com"
-      }, { delay: 500 });
-      fetchMock.post('end:/auth/register/', 204, { delay: 500 });
-      fetchMock.post('end:/auth/forgot/', 204, { delay: 500 });
+      fetchMock.post(
+        "end:/auth/login/",
+        {
+          id: "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+          firstName: "Test",
+          lastName: "User",
+          email: "test.user@example.com",
+        },
+        { delay: 500 },
+      );
+      fetchMock.post("end:/auth/register/", 204, { delay: 500 });
+      fetchMock.post("end:/auth/forgot/", 204, { delay: 500 });
       return <Story />;
-    }
+    },
   ],
 });
 

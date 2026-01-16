@@ -47,7 +47,6 @@ export const WithComplexErrorDetail = meta.story({
   },
 });
 
-
 WithErrorString.test("renders the error message", async ({ canvas }) => {
   await waitFor(() => {
     expect(canvas.getByText("This is an error")).toBeInTheDocument();
@@ -74,18 +73,26 @@ WithHttpError.test("the dropdown shows the status code", async ({ canvas }) => {
   });
 });
 
-WithComplexErrorDetail.test("renders a generic error header", async ({ canvas }) => {
-  await waitFor(() => {
-    expect(canvas.getByText(/an error occurred/i)).toBeInTheDocument();
-  });
-});
+WithComplexErrorDetail.test(
+  "renders a generic error header",
+  async ({ canvas }) => {
+    await waitFor(() => {
+      expect(canvas.getByText(/an error occurred/i)).toBeInTheDocument();
+    });
+  },
+);
 
-WithComplexErrorDetail.test("the dropdown shows the status code and detailed error", async ({ canvas }) => {
-  const moreDetailsButton = await canvas.getByText(/more details/i);
-  await moreDetailsButton.click();
-  await waitFor(() => {
-    expect(canvas.getByText(/HTTP error code:/i)).toBeInTheDocument();
-    expect(canvas.getByText(/400/i)).toBeInTheDocument();
-    expect(canvas.getByText(`{"error":"This is an error in a JSON string!"}`)).toBeInTheDocument();
-  });
-});
+WithComplexErrorDetail.test(
+  "the dropdown shows the status code and detailed error",
+  async ({ canvas }) => {
+    const moreDetailsButton = await canvas.getByText(/more details/i);
+    await moreDetailsButton.click();
+    await waitFor(() => {
+      expect(canvas.getByText(/HTTP error code:/i)).toBeInTheDocument();
+      expect(canvas.getByText(/400/i)).toBeInTheDocument();
+      expect(
+        canvas.getByText(`{"error":"This is an error in a JSON string!"}`),
+      ).toBeInTheDocument();
+    });
+  },
+);

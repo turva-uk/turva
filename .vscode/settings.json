@@ -19,11 +19,17 @@
       "source.fixAll": "explicit"
     }
   },
-  "python.linting.enabled": false,
-  "python.linting.flake8Enabled": false,
-  "python.linting.pylintEnabled": false,
-  "python.linting.mypyEnabled": false,
+  "[typescript][typescriptreact][javascript][javascriptreact]": {
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.codeActionsOnSave": {
+      "source.fixAll.eslint": "explicit"
+    }
+  },
   "files.associations": {
     "*.md": "markdown"
-  }
+  },
+  "terminal.integrated.tabs.enableAnimation": true,
+  "terminal.integrated.tabs.description": "${sequence}",
+  "terminal.integrated.tabs.title": "${process}"
 }

@@ -31,7 +31,7 @@ from fastapi import APIRouter
 
 endpoints_base = APIRouter()
 
-for root, dirs, files in os.walk("endpoints"):
+for root, _dirs, files in os.walk("endpoints"):
     files.sort()
     for file in files:
         if not file.endswith(".py") or file == "__init__.py":

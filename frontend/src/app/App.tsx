@@ -1,20 +1,27 @@
-import { Route, createBrowserRouter, createRoutesFromElements, RouterProvider, Outlet, Navigate } from 'react-router';
-import { MantineProvider } from '@mantine/core';
-import { Notifications } from '@mantine/notifications';
-import { theme } from '../theme';
-import ResourceNotFoundPage from '../pages/ResourceNotFoundPage/ResourceNotFoundPage';
-import { UserAuthContext, UserAuthProvider } from './contexts/UserAuthContext';
-import { ConfigurationProvider } from './contexts/ConfigurationContext';
-import AuthenticationLayout from '../pages/AuthenticationPages/AuthenticationLayout';
-import LoginPage from '../pages/AuthenticationPages/LoginPage/LoginPage';
-import CreateAccountPage from '../pages/AuthenticationPages/CreateAccountPage/CreateAccountPage';
-import ForgotPasswordPage from '../pages/AuthenticationPages/ForgotPasswordPage/ForgotPasswordPage';
-import { useContext } from 'react';
-import VerifyAccountPage from '#src/pages/AuthenticationPages/VerifyAccountPage/VerifyAccountPage.tsx';
-import VerifyNoticePage from '#src/pages/AuthenticationPages/VerifyNoticePage/VerifyNoticePage.tsx';
-import DashboardLayout from '#src/pages/DashboardPages/DashboardLayout.tsx';
-import MyProjectsPage from '#src/pages/DashboardPages/MyProjectsPage/MyProjectsPage.tsx';
-import CommunityProjectsPage from '#src/pages/DashboardPages/CommunityProjectsPage/CommunityProjectsPage.tsx';
+import {
+  Route,
+  createBrowserRouter,
+  createRoutesFromElements,
+  RouterProvider,
+  Outlet,
+  Navigate,
+} from "react-router";
+import { MantineProvider } from "@mantine/core";
+import { Notifications } from "@mantine/notifications";
+import { theme } from "../theme";
+import ResourceNotFoundPage from "../pages/ResourceNotFoundPage/ResourceNotFoundPage";
+import { UserAuthContext, UserAuthProvider } from "./contexts/UserAuthContext";
+import { ConfigurationProvider } from "./contexts/ConfigurationContext";
+import AuthenticationLayout from "../pages/AuthenticationPages/AuthenticationLayout";
+import LoginPage from "../pages/AuthenticationPages/LoginPage/LoginPage";
+import CreateAccountPage from "../pages/AuthenticationPages/CreateAccountPage/CreateAccountPage";
+import ForgotPasswordPage from "../pages/AuthenticationPages/ForgotPasswordPage/ForgotPasswordPage";
+import { useContext } from "react";
+import VerifyAccountPage from "#src/pages/AuthenticationPages/VerifyAccountPage/VerifyAccountPage.tsx";
+import VerifyNoticePage from "#src/pages/AuthenticationPages/VerifyNoticePage/VerifyNoticePage.tsx";
+import DashboardLayout from "#src/pages/DashboardPages/DashboardLayout.tsx";
+import MyProjectsPage from "#src/pages/DashboardPages/MyProjectsPage/MyProjectsPage.tsx";
+import CommunityProjectsPage from "#src/pages/DashboardPages/CommunityProjectsPage/CommunityProjectsPage.tsx";
 
 const RequiresVerifiedLogin = () => {
   const { user } = useContext(UserAuthContext);
@@ -29,7 +36,7 @@ const RequiresVerifiedLogin = () => {
   }
 
   return <Outlet />;
-}
+};
 
 const router = createBrowserRouter(
   createRoutesFromElements(
@@ -49,19 +56,20 @@ const router = createBrowserRouter(
         </Route>
       </Route>
       <Route path="*" element={<ResourceNotFoundPage />} />
-    </>
-  ), { basename: import.meta.env.BASE_URL }
-)
+    </>,
+  ),
+  { basename: import.meta.env.BASE_URL },
+);
 
 const App = () => (
   <UserAuthProvider>
-    <MantineProvider theme={theme} defaultColorScheme='dark'>
+    <MantineProvider theme={theme} defaultColorScheme="dark">
       <ConfigurationProvider>
         <Notifications />
         <RouterProvider router={router} />
       </ConfigurationProvider>
     </MantineProvider>
   </UserAuthProvider>
-)
+);
 
-export default App
+export default App;

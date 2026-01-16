@@ -43,6 +43,15 @@ clean:
     docker compose rm -fsv
     docker system prune -f
 
+
+alias dd := dev-down
+# Stop the containers
+dev-down:
+    #!/usr/bin/env bash
+    {{initialise}} "stop"
+    docker compose -f docker-compose.yml down
+
+
 alias d := docs
 # Start the MkDocs documentation server on port 8001 with hot reload
 docs:
@@ -61,6 +70,14 @@ logs service="":
     docker compose logs -f {{service}}
 
 
+alias pc := pre-commit
+# Run pre-commit checks on all files
+pre-commit:
+    #!/usr/bin/env bash
+    {{initialise}} "pre-commit"
+    pre-commit run --all-files
+
+
 alias sd := start-dev
 # Start the dev app (build: 'b' will also build the images)
 start-dev build="":
@@ -72,14 +89,6 @@ start-dev build="":
     else \
         docker compose -f docker-compose.yml up; \
     fi
-
-alias dd := dev-down
-# Stop the containers
-dev-down:
-    #!/usr/bin/env bash
-    {{initialise}} "stop"
-    docker compose -f docker-compose.yml down
-
 
 
 alias r := restart

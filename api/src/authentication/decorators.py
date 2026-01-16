@@ -1,10 +1,13 @@
+from collections.abc import Callable
 from functools import wraps
 from inspect import signature
-from typing import Callable
+
 from fastapi.requests import HTTPConnection
 from starlette.authentication import UnauthenticatedUser
-from .exceptions import UserNotAuthenticatedException, UserNotValidatedException
+
 from models import User
+
+from .exceptions import UserNotAuthenticatedException, UserNotValidatedException
 
 
 def needsValidatedUser(fn: Callable) -> Callable:

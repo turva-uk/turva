@@ -1,6 +1,8 @@
 import os
-import pytest
 from importlib import reload
+
+import pytest
+
 import config
 
 
@@ -14,7 +16,8 @@ class EnvironmentContextManager:
         return self
 
     def __exit__(self, *args):
-        os.environ = self._env
+        os.environ.clear()
+        os.environ.update(self._env)
 
 
 def test_config_bool_required_pass_true():
@@ -56,7 +59,7 @@ def test_config_bool_optional_pass():
     envvar_name = "TEST_BOOL_OPTIONAL"
 
     with EnvironmentContextManager():
-        assert config.parseBoolean(envvar_name, False) == None
+        assert config.parseBoolean(envvar_name, False) is None
 
 
 def test_config_bool_optional_pass_with_value():

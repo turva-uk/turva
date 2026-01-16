@@ -1,2 +1,2 @@
-from .user import User
-from .session import Session
+from .session import Session as Session
+from .user import User as User
