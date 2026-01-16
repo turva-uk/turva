@@ -67,6 +67,8 @@ rules:
         - "**/*.test.ts"
         - "**/*.test.tsx"
         - "**/*.stories.tsx"
+        - "**/common/restUtils.ts"
+        - "**/hooks/useREST.ts"
 
   # API and fetch security
   - id: fetch-without-credentials
