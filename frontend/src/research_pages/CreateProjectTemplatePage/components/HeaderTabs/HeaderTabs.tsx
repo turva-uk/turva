@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState } from "react";
 import {
   IconChevronDown,
   IconHeart,
@@ -9,8 +9,8 @@ import {
   IconStar,
   IconSwitchHorizontal,
   IconTrash,
-} from '@tabler/icons-react';
-import cx from 'clsx';
+} from "@tabler/icons-react";
+import cx from "clsx";
 import {
   Avatar,
   Burger,
@@ -21,25 +21,26 @@ import {
   Text,
   UnstyledButton,
   useMantineTheme,
-} from '@mantine/core';
-import { useDisclosure } from '@mantine/hooks';
-import classes from './HeaderTabs.module.css';
+} from "@mantine/core";
+import { useDisclosure } from "@mantine/hooks";
+import classes from "./HeaderTabs.module.css";
 
 const user = {
-  name: 'Jane Spoonfighter',
-  email: 'janspoon@fighter.dev',
-  image: 'https://raw.githubusercontent.com/mantinedev/mantine/master/.demo/avatars/avatar-5.png',
+  name: "Jane Spoonfighter",
+  email: "janspoon@fighter.dev",
+  image:
+    "https://raw.githubusercontent.com/mantinedev/mantine/master/.demo/avatars/avatar-5.png",
 };
 
 const tabs = [
-  'Home',
-  'Orders',
-  'Education',
-  'Community',
-  'Forums',
-  'Support',
-  'Account',
-  'Helpdesk',
+  "Home",
+  "Orders",
+  "Education",
+  "Community",
+  "Forums",
+  "Support",
+  "Account",
+  "Helpdesk",
 ];
 
 export function HeaderTabs() {
@@ -65,17 +66,24 @@ export function HeaderTabs() {
           <Menu
             width={260}
             position="bottom-end"
-            transitionProps={{ transition: 'pop-top-right' }}
+            transitionProps={{ transition: "pop-top-right" }}
             onClose={() => setUserMenuOpened(false)}
             onOpen={() => setUserMenuOpened(true)}
             withinPortal
           >
             <Menu.Target>
               <UnstyledButton
-                className={cx(classes.user, { [classes.userActive]: userMenuOpened })}
+                className={cx(classes.user, {
+                  [classes.userActive]: userMenuOpened,
+                })}
               >
                 <Group gap={7}>
-                  <Avatar src={user.image} alt={user.name} radius="xl" size={20} />
+                  <Avatar
+                    src={user.image}
+                    alt={user.name}
+                    radius="xl"
+                    size={20}
+                  />
                   <Text fw={500} size="sm" lh={1} mr={3}>
                     {user.name}
                   </Text>
@@ -85,17 +93,35 @@ export function HeaderTabs() {
             </Menu.Target>
             <Menu.Dropdown>
               <Menu.Item
-                leftSection={<IconHeart size={16} color={theme.colors.red[6]} stroke={1.5} />}
+                leftSection={
+                  <IconHeart
+                    size={16}
+                    color={theme.colors.red[6]}
+                    stroke={1.5}
+                  />
+                }
               >
                 Liked posts
               </Menu.Item>
               <Menu.Item
-                leftSection={<IconStar size={16} color={theme.colors.yellow[6]} stroke={1.5} />}
+                leftSection={
+                  <IconStar
+                    size={16}
+                    color={theme.colors.yellow[6]}
+                    stroke={1.5}
+                  />
+                }
               >
                 Saved posts
               </Menu.Item>
               <Menu.Item
-                leftSection={<IconMessage size={16} color={theme.colors.blue[6]} stroke={1.5} />}
+                leftSection={
+                  <IconMessage
+                    size={16}
+                    color={theme.colors.blue[6]}
+                    stroke={1.5}
+                  />
+                }
               >
                 Your comments
               </Menu.Item>
@@ -104,18 +130,27 @@ export function HeaderTabs() {
               <Menu.Item leftSection={<IconSettings size={16} stroke={1.5} />}>
                 Account settings
               </Menu.Item>
-              <Menu.Item leftSection={<IconSwitchHorizontal size={16} stroke={1.5} />}>
+              <Menu.Item
+                leftSection={<IconSwitchHorizontal size={16} stroke={1.5} />}
+              >
                 Change account
               </Menu.Item>
-              <Menu.Item leftSection={<IconLogout size={16} stroke={1.5} />}>Logout</Menu.Item>
+              <Menu.Item leftSection={<IconLogout size={16} stroke={1.5} />}>
+                Logout
+              </Menu.Item>
 
               <Menu.Divider />
 
               <Menu.Label>Danger zone</Menu.Label>
-              <Menu.Item leftSection={<IconPlayerPause size={16} stroke={1.5} />}>
+              <Menu.Item
+                leftSection={<IconPlayerPause size={16} stroke={1.5} />}
+              >
                 Pause subscription
               </Menu.Item>
-              <Menu.Item color="red" leftSection={<IconTrash size={16} stroke={1.5} />}>
+              <Menu.Item
+                color="red"
+                leftSection={<IconTrash size={16} stroke={1.5} />}
+              >
                 Delete account
               </Menu.Item>
             </Menu.Dropdown>

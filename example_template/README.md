@@ -6,23 +6,23 @@ For templates, all we need to do is store the JSON array of answers and the git 
 
 ## How to use
 
-1.  Create Python3 venv (optional but recommended):
+1. Create Python3 venv (optional but recommended):
 
-    ```bash
-    python3 -m venv venv
-    source venv/bin/activate
-    ```
+   ```bash
+   python3 -m venv venv
+   source venv/bin/activate
+   ```
 
-2.  Install dependencies:
+2. Install dependencies:
 
-    ```bash
-    pip install -r requirements.txt
-    ```
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-3.  Run the build script:
+3. Run the build script:
 
-    ```bash
-    python build.py
-    ```
+   ```bash
+   python build.py
+   ```
 
-4.  The generated files will be in the `output` directory.
+4. The generated files will be in the `output` directory.

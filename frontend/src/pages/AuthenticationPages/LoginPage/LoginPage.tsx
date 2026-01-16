@@ -1,4 +1,12 @@
-import { Anchor, Box, Button, LoadingOverlay, PasswordInput, Text, TextInput } from "@mantine/core";
+import {
+  Anchor,
+  Box,
+  Button,
+  LoadingOverlay,
+  PasswordInput,
+  Text,
+  TextInput,
+} from "@mantine/core";
 import { useNavigate } from "react-router";
 import useREST from "../../../hooks/useREST";
 import { Form, useForm } from "@mantine/form";
@@ -22,18 +30,22 @@ interface LoginResponse {
 
 const LoginPage = () => {
   const navigate = useNavigate();
-  const { data, error, loading, submitFn } = useREST<LoginForm, LoginResponse>('POST', '/auth/login/');
+  const { data, error, loading, submitFn } = useREST<LoginForm, LoginResponse>(
+    "POST",
+    "/auth/login/",
+  );
   const { updateUser } = useContext(UserAuthContext);
 
   const form = useForm<LoginForm>({
     initialValues: {
-      emailAddress: '',
-      password: ''
+      emailAddress: "",
+      password: "",
     },
     validate: {
-      emailAddress: (value) => (/^\S+@\S+$/.test(value) ? null : 'Invalid email address'),
-      password: (value) => (value.length == 0 ? 'Password is required' : null)
-    }
+      emailAddress: (value) =>
+        /^\S+@\S+$/.test(value) ? null : "Invalid email address",
+      password: (value) => (value.length == 0 ? "Password is required" : null),
+    },
   });
 
   useEffect(() => {
@@ -45,12 +57,12 @@ const LoginPage = () => {
         lastName: data.lastName,
         emailAddress: data.emailAddress,
         isVerified: data.isVerified,
-        isCSO: data.isCSO
+        isCSO: data.isCSO,
       });
 
-      navigate('/'); // Redirect to dashboard
+      navigate("/"); // Redirect to dashboard
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data]);
 
   return (
@@ -58,9 +70,13 @@ const LoginPage = () => {
       <LoadingOverlay visible={loading} />
       <ErrorDisplay title="An error occured logging you in" error={error} />
       <Form form={form} onSubmit={submitFn}>
-        <TextInput label="Email" {...form.getInputProps('emailAddress')} />
-        <PasswordInput label="Password" mt="md" {...form.getInputProps('password')} />
-        
+        <TextInput label="Email" {...form.getInputProps("emailAddress")} />
+        <PasswordInput
+          label="Password"
+          mt="md"
+          {...form.getInputProps("password")}
+        />
+
         {/* <Group justify="end" mt="lg">
           <Anchor size="sm" onClick={() => navigate('/auth/forgot')}>
             Forgot password?
@@ -72,14 +88,14 @@ const LoginPage = () => {
         </Button>
 
         <Text ta="center" mt="md" size="sm" c="dimmed">
-          Don't have an account?{' '}
-          <Anchor size="sm" onClick={() => navigate('/auth/register')}>
+          Don't have an account?{" "}
+          <Anchor size="sm" onClick={() => navigate("/auth/register")}>
             Create one here
           </Anchor>
         </Text>
       </Form>
     </Box>
-  )
-}
+  );
+};
 
 export default LoginPage;

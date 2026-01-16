@@ -1,10 +1,12 @@
-from fastapi import APIRouter, Request, HTTPException, BackgroundTasks
-from models import User
-from argon2 import PasswordHasher
-from pydantic import BaseModel
-from email_validator import validate_email, EmailNotValidError
 from uuid import uuid4
+
+from argon2 import PasswordHasher
+from email_validator import EmailNotValidError, validate_email
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Request
+from pydantic import BaseModel
+
 from common.verify_email import handle_verification_email
+from models import User
 
 router = APIRouter()
 
@@ -26,8 +28,8 @@ async def register(request: Request, body: RegisterRequest, background_tasks: Ba
     # Validate email format
     try:
         checked_email = validate_email(body.email, check_deliverability=True)
-    except EmailNotValidError:
-        raise HTTPException(status_code=400, detail="Invalid email format")
+    except EmailNotValidError as err:
+        raise HTTPException(status_code=400, detail="Invalid email format") from err
 
     # Hash the password
     hashed_password = PasswordHasher().hash(body.password)

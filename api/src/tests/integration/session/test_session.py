@@ -1,9 +1,10 @@
-import pytest
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
-from models import User, Session
+import pytest
+
 from config import Config
+from models import Session, User
 
 
 @pytest.mark.asyncio
@@ -29,9 +30,9 @@ async def test_create_session_returns_session_and_token(test_client):
 
     # Activity flag default and expiry near configured lifetime
     assert session.is_active is True
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     expected_delta = timedelta(seconds=Config.Application.session_cookie_lifetime)
-    actual_delta = session.expires_at.replace(tzinfo=timezone.utc) - now
+    actual_delta = session.expires_at.replace(tzinfo=UTC) - now
     # allow a small tolerance for runtime
     assert abs(actual_delta - expected_delta) < timedelta(seconds=5)
 
@@ -48,18 +49,16 @@ async def test_extend_session_extends_expiry(test_client, freezer):
     )
     freezer.move_to("2024-06-01T10:00:00Z")
     session, _ = await Session.create_session(user)
-    original_expires = session.expires_at.replace(tzinfo=timezone.utc)
+    original_expires = session.expires_at.replace(tzinfo=UTC)
 
     freezer.move_to("2024-06-01T11:00:00Z")
     await session.extend_session()
     # Reload to ensure persisted value is checked
     refreshed = await Session.objects.get(id=session.id)
 
-    assert refreshed.expires_at.replace(tzinfo=timezone.utc) > original_expires
+    assert refreshed.expires_at.replace(tzinfo=UTC) > original_expires
     # Extended by an hour
-    assert refreshed.expires_at.replace(tzinfo=timezone.utc) - original_expires == timedelta(
-        hours=1
-    )
+    assert refreshed.expires_at.replace(tzinfo=UTC) - original_expires == timedelta(hours=1)
 
 
 @pytest.mark.asyncio
@@ -92,7 +91,7 @@ async def test_is_expired_true_when_past(test_client):
 
     session, _ = await Session.create_session(user)
     # Force expiry in the past
-    past = datetime.now(timezone.utc) - timedelta(seconds=1)
+    past = datetime.now(UTC) - timedelta(seconds=1)
     await session.update(expires_at=past)
     refreshed = await Session.objects.get(id=session.id)
 

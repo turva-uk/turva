@@ -1,10 +1,12 @@
-import pytest
-import httpx
-from models import User
-from argon2 import PasswordHasher
-from datetime import datetime, timezone
 import asyncio
+from datetime import UTC, datetime
 from uuid import UUID
+
+import httpx
+import pytest
+from argon2 import PasswordHasher
+
+from models import User
 
 
 # Mock smtplib.SMTP used in common.verify_email with a simple MagicMock
@@ -73,7 +75,7 @@ async def test_register_with_existing_email_returns_400(
         email_address=existing_email,
         password=hashed,
         verification_token="abcd",
-        verification_token_created_at=datetime(2024, 1, 1, tzinfo=timezone.utc),
+        verification_token_created_at=datetime(2024, 1, 1, tzinfo=UTC),
     )
 
     response = await test_client.post(

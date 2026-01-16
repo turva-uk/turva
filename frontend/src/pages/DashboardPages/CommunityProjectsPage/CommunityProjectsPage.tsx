@@ -1,18 +1,32 @@
-import ProjectCard from "#src/components/ProjectCard/ProjectCard.tsx"
-import { Box, Divider, Grid, Select, TextInput } from "@mantine/core"
+import ProjectCard from "#src/components/ProjectCard/ProjectCard.tsx";
+import { Box, Divider, Grid, Select, TextInput } from "@mantine/core";
 
 const CommunityProjectsPage = () => {
   return (
     <Box>
       <Grid>
         <Grid.Col span={3}>
-          <TextInput mb="md" label="Search projects" placeholder="Search by name or description" />
+          <TextInput
+            mb="md"
+            label="Search projects"
+            placeholder="Search by name or description"
+          />
         </Grid.Col>
         <Grid.Col span={3}>
-          <Select label="Filter by organisation" placeholder="Select organisation" mb="md" data={["Org 1", "Org 2", "Org 3"]} />
+          <Select
+            label="Filter by organisation"
+            placeholder="Select organisation"
+            mb="md"
+            data={["Org 1", "Org 2", "Org 3"]}
+          />
         </Grid.Col>
         <Grid.Col span={3}>
-          <Select label="Sort by" placeholder="Select sorting method" mb="md" data={["Last updated", "Name", "Created by"]} />
+          <Select
+            label="Sort by"
+            placeholder="Select sorting method"
+            mb="md"
+            data={["Last updated", "Name", "Created by"]}
+          />
         </Grid.Col>
       </Grid>
 
@@ -66,7 +80,7 @@ const CommunityProjectsPage = () => {
         </Grid.Col>
       </Grid>
     </Box>
-  )
-}
+  );
+};
 
 export default CommunityProjectsPage;

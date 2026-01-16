@@ -1,11 +1,13 @@
-from ._database import ormar_config, DateFieldsMixins
+import secrets
+from datetime import UTC, datetime, timedelta
+from uuid import UUID
+
 import ormar
 from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError
-from uuid import UUID
-from datetime import timedelta, datetime, timezone
-import secrets
 from starlette.authentication import BaseUser
+
+from ._database import DateFieldsMixins, ormar_config
 
 
 class User(ormar.Model, DateFieldsMixins, BaseUser):
@@ -58,16 +60,16 @@ class User(ormar.Model, DateFieldsMixins, BaseUser):
 
         # If the token is not older than 10 minutes, raise an error
         if self.verification_token_created_at is not None and datetime.now(
-            tz=timezone.utc
+            tz=UTC
         ) - self.verification_token_created_at < timedelta(minutes=10):
             raise ValueError("Verification token cannot be recycled yet.")
 
         if (
             self.verification_token is None or self.verification_token_created_at is None
-        ) or datetime.now(tz=timezone.utc) - self.verification_token_created_at > token_lifetime:
+        ) or datetime.now(tz=UTC) - self.verification_token_created_at > token_lifetime:
             # Token has expired or was never created, generate a new one
             self.verification_token = secrets.token_urlsafe(48)
-            self.verification_token_created_at = datetime.now(tz=timezone.utc)
+            self.verification_token_created_at = datetime.now(tz=UTC)
 
             await self.update(
                 verification_token=self.verification_token,
@@ -85,8 +87,7 @@ class User(ormar.Model, DateFieldsMixins, BaseUser):
         """
         token_lifetime = timedelta(hours=8)
         return (
-            datetime.now(tz=timezone.utc)
-            - self.verification_token_created_at.replace(tzinfo=timezone.utc)
+            datetime.now(tz=UTC) - self.verification_token_created_at.replace(tzinfo=UTC)
             > token_lifetime
             if self.verification_token_created_at
             else True

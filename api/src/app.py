@@ -1,13 +1,15 @@
+from contextlib import asynccontextmanager
+
+from databases import Database
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from endpoints import endpoints_base
-from contextlib import asynccontextmanager
-from databases import Database
-from models._database import database
-from config import Config
-from authentication.middleware import TurvaAuthenticationBackend
 from starlette.middleware.authentication import AuthenticationMiddleware
 from starlette.middleware.sessions import SessionMiddleware
+
+from authentication.middleware import TurvaAuthenticationBackend
+from config import Config
+from endpoints import endpoints_base
+from models._database import database
 
 
 @asynccontextmanager

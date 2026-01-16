@@ -1,7 +1,8 @@
 import datetime
-from typing import Tuple
+
 from fastapi.requests import HTTPConnection
 from starlette.authentication import AuthCredentials, AuthenticationBackend, BaseUser
+
 from config import Config
 from models import Session
 
@@ -19,14 +20,14 @@ class TurvaAuthenticationBackend(AuthenticationBackend):
     request.
     """
 
-    async def authenticate(self, conn: HTTPConnection) -> Tuple[AuthCredentials, BaseUser] | None:
+    async def authenticate(self, conn: HTTPConnection) -> tuple[AuthCredentials, BaseUser] | None:
         # We could also check if the user's valid in LDAP,
         # but that would hit the LDAP server on every
         # request, which is not ideal, but possible.
         # Need to investigate.
 
         # This checks if the session middleware has loaded correctly
-        conn.session
+        _ = conn.session
 
         # Check if the session cookie is present
         if Config.Application.session_cookie_name not in conn.cookies:
@@ -50,7 +51,7 @@ class TurvaAuthenticationBackend(AuthenticationBackend):
 
         # Update the session expiry
         await session.update(
-            expires_at=datetime.datetime.now(tz=datetime.timezone.utc)
+            expires_at=datetime.datetime.now(tz=datetime.UTC)
             + datetime.timedelta(seconds=Config.Application.session_cookie_lifetime)
         )
 

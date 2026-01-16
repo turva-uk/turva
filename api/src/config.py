@@ -24,8 +24,8 @@ def parseInteger(env_var: str, required: bool) -> int | None:
 
     try:
         return int(value)
-    except ValueError:
-        raise ConfigurationError(f"Invalid integer value: {value} for key {env_var}")
+    except ValueError as err:
+        raise ConfigurationError(f"Invalid integer value: {value} for key {env_var}") from err
 
 
 @overload

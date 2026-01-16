@@ -1,8 +1,10 @@
-from models import User
+from datetime import UTC, datetime
+
 import pytest
 from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError
-from datetime import datetime, timezone
+
+from models import User
 
 
 @pytest.mark.asyncio
@@ -33,7 +35,7 @@ async def test_check_password():
         organisation="ExampleOrg",
         job_role="Developer",
         verification_token="abcd",
-        verification_token_created_at=datetime(2024, 1, 1, tzinfo=timezone.utc),
+        verification_token_created_at=datetime(2024, 1, 1, tzinfo=UTC),
     )
     assert await user.check_password(password)
     assert not await user.check_password("WrongPassword!")

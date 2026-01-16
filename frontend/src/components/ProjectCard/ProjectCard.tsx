@@ -1,4 +1,4 @@
-import { Box, Button, Card, Image, Stack, Text, Title } from "@mantine/core"
+import { Box, Button, Card, Image, Stack, Text, Title } from "@mantine/core";
 
 interface ProjectCardProps {
   imageUrl?: string;
@@ -9,7 +9,14 @@ interface ProjectCardProps {
   organisation?: string;
 }
 
-const ProjectCard = ({ imageUrl, title, description, lastUpdated, createdBy, organisation }: ProjectCardProps) => {
+const ProjectCard = ({
+  imageUrl,
+  title,
+  description,
+  lastUpdated,
+  createdBy,
+  organisation,
+}: ProjectCardProps) => {
   return (
     <Card withBorder shadow="md" m="md" p="xl" radius="md">
       <Stack gap="xs">
@@ -24,9 +31,17 @@ const ProjectCard = ({ imageUrl, title, description, lastUpdated, createdBy, org
         </Card.Section>
         <Card.Section>
           <Box>
-            <Text size="xs" c="dimmed">Last updated: {lastUpdated?.toLocaleDateString()}</Text>
-            <Text size="xs" c="dimmed">Created by: {createdBy}</Text>
-            {organisation && <Text size="xs" c="dimmed">{organisation}</Text>}
+            <Text size="xs" c="dimmed">
+              Last updated: {lastUpdated?.toLocaleDateString()}
+            </Text>
+            <Text size="xs" c="dimmed">
+              Created by: {createdBy}
+            </Text>
+            {organisation && (
+              <Text size="xs" c="dimmed">
+                {organisation}
+              </Text>
+            )}
           </Box>
         </Card.Section>
         <Card.Section>
@@ -36,7 +51,7 @@ const ProjectCard = ({ imageUrl, title, description, lastUpdated, createdBy, org
         </Card.Section>
       </Stack>
     </Card>
-  )
-}
+  );
+};
 
-export default ProjectCard
+export default ProjectCard;

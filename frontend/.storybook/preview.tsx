@@ -1,11 +1,11 @@
 import addonA11y from "@storybook/addon-a11y";
 import addonDocs from "@storybook/addon-docs";
 import { definePreview } from "@storybook/react-vite";
-import { MantineProvider } from '@mantine/core';
-import { Notifications } from '@mantine/notifications';
+import { MantineProvider } from "@mantine/core";
+import { Notifications } from "@mantine/notifications";
 // import { UserGroupsProvider } from '../src/app/contexts/UserGroupsContext';
 
-import '@mantine/core/styles.css';
+import "@mantine/core/styles.css";
 import { theme } from "#src/theme.ts";
 
 // eslint-disable-next-line react-refresh/only-export-components
@@ -22,8 +22,8 @@ export default definePreview({
       // 'todo' - show a11y violations in the test UI only
       // 'error' - fail CI on a11y violations
       // 'off' - skip a11y checks entirely
-      test: 'todo'
-    }
+      test: "todo",
+    },
   },
 
   decorators: [
@@ -35,5 +35,5 @@ export default definePreview({
     ),
   ],
 
-  addons: [addonDocs(), addonA11y()]
+  addons: [addonDocs(), addonA11y()],
 });

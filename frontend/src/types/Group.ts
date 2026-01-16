@@ -7,7 +7,6 @@ export default interface Group {
   members: number | GroupUser[];
 }
 
-
 export interface GroupUser {
   id: string;
   firstName: string;

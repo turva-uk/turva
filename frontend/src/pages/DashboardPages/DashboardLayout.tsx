@@ -1,10 +1,30 @@
 import { useContext, type ReactNode } from "react";
-import { AppShell, Group, Menu, NavLink, ScrollArea, rem, Title, Burger, useMantineColorScheme, Box, Image } from "@mantine/core";
-import { IconBuilding, IconDashboard, IconDoorExit, IconMoon, IconSettings, IconSun, IconTemplate } from "@tabler/icons-react";
+import {
+  AppShell,
+  Group,
+  Menu,
+  NavLink,
+  ScrollArea,
+  rem,
+  Title,
+  Burger,
+  useMantineColorScheme,
+  Box,
+  Image,
+} from "@mantine/core";
+import {
+  IconBuilding,
+  IconDashboard,
+  IconDoorExit,
+  IconMoon,
+  IconSettings,
+  IconSun,
+  IconTemplate,
+} from "@tabler/icons-react";
 import classes from "./DashboardLayout.module.css";
 import { Outlet, useNavigate } from "react-router";
 import UserButton from "./components/UserButton/UserButton";
-import TurvaTransparentLogo from '../../resources/images/turva-transparent.svg'
+import TurvaTransparentLogo from "../../resources/images/turva-transparent.svg";
 import { ConfigurationContext } from "../../app/contexts/ConfigurationContext";
 
 interface DashboardNavItem {
@@ -31,14 +51,15 @@ const navButtons: DashboardNavItem[] = [
   {
     label: "Organisations",
     icon: <IconBuilding size="1rem" stroke={1.5} />,
-    href: '/organisations'
+    href: "/organisations",
   },
-]
+];
 
 const DashboardLayout = () => {
   const navigate = useNavigate();
   const { colorScheme, setColorScheme } = useMantineColorScheme();
-  const { configuration, updateConfigurationEntry } = useContext(ConfigurationContext);
+  const { configuration, updateConfigurationEntry } =
+    useContext(ConfigurationContext);
 
   return (
     <>
@@ -50,8 +71,11 @@ const DashboardLayout = () => {
         }}
         navbar={{
           width: 300,
-          breakpoint: 'sm',
-          collapsed: { mobile: configuration?.collapseNav, desktop: configuration?.collapseNav },
+          breakpoint: "sm",
+          collapsed: {
+            mobile: configuration?.collapseNav,
+            desktop: configuration?.collapseNav,
+          },
         }}
         withBorder={false}
         padding="md"
@@ -60,7 +84,12 @@ const DashboardLayout = () => {
           <Group justify="left" gap="sm">
             <Burger
               opened={!configuration?.collapseNav}
-              onClick={() => updateConfigurationEntry('collapseNav', !configuration?.collapseNav)}
+              onClick={() =>
+                updateConfigurationEntry(
+                  "collapseNav",
+                  !configuration?.collapseNav,
+                )
+              }
               className={classes.burger}
               size="sm"
               // color={colorScheme === 'dark' ? 'white' : 'black'}
@@ -96,7 +125,12 @@ const DashboardLayout = () => {
                 </Group>
                 <Burger
                   opened={!configuration?.collapseNav}
-                  onClick={() => updateConfigurationEntry('collapseNav', !configuration?.collapseNav)}
+                  onClick={() =>
+                    updateConfigurationEntry(
+                      "collapseNav",
+                      !configuration?.collapseNav,
+                    )
+                  }
                   size="sm"
                   color="white"
                   className={classes.burger}
@@ -105,43 +139,50 @@ const DashboardLayout = () => {
             </div>
 
             <ScrollArea className={classes.links}>
-              {navButtons?.filter(b => !b.hide).map((button, index) => (
-                <NavLink
-                  key={index}
-                  className={classes.navLink}
-                  label={button.label}
-                  leftSection={button.icon}
-                  active={
-                    !!(
-                      button.href && (
-                        (button.href === "/app" || button.href === "/app/") && (window.location.pathname === '/' || window.location.pathname === '/app') ||
-                        (
-                          button.href !== "/app" && (
-                            window.location.pathname === `/app${button.href}` ||
-                            window.location.pathname.startsWith(`/app${button.href}/`)
-                          )
-                        )
+              {navButtons
+                ?.filter((b) => !b.hide)
+                .map((button, index) => (
+                  <NavLink
+                    key={index}
+                    className={classes.navLink}
+                    label={button.label}
+                    leftSection={button.icon}
+                    active={
+                      !!(
+                        button.href &&
+                        (((button.href === "/app" || button.href === "/app/") &&
+                          (window.location.pathname === "/" ||
+                            window.location.pathname === "/app")) ||
+                          (button.href !== "/app" &&
+                            (window.location.pathname ===
+                              `/app${button.href}` ||
+                              window.location.pathname.startsWith(
+                                `/app${button.href}/`,
+                              ))))
                       )
-                    )
-                  }
-                  onClick={() => {
-                    if (button.href) {
-                      navigate(`${button.href}`, { replace: false })
                     }
-                  }}
-                  variant="filled"
-                >
-                  {button.innerNavs && !button.hide && button.innerNavs.map((innerNav, innerIndex) => (
-                    <NavLink
-                      key={innerIndex}
-                      className={classes.navLink}
-                      label={innerNav.label}
-                      onClick={() => navigate(innerNav.href!, { replace: false })}
-                      leftSection={innerNav.icon}
-                    />
-                  ))}
-                </NavLink>
-              ))}
+                    onClick={() => {
+                      if (button.href) {
+                        navigate(`${button.href}`, { replace: false });
+                      }
+                    }}
+                    variant="filled"
+                  >
+                    {button.innerNavs &&
+                      !button.hide &&
+                      button.innerNavs.map((innerNav, innerIndex) => (
+                        <NavLink
+                          key={innerIndex}
+                          className={classes.navLink}
+                          label={innerNav.label}
+                          onClick={() =>
+                            navigate(innerNav.href!, { replace: false })
+                          }
+                          leftSection={innerNav.icon}
+                        />
+                      ))}
+                  </NavLink>
+                ))}
             </ScrollArea>
 
             <Box mt="md" className={classes.bottomButtons}>
@@ -151,17 +192,19 @@ const DashboardLayout = () => {
                   <UserButton />
                 </Menu.Target>
                 <Menu.Dropdown>
-                  <Menu.Label>
-                    Settings
-                  </Menu.Label>
+                  <Menu.Label>Settings</Menu.Label>
                   <Menu.Item
                     onClick={() => {
-                      const newColorScheme = colorScheme === 'dark' ? 'light' : 'dark';
+                      const newColorScheme =
+                        colorScheme === "dark" ? "light" : "dark";
                       setColorScheme(newColorScheme);
-                      updateConfigurationEntry('darkMode', newColorScheme === 'dark');
+                      updateConfigurationEntry(
+                        "darkMode",
+                        newColorScheme === "dark",
+                      );
                     }}
                     leftSection={
-                      colorScheme === 'dark' ? (
+                      colorScheme === "dark" ? (
                         <IconSun style={{ width: rem(14), height: rem(14) }} />
                       ) : (
                         <IconMoon style={{ width: rem(14), height: rem(14) }} />
@@ -172,34 +215,39 @@ const DashboardLayout = () => {
                   </Menu.Item>
                   <Menu.Item
                     leftSection={
-                      <IconSettings style={{ width: rem(14), height: rem(14) }} />
+                      <IconSettings
+                        style={{ width: rem(14), height: rem(14) }}
+                      />
                     }
-                    onClick={() => navigate('/settings', { replace: true })}
+                    onClick={() => navigate("/settings", { replace: true })}
                   >
                     Account settings
                   </Menu.Item>
                   <Menu.Divider />
                   <Menu.Item
                     color="red"
-                    onClick={() => navigate('/logout', { replace: true })}
-                    leftSection={<IconDoorExit style={{ width: rem(14), height: rem(14) }} />}
+                    onClick={() => navigate("/logout", { replace: true })}
+                    leftSection={
+                      <IconDoorExit
+                        style={{ width: rem(14), height: rem(14) }}
+                      />
+                    }
                   >
                     Logout
                   </Menu.Item>
                 </Menu.Dropdown>
               </Menu>
             </Box>
-
           </nav>
         </AppShell.Navbar>
         <AppShell.Main
-          style={{ marginTop: (configuration?.collapseNav ? "60px" : "0px") }}
+          style={{ marginTop: configuration?.collapseNav ? "60px" : "0px" }}
         >
           <Outlet />
         </AppShell.Main>
       </AppShell>
     </>
   );
-}
+};
 
 export default DashboardLayout;

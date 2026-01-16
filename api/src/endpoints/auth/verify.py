@@ -1,10 +1,12 @@
-from fastapi import APIRouter, Request, HTTPException
-from models import User
-from pydantic import BaseModel
-from common.verify_email import handle_verification_email
+from datetime import UTC, datetime, timedelta
 from uuid import UUID
+
+from fastapi import APIRouter, HTTPException, Request
+from pydantic import BaseModel
 from starlette.authentication import UnauthenticatedUser
-from datetime import datetime, timedelta, timezone
+
+from common.verify_email import handle_verification_email
+from models import User
 
 router = APIRouter()
 
@@ -56,8 +58,8 @@ async def verify_email(request: Request, body: VerifyRequest, user_id: str):
             )
 
         if user.verification_token_created_at and datetime.now(
-            tz=timezone.utc
-        ) - user.verification_token_created_at.replace(tzinfo=timezone.utc) < timedelta(minutes=10):
+            tz=UTC
+        ) - user.verification_token_created_at.replace(tzinfo=UTC) < timedelta(minutes=10):
             raise HTTPException(
                 status_code=400,
                 detail="A verification token was recently sent, please wait before requesting another",
@@ -67,7 +69,7 @@ async def verify_email(request: Request, body: VerifyRequest, user_id: str):
             await handle_verification_email(user)
             return {"message": "Verification email resent"}
         except ValueError as e:
-            raise HTTPException(status_code=400, detail=str(e))
+            raise HTTPException(status_code=400, detail=str(e)) from e
 
     if not body.token:
         raise HTTPException(status_code=400, detail="Verification token is required")
