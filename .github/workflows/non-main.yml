@@ -230,8 +230,7 @@ jobs:
           - ✅ Python checks (styling, unit tests)
           - ✅ TypeScript checks (lint, prettier, stylelint, typecheck, test:ci)
           - ✅ Security scanning (Semgrep)
-          " \
-              --label "auto-generated"
+          "
             echo "Created new PR for branch $BRANCH"
           else
             echo "PR #$EXISTING_PR already exists for branch $BRANCH"
