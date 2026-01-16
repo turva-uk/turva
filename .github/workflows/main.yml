@@ -58,7 +58,7 @@ jobs:
 
       - name: Build Storybook
         working-directory: frontend
-        run: yarn build-storybook --output-dir ../site/storybook
+        run: yarn build-storybook
 
       # ---------- MkDocs site (Python 3.13) ----------
       - name: Set up Python

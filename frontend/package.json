@@ -17,7 +17,7 @@
     "typecheck": "tsc --noEmit",
     "preview": "vite preview",
     "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build",
+    "build-storybook": "storybook build -o ../docs/docs/code/storybook",
     "docs:build": "typedoc"
   },
   "dependencies": {

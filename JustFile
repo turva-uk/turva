@@ -58,9 +58,9 @@ docs:
     #!/usr/bin/env bash
     {{initialise}} "docs"
     echo "Starting MkDocs documentation server with hot reload..."
-    echo -e "\033[34mYou need to restart if you want to built the typeScript docs again.\033[0m"
-    cd frontend && yarn docs:build
+    cd frontend && yarn docs:build && yarn build-storybook
     echo "Documentation will be available at http://localhost:8001"
+    echo -e "\033[34mYou need to restart if you want to rebuild TypeScript docs or Storybook.\033[0m"
     cd ../docs && mkdocs serve -a localhost:8001
 
 

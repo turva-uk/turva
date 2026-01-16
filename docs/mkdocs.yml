@@ -44,6 +44,7 @@ nav:
       - Copilot instructions: specifications/copilot-instructions.md
       - Specifications: specifications/spec.md
       - Roadmap: specifications/roadmap.md
-  - Code Reference:
+  - Code:
       - Frontend (TypeScript): code/frontend/README.md
-      - Backend (Python): code/api/index.md
+      - Component Library (Storybook): code/storybook/index.html
+      - API (Python): code/api/index.md
