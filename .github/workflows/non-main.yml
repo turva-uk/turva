@@ -51,6 +51,35 @@ jobs:
             pc-styling-${{ runner.os }}-
 
       # ---- styling steps ----
+      - name: Setup Node.js (styling)
+        if: matrix.task == 'styling'
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Enable Corepack (styling)
+        if: matrix.task == 'styling'
+        run: |
+          corepack enable
+          corepack prepare yarn@4.10.3 --activate
+
+      - name: Cache frontend dependencies (styling)
+        if: matrix.task == 'styling'
+        uses: actions/cache@v4
+        with:
+          path: |
+            frontend/.yarn/cache
+            frontend/.yarn/install-state.gz
+            frontend/node_modules
+          key: styling-yarn-${{ runner.os }}-${{ hashFiles('frontend/yarn.lock') }}
+          restore-keys: |
+            styling-yarn-${{ runner.os }}-
+
+      - name: Install frontend dependencies (styling)
+        if: matrix.task == 'styling'
+        working-directory: frontend
+        run: yarn install --immutable
+
       - name: Ensure venv + pre-commit (styling)
         if: matrix.task == 'styling'
         run: |
