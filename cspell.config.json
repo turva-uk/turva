@@ -66,6 +66,7 @@
     "pyproject.toml",
     "pytest",
     "pytest-asyncio",
+    "Semgrep",
     "Starlette",
     "Tabler",
     "turva",

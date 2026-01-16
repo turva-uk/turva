@@ -104,11 +104,9 @@ jobs:
           . .venv/bin/activate
           pre-commit run --all-files --show-diff-on-failure --color=always
 
-      - name: Create minimal .env file (unit)
+      - name: Copy CI/CD env file (unit)
         if: matrix.task == 'unit'
-        run: |
-          touch api/.env
-          echo "TEST_ENVIRONMENT=true" > api/.env
+        run: cp api/.env-cicd api/.env
 
       - name: Build and start Docker containers (unit)
         if: matrix.task == 'unit'
