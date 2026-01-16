@@ -163,6 +163,11 @@ jobs:
         working-directory: frontend
         run: yarn install --immutable
 
+      - name: Install Playwright browsers (test:ci)
+        if: matrix.task == 'test:ci'
+        working-directory: frontend
+        run: yarn playwright install --with-deps
+
       - name: Run ${{ matrix.task }}
         working-directory: frontend
         run: yarn ${{ matrix.task }}
