@@ -106,7 +106,7 @@ jobs:
 
       - name: Copy CI/CD env file (unit)
         if: matrix.task == 'unit'
-        run: cp api/.env-cicd api/.env
+        run: cp api/.env.cicd api/.env
 
       - name: Build and start Docker containers (unit)
         if: matrix.task == 'unit'
