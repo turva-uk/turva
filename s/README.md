@@ -13,6 +13,7 @@ All scripts pass through any additional arguments to the underlying docker-compo
 
 Starts all services, running in Docker Compose.  
 Add the `--build` flag to rebuild images before starting.  
+Add the `-d` flag to run in detached mode.
 Usage: `./s/up` or `./s/up frontend` for specific service
 
 ### `./s/down`
