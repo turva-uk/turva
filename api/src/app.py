@@ -13,6 +13,7 @@ from models._database import database
 
 
 @asynccontextmanager
+# Manage DB connection lifecycle during app lifespan
 async def lifespan(app: FastAPI):
     # Connect to the database
     database_: Database = app.state.database
@@ -27,7 +28,14 @@ async def lifespan(app: FastAPI):
             await database_.disconnect()
 
 
-app = FastAPI(lifespan=lifespan)
+is_dev_env = Config.Application.is_debug_environment is True
+
+app = FastAPI(
+    lifespan=lifespan,
+    docs_url="/" if is_dev_env else None,
+    redoc_url=None,
+    openapi_url=f"{Config.Application.api_path}/openapi.json",
+)
 app.state.database = database
 
 # CORS configuration
@@ -53,12 +61,3 @@ app.add_middleware(
 )
 
 app.include_router(endpoints_base, prefix=Config.Application.api_path)
-
-
-@app.get("/")
-async def read_root():
-    return {
-        "author": "https://www.turva.org",
-        "description": "Turva API",
-        "github": "https://github.com/digital-clinical-safety-alliance/turva/",
-    }
