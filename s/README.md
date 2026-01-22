@@ -11,27 +11,28 @@ All scripts pass through any additional arguments to the underlying docker-compo
 
 ### `./s/up`
 
-Start all services (with `--build` flag)  
+Starts all services, running in Docker Compose.  
+Add the `--build` flag to rebuild images before starting.  
 Usage: `./s/up` or `./s/up frontend` for specific service
 
 ### `./s/down`
 
-Stop all services  
+Stops all services  
 Usage: `./s/down`
 
 ### `./s/logs`
 
-Follow logs from services  
+Follows logs from services  
 Usage: `./s/logs` or `./s/logs api` for specific service
 
 ### `./s/restart`
 
-Restart services  
+Restarts services  
 Usage: `./s/restart` or `./s/restart frontend` for specific service
 
 ### `./s/clean`
 
-Clean up all containers, volumes, and cached images  
+Cleans up all containers, volumes, and cached images  
 Usage: `./s/clean`
 
 
