@@ -31,5 +31,7 @@
   },
   "terminal.integrated.tabs.enableAnimation": true,
   "terminal.integrated.tabs.description": "${sequence}",
-  "terminal.integrated.tabs.title": "${process}"
+  "terminal.integrated.tabs.title": "${process}",
+  "python-envs.defaultEnvManager": "ms-python.python:system",
+  "python-envs.pythonProjects": []
 }
