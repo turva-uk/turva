@@ -1,4 +1,4 @@
-mkdocs-material
+zensical
 mkdocstrings[python]
 mkdocs-gen-files
 mkdocs-literate-nav
