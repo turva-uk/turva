@@ -36,9 +36,10 @@ services:
   #     - ./docs:/docs
   #   ports:
   #     - "8001:8001"
-  #   command: mkdocs serve -a 0.0.0.0:8001
+  #   command: zensical serve -a 0.0.0.0:8001
 
   caddy:
+    container_name: "turva-caddy"
     image: caddy:2-alpine
     ports:
       - "80:80"
