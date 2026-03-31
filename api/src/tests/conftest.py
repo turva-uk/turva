@@ -1,19 +1,23 @@
-import asyncio
 import os
+
+# from asgi_lifespan import LifespanManager
+from dotenv import load_dotenv
+
+os.environ["TESTING"] = "true"
+load_dotenv("../.env.test")
+
+import asyncio
 
 import email_validator
 import pytest_asyncio
-from dotenv import load_dotenv
+from asgi_lifespan import LifespanManager
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from app import app
 from async_database_utils import create_database, database_exists, drop_database
-from config import Config
 from models._database import DATABASE_URL, metadata
 
-os.environ["TESTING"] = "true"
-load_dotenv("../.env.test")
 email_validator.TEST_ENVIRONMENT = True
 
 """
@@ -58,16 +62,11 @@ async def db(_test_database):
         await conn.run_sync(metadata.drop_all)
 
 
-# Defines the test client, starts the app, and shuts it down after the test
 @pytest_asyncio.fixture
 async def test_client(db):
-    async with AsyncClient(
-        transport=ASGITransport(app=app),
-        base_url=f"http://test{Config.Application.api_path}/",
-    ) as client:
-        # We manually run the startup and shutdown calls because
-        # HTTPX doesn't handle that, and we need to connect and disconnect
-        # from the database (we do that in the app startup and shutdown events)
-        await app.router.startup()
-        yield client
-        await app.router.shutdown()
+    async with LifespanManager(app):
+        async with AsyncClient(
+            transport=ASGITransport(app),
+            base_url="http://testserver",
+        ) as client:
+            yield client

@@ -3,6 +3,7 @@ import datetime
 from fastapi.requests import HTTPConnection
 from starlette.authentication import AuthCredentials, AuthenticationBackend, BaseUser
 
+from authentication.scope import Scope
 from config import Config
 from models import Session
 
@@ -26,18 +27,13 @@ class TurvaAuthenticationBackend(AuthenticationBackend):
         # request, which is not ideal, but possible.
         # Need to investigate.
 
-        # This checks if the session middleware has loaded correctly
-        _ = conn.session
-
-        # Check if the session cookie is present
-        if Config.Application.session_cookie_name not in conn.cookies:
-            # No cookie so nothing to authenticate
+        # Get the session token from the signed session cookie (managed by SessionMiddleware)
+        session_token = conn.session.get("session_token")
+        if not session_token:
             return None
 
-        # Get the session from the session cookie
-        session = await Session.objects.select_related("user").get_or_none(
-            token=conn.cookies[Config.Application.session_cookie_name]
-        )
+        # Look up the session in the database
+        session = await Session.objects.select_related("user").get_or_none(token=session_token)
 
         if session is None:
             # The session does not exist
@@ -55,5 +51,9 @@ class TurvaAuthenticationBackend(AuthenticationBackend):
             + datetime.timedelta(seconds=Config.Application.session_cookie_lifetime)
         )
 
+        scopes = [Scope.AUTHENTICATED.value]
+        if session.user.is_verified:
+            scopes.append(Scope.VERIFIED.value)
+
         # Return the user + their scopes
-        return AuthCredentials([]), session.user
+        return AuthCredentials(scopes), session.user

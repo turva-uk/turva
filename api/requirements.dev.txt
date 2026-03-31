@@ -24,3 +24,5 @@ types-pytz
 argon2-cffi==25.1.0
 email-validator
 setuptools
+asgi-lifespan
+pytest-freezer

@@ -1,9 +1,8 @@
 from email_validator import EmailNotValidError, validate_email
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
-from config import Config
 from models import Session, User
 
 
@@ -16,7 +15,7 @@ router = APIRouter()
 
 
 @router.post("/login/")
-async def login(data: LoginRequest):
+async def login(request: Request, data: LoginRequest):
     if not data.email_address or not data.password:
         raise HTTPException(status_code=400, detail="Username and password are required")
 
@@ -35,7 +34,7 @@ async def login(data: LoginRequest):
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
     # auth successful
-    session, signed_session_key = await Session.create_session(user)
+    _, session_key = await Session.create_session(user)
 
     response = JSONResponse(
         content={
@@ -48,12 +47,7 @@ async def login(data: LoginRequest):
         }
     )
 
-    # Set session token in response cookies
-    response.set_cookie(
-        key=Config.Application.session_cookie_name,
-        value=signed_session_key,
-        httponly=True,
-        secure=True,
-    )
+    # Set session token
+    request.session["session_token"] = session_key
 
     return response

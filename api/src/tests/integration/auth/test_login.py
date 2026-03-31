@@ -1,7 +1,10 @@
+import base64
+import json
 from datetime import UTC, datetime
 
 import httpx
 import pytest
+from itsdangerous import TimestampSigner
 
 from config import Config
 from models import User
@@ -37,7 +40,12 @@ async def test_successful_login(test_client: httpx.AsyncClient):
     assert data["last_name"] == user.last_name
     assert data["email_address"] == user.email_address
     assert Config.Application.session_cookie_name in response.cookies
-    assert response.cookies[Config.Application.session_cookie_name] is not None
+
+    # Decode the itsdangerous-signed session cookie and verify it contains a session_token
+    cookie_value = response.cookies[Config.Application.session_cookie_name]
+    signer = TimestampSigner(Config.Application.secret_key)
+    session_data = json.loads(base64.b64decode(signer.unsign(cookie_value)))
+    assert "session_token" in session_data
 
 
 @pytest.mark.asyncio

@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
 
-from databases import Database
+import ormar
+import sqlalchemy
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.authentication import AuthenticationMiddleware
@@ -9,15 +10,24 @@ from starlette.middleware.sessions import SessionMiddleware
 from authentication.middleware import TurvaAuthenticationBackend
 from config import Config
 from endpoints import endpoints_base
-from models._database import database
+from models._database import DATABASE_URL, database
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Connect to the database
-    database_: Database = app.state.database
+    database_: ormar.DatabaseConnection = app.state.database
     if not database_.is_connected:
         await database_.connect()
+
+        if DATABASE_URL.startswith("postgres"):
+            async with database_.engine.begin() as conn:
+                await conn.run_sync(
+                    lambda connection: connection.execute(
+                        sqlalchemy.text(f"SET SESSION search_path TO {Config.Database.schema}")
+                    )
+                )
+                await conn.commit()
 
     try:
         yield
