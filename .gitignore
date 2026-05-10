@@ -212,3 +212,6 @@ __marimo__/
 install-state.gz
 
 node_modules/
+
+# MkDocs / Zensical
+site/

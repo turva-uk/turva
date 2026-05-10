@@ -8,64 +8,29 @@ Turva is a **clinical safety management platform** for healthcare IT systems. It
 
 ## Reading material
 
-- [spec](spec.md)
-- [roadmap](roadmap.md)
+- **[Core Specification](core-specification.md)** - Essential domain model and principles
+- **[LLM Strategy](llm-strategy.md)** - AI integration approach
+- **[Federation](federation.md)** - Cross-organizational safety case sharing
+- **[Architecture Principles](architecture-principles.md)** - Design principles
+- **[Roadmap](roadmap.md)** - Implementation status
 
 ## Architecture
 
-**Monorepo** with three Docker services orchestrated via docker-compose and Caddy reverse proxy:
+See **[Architecture Principles](architecture-principles.md)** for design philosophy.
 
-- **frontend/** - React 19 + TypeScript + Vite + Mantine UI (port 5173)
-- **api/** - FastAPI + Ormar ORM + PostgreSQL (port 8000)
-- **docs/** - MkDocs documentation (currently commented out)
+### Current Stack
 
-```text
-http://localhost → Caddy → /api/* → api:8000
-                         → /*     → frontend:5173
-```
+- **Frontend**: React 19 + TypeScript + Vite + Mantine UI
+- **Backend**: FastAPI + Ormar ORM + PostgreSQL
+- **Infrastructure**: Docker Compose + Caddy reverse proxy
 
-### Key Backend Patterns
+**Key patterns**:
+- Session-based auth (not JWT) - sessions in PostgreSQL
+- Automatic snake_case ↔ camelCase conversion at API boundary
+- Dynamic endpoint registration (file tree → URL structure)
+- All API operations async (async/await pattern)
 
-**Dynamic endpoint registration**: The [api/src/endpoints/\_\_init\_\_.py](../api/src/endpoints/__init__.py) walks the file tree and auto-registers FastAPI routers. Each `.py` file with a `router` object becomes an endpoint at `/<folder_path>/<filename>`. Example: [endpoints/auth/login.py](../api/src/endpoints/auth/login.py) → `/auth/login/`.
-
-**Authentication flow**:
-
-1. Session-based auth using Starlette sessions (not JWT)
-2. [TurvaAuthenticationBackend](../api/src/authentication/middleware.py) validates session cookies on every request
-3. Sessions stored in PostgreSQL via [models/session.py](../api/src/models/session.py)
-4. Password hashing with Argon2 in [models/user.py](../api/src/models/user.py)
-
-**Database**:
-
-- Ormar ORM with async PostgreSQL (production) or SQLite (testing)
-- Alembic migrations in [api/src/alembic/](../api/src/alembic/)
-- [DateFieldsMixins](../api/src/models/_database.py) adds `created_date`/`updated_date` to all models
-- Test isolation: each test gets fresh DB via [conftest.py](../api/src/tests/conftest.py) fixtures
-
-**Configuration**: [config.py](../api/src/config.py) uses type-safe env var parsing with `parseString`/`parseInteger` helpers. Raises `ConfigurationError` on missing required vars.
-
-### Key Frontend Patterns
-
-**API communication**:
-
-- [withFetch](../frontend/src/common/withFetch.ts) wraps fetch with automatic snake_case→camelCase conversion, date parsing, and error handling
-- [useREST](../frontend/src/hooks/useREST.ts) hook provides loading states and automatic camelCase→snake_case for requests
-- All API calls use `credentials: 'include'` for session cookies
-
-**State management**:
-
-- [UserAuthContext](../frontend/src/app/contexts/UserAuthContext.tsx) stores user in localStorage and React context
-- [ConfigurationContext](../frontend/src/app/contexts/ConfigurationContext.tsx) for app-wide config
-- No external state management library
-
-**Routing**: React Router v7 with [RequiresVerifiedLogin](../frontend/src/app/App.tsx) wrapper for protected routes. Unverified users redirect to `/auth/verify-notice`.
-
-**UI/Testing**:
-
-- Mantine v8 components throughout
-- Storybook for component development (`yarn storybook`)
-- Vitest with @testing-library/react for unit tests
-- [MockUserAuthProvider](../frontend/src/app/contexts/UserAuthContext.tsx) for story/test contexts
+Implementation details live in the codebase - see README files in `api/` and `frontend/` directories
 
 ## Development Workflows
 

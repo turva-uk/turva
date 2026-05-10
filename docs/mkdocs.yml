@@ -1,26 +1,10 @@
 site_name: Turva Documentation
 site_url: https://turva-uk.github.io/turva/
 repo_url: https://github.com/turva-uk/turva
+copyright: Copyright &copy; 2026 Turva
 
 theme:
-  name: material
-  palette:
-    # Light mode
-    - media: "(prefers-color-scheme: light)"
-      scheme: default
-      primary: deep purple
-      accent: amber
-      toggle:
-        icon: material/brightness-7
-        name: Switch to dark mode
-    # Dark mode
-    - media: "(prefers-color-scheme: dark)"
-      scheme: slate
-      primary: deep purple
-      accent: amber
-      toggle:
-        icon: material/brightness-4
-        name: Switch to light mode
+  variant: classic
   navigation_depth: 4
 
 plugins:
@@ -39,18 +23,6 @@ nav:
   - Introduction: index.md
   - Getting started: getting-started.md
   - Technical overview: technical-overview.md
-  - LLM materials:
-      - Overview: specifications/index.md
-      - Copilot instructions: specifications/copilot-instructions.md
-      - Specifications: specifications/spec.md
-      - Roadmap: specifications/roadmap.md
-      - Architecture:
-          - Overview: specifications/architecture/index.md
-          - Frontend (React/TypeScript): specifications/architecture/frontend.md
-          - Backend (FastAPI/Python): specifications/architecture/backend.md
-          - Reverse Proxy (Caddy): specifications/architecture/caddy.md
-          - Clinical Safety (VMPT): specifications/architecture/vmpt.md
-          - Documentation System: specifications/architecture/documentation.md
 
   - Code Reference:
       - Frontend API: code/frontend/README.md

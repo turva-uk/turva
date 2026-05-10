@@ -1,4 +1,4 @@
-FROM python:3.12-slim
+FROM python:3.13-slim
 
 WORKDIR /docs
 
@@ -10,4 +10,4 @@ COPY docs/ .
 
 EXPOSE 8001
 
-CMD ["mkdocs", "serve", "-a", "0.0.0.0:8001", "--livereload", "--watch", "/docs/docs"]
+CMD ["zensical", "serve", "-a", "0.0.0.0:8001", "--livereload", "--watch", "/docs/docs"]
