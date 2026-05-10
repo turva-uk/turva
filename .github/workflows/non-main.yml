@@ -54,7 +54,7 @@ jobs:
       # ---- styling steps ----
       - name: Setup Node.js (styling)
         if: matrix.task == 'styling'
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: "22"
 
@@ -139,7 +139,7 @@ jobs:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: "22"
 
