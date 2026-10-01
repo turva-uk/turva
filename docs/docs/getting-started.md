@@ -92,11 +92,13 @@ cp api/.env.example api/.env  # If .env.example exists
 
 ### Running Migrations
 
-Database migrations are automatically applied on startup. To manually run migrations:
+Migrations are **not** applied automatically. Run them after first starting the stack, and after pulling changes that add a migration:
 
 ```bash
-docker compose exec api alembic upgrade head
+docker compose exec -w /app/src api alembic upgrade head
 ```
+
+Without this the application starts but every query fails with `relation "tbl_user" does not exist`.
 
 ## Development Tips
 

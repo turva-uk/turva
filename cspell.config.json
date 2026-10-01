@@ -28,6 +28,7 @@
     "venv"
   ],
   "words": [
+    "aiosqlite",
     "Alembic",
     "Argon",
     "Argon2",
@@ -35,6 +36,7 @@
     "artefacts",
     "ASGI",
     "ASIC",
+    "asyncpg",
     "behaviour",
     "BYOK",
     "Caddy",

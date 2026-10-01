@@ -18,10 +18,13 @@ def get_database_url() -> str:
         f"@{Config.Database.host}:{Config.Database.port}"
     )
 
-    return (
-        f"{base_database_url}/{Config.Database.database}"
-        f"?options=-csearch_path={Config.Database.schema}"
-    )
+    # search_path is applied via `connect_args.server_settings` below, which is
+    # asyncpg's supported mechanism. It was previously *also* appended here as
+    # `?options=-csearch_path=...`, which SQLAlchemy forwards to
+    # `asyncpg.connect(options=...)`. asyncpg 0.31 rejects that keyword, so
+    # startup failed with "connect() got an unexpected keyword argument
+    # 'options'". The parameter was redundant even before it broke.
+    return f"{base_database_url}/{Config.Database.database}"
 
 
 DATABASE_URL = get_database_url()

@@ -338,6 +338,8 @@ Each Clinical Safety Management File is a Git repository on disk holding a Zensi
 - [x] Unit tests for user model
 - [x] Integration tests for authentication
 - [x] Integration tests running in CI (previously excluded and silently broken)
+- [ ] Run the suite against PostgreSQL as well as SQLite. Tests currently use SQLite only, so Postgres-specific regressions are invisible to CI - an asyncpg 0.31 incompatibility in the `search_path` connection arguments reached `main` with all 42 tests green
+- [ ] Apply migrations automatically on startup, or add a startup check that fails loudly when migrations are pending
 - [ ] Unit tests for all models
 - [ ] Integration tests for all endpoints
 - [ ] End-to-end tests

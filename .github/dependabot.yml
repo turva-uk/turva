@@ -47,7 +47,6 @@ updates:
     groups:
       python-minor-and-patch:
         applies-to: version-updates
-        group-by: dependency-name
         patterns:
           - "*"
         update-types:
@@ -68,7 +67,6 @@ updates:
     groups:
       docker-minor-and-patch:
         applies-to: version-updates
-        group-by: dependency-name
         patterns:
           - "*"
         update-types:
