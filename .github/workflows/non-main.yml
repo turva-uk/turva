@@ -30,17 +30,17 @@ jobs:
       PRE_COMMIT_HOME: ${{ github.workspace }}/.pre-commit-cache
       PIP_CACHE_DIR: ${{ github.workspace }}/.pip-cache
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { fetch-depth: 0 }
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: ${{ matrix.python }}
 
       # ---- caches (pick per task) ----
       - name: Cache pre-commit & venv (styling)
         if: matrix.task == 'styling'
-        uses: actions/cache@v4
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             .venv
@@ -54,7 +54,7 @@ jobs:
       # ---- styling steps ----
       - name: Setup Node.js (styling)
         if: matrix.task == 'styling'
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "22"
 
@@ -66,7 +66,7 @@ jobs:
 
       - name: Cache frontend dependencies (styling)
         if: matrix.task == 'styling'
-        uses: actions/cache@v4
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             frontend/.yarn/cache
@@ -136,10 +136,10 @@ jobs:
       matrix:
         task: [lint, prettier, stylelint, typecheck, "test:ci"]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { fetch-depth: 0 }
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "22"
 
@@ -150,7 +150,7 @@ jobs:
           yarn --version
 
       - name: Cache Yarn
-        uses: actions/cache@v4
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             frontend/.yarn/cache
@@ -179,7 +179,7 @@ jobs:
     name: Semgrep (frontend SAST)
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { fetch-depth: 0 }
 
       # Install Semgrep via pipx (fast, isolated)
@@ -201,7 +201,7 @@ jobs:
     needs: [python_checks, typescript_checks, frontend_security]
     if: github.event_name == 'push' && success()
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
