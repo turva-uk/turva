@@ -29,7 +29,7 @@ jobs:
 
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
-          python-version: "3.13"
+          python-version: "3.14"
 
       - name: Cache pre-commit and venv
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -77,11 +77,9 @@ jobs:
       - name: Copy CI/CD env file
         run: cp api/.env.cicd api/.env
 
+      # No sleep needed: compose waits for the postgres healthcheck.
       - name: Build and start Docker containers
-        run: docker compose up -d --build
-
-      - name: Wait for containers to be ready
-        run: sleep 5
+        run: docker compose up -d --wait
 
       # Integration tests are included. They were previously excluded and had
       # silently rotted: every one of them 404'd inside the container because

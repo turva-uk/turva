@@ -10,15 +10,15 @@ cd "$(dirname "$0")/.."
 
 # Python versions are matched to the respective Dockerfiles.
 uv pip compile api/requirements.in \
-	--python-version 3.12 \
+	--python-version 3.14 \
 	--output-file api/requirements.txt "$@"
 
 uv pip compile api/requirements.dev.in \
-	--python-version 3.12 \
+	--python-version 3.14 \
 	--output-file api/requirements.dev.txt "$@"
 
 uv pip compile docs/requirements.in \
-	--python-version 3.13 \
+	--python-version 3.14 \
 	--output-file docs/requirements.txt "$@"
 
 echo "Locks regenerated. Review the dependency diff before committing."

@@ -13,6 +13,12 @@ services:
     environment:
       - PYTHONPATH=/app
       - DEBUG=true
+    # Uvicorn connects to the database during startup and exits if it cannot,
+    # so it must not start before PostgreSQL accepts connections. Without this
+    # the stack came up correctly only by timing luck.
+    depends_on:
+      postgres:
+        condition: service_healthy
     command: uvicorn app:app --host 0.0.0.0 --port 8000 --reload
 
   # docs:
@@ -55,6 +61,12 @@ services:
       - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+      start_period: 5s
 
 volumes:
   caddy_data:
