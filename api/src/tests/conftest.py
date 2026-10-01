@@ -4,7 +4,12 @@ import os
 from dotenv import load_dotenv
 
 os.environ["TESTING"] = "true"
-load_dotenv("../.env.test")
+# `override=True` matters: docker-compose injects api/.env into the container via
+# `env_file`, so without it `.env.test` cannot take effect and the suite runs
+# against development configuration. That made every integration test 404,
+# because .env.test sets API_PATH="/" while api/.env sets "/api/", so the router
+# mounted at a different prefix than the tests call.
+load_dotenv("../.env.test", override=True)
 
 import asyncio
 

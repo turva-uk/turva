@@ -62,8 +62,8 @@ jobs:
           . .venv/bin/activate
           pre-commit run --all-files --show-diff-on-failure --color=always
 
-  unit:
-    name: Python unit tests
+  tests:
+    name: Python tests
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -79,10 +79,11 @@ jobs:
       - name: Wait for containers to be ready
         run: sleep 5
 
+      # Integration tests are included. They were previously excluded and had
+      # silently rotted: every one of them 404'd inside the container because
+      # .env.test could not override the compose-injected api/.env.
       - name: Run pytest in Docker container
-        env:
-          TEST_ENVIRONMENT: "true"
-        run: docker compose exec -T api pytest /app/src/tests/unit -v --maxfail=1
+        run: docker compose exec -T api pytest /app/src -v
 
       - name: Cleanup containers
         if: always()
