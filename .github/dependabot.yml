@@ -4,9 +4,13 @@
 # lands here. Cooldown does not apply to security updates, so urgent security
 # fixes still arrive immediately.
 #
-# Note: Dependabot now applies a 3-day default cooldown even when unconfigured,
-# so `default-days` is never set below 3 here. House style suggests a floor of
-# 1 day, which would now weaken the platform default rather than strengthen it.
+# `default-days: 7` is set deliberately. Three sources disagree on the floor:
+# house style suggests at least 1, Dependabot now applies 3 when unconfigured,
+# and Zizmor's `dependabot-cooldown` audit fails anything under 7. We take the
+# strictest, because a longer window is more time for a compromised or yanked
+# release to be caught before it reaches a clinical safety tool, and because
+# Zizmor is a blocking CI gate. Security updates ignore cooldown entirely, so
+# urgent fixes are unaffected.
 #
 # Routine minor and patch updates are grouped into one weekly PR per ecosystem.
 # Major updates stay separate so they get reviewed on their own merits.
@@ -20,7 +24,7 @@ updates:
       interval: "weekly"
       day: "monday"
     cooldown:
-      default-days: 3
+      default-days: 7
     groups:
       github-actions-minor-and-patch:
         applies-to: version-updates
@@ -38,14 +42,51 @@ updates:
       interval: "weekly"
       day: "monday"
     cooldown:
-      default-days: 3
-      semver-patch-days: 3
-      semver-minor-days: 7
+      default-days: 7
       semver-major-days: 14
     groups:
       python-minor-and-patch:
         applies-to: version-updates
         group-by: dependency-name
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+
+  # Dockerfiles. Now worth managing because the base images are pinned to exact
+  # patch versions rather than floating tags.
+  - package-ecosystem: "docker"
+    directories:
+      - "/api"
+      - "/docs"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    cooldown:
+      default-days: 7
+    groups:
+      docker-minor-and-patch:
+        applies-to: version-updates
+        group-by: dependency-name
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+
+  # PostgreSQL major upgrades need a dump/restore, not a tag bump, so major
+  # updates are intentionally left to arrive as their own reviewable PR.
+  - package-ecosystem: "docker-compose"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    cooldown:
+      default-days: 7
+    groups:
+      compose-images-minor-and-patch:
+        applies-to: version-updates
         patterns:
           - "*"
         update-types:
@@ -58,7 +99,7 @@ updates:
       interval: "weekly"
       day: "monday"
     cooldown:
-      default-days: 3
+      default-days: 7
     groups:
       pre-commit-minor-and-patch:
         applies-to: version-updates

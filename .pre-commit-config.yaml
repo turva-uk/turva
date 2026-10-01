@@ -19,8 +19,11 @@ repos:
         args: ["--config", "cspell.config.json"]
         types: [markdown]
 
-  - repo: https://github.com/pre-commit/mirrors-prettier
-    rev: v4.0.0-alpha.8
+  # pre-commit/mirrors-prettier was archived in April 2024 and the pin there was
+  # a prettier 4 alpha. rbubley/mirrors-prettier is the maintained mirror and
+  # tracks stable prettier releases.
+  - repo: https://github.com/rbubley/mirrors-prettier
+    rev: v3.9.9
     hooks:
       # Jinja2 templates are deliberately excluded - Prettier mangles `{% %}` and
       # `{{ }}` syntax. Do not add `html` to types_or.

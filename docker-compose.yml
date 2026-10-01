@@ -27,7 +27,7 @@ services:
 
   caddy:
     container_name: "turva-caddy"
-    image: caddy:2-alpine
+    image: caddy:2.11.4-alpine
     ports:
       - "80:80"
       - "443:443"
@@ -41,7 +41,12 @@ services:
 
   postgres:
     container_name: "turva-postgres"
-    image: postgres:latest
+    # Pinned deliberately. PGDATA includes the major version
+    # (/var/lib/postgresql/18/docker) while the volume is mounted one level up,
+    # so a floating tag would silently initialise an empty database inside the
+    # existing volume the day PostgreSQL 19 ships. Major upgrades need a
+    # dump/restore, not a tag change.
+    image: postgres:18.6
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: thisismypassword
