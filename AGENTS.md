@@ -8,11 +8,19 @@ This file is the entry point for AI coding agents. Read it before changing anyth
 
 - [specifications/phase-one-scope.md](specifications/phase-one-scope.md) - what the funded build delivers by Christmas. Start here; `roadmap.md` is far wider than current scope
 - [specifications/architecture-principles.md](specifications/architecture-principles.md) - especially "Git Is the System of Record"
+- [specifications/safety-file-layout.md](specifications/safety-file-layout.md) - the on-disk contract for a safety file
+- [specifications/adr/](specifications/adr/) - decisions and their reasoning
 - [specifications/core-specification.md](specifications/core-specification.md) - domain model and risk scales
 - [specifications/copilot-instructions.md](specifications/copilot-instructions.md) - stack detail, conventions, and known traps
 - [SAFETY.md](SAFETY.md) - Turva's own hazards and safety status
 - [README.md](README.md) - setup
 - [pacharanero/house-style](https://github.com/pacharanero/house-style) - adopted cross-repo standards
+
+## Current state
+
+The framework is changing. [ADR 0001](specifications/adr/0001-use-django-for-phase-one.md) records the decision to rebuild on **Django**; the code in `api/` is still FastAPI and has not been ported yet. Specifications and docs that name FastAPI are stale pending that work.
+
+`safety_file/` is the Git storage layer and is already in place. It has no framework imports and is not affected by the port.
 
 ## Core Invariants
 
@@ -20,7 +28,9 @@ This file is the entry point for AI coding agents. Read it before changing anyth
 - **Risk level is derived, never entered.** Severity and likelihood are captured; risk level is calculated. No code path may let a user set a risk level directly. This logic requires complete test coverage - see TH-008 in `SAFETY.md`.
 - **The audit trail is attributable and append-only.** Changes create new commits attributed to the acting user. Never rewrite the history of a safety file repository.
 - **Session-based auth, not JWT.** Sessions live in PostgreSQL and are validated by middleware.
-- **Generated files are not hand-edited.** `api/requirements*.txt` and `docs/requirements.txt` are locks; edit the `.in` files and run `s/lock`.
+- **Generated files are not hand-edited.** `api/requirements*.txt` and `docs/requirements.txt` are locks; edit the `.in` files and run `s/lock`. `docs/hazards/index.md` inside a safety file is generated on every save.
+- **`safety_file/` imports no web framework.** That is what makes it testable without a server and what let it survive the FastAPI-to-Django change. Keep it that way.
+- **Commit author is always explicit.** Never let Git fall back to global config, `$USER`, or a service account for a safety file commit.
 - **Prettier must not touch `.html`.** Jinja2 templates live there and Prettier mangles `{% %}` and `{{ }}`. Do not add `html` to `types_or` in `.pre-commit-config.yaml`.
 - **British English.** cspell runs with `en-GB`.
 - **One ruff config**, `ruff.toml` at the repo root. It sets `src = ["api/src"]`. Do not reintroduce `[tool.ruff]` in `api/pyproject.toml`.
@@ -29,18 +39,19 @@ This file is the entry point for AI coding agents. Read it before changing anyth
 ## Workflow
 
 ```sh
-./s/up        # start the stack
-./s/test      # run the test suite in the api container
-./s/lint      # everything CI enforces
-./s/lock      # regenerate dependency locks after editing a .in file
-./s/docs      # serve the docs site locally
+./s/up         # start the stack
+./s/test       # both suites: safety_file (host) and api (container)
+./s/lint       # everything CI enforces
+./s/lock       # regenerate dependency locks after editing a .in file
+./s/docs       # serve the docs site locally
+./s/seed-demo  # build the demo safety file (also an end-to-end storage test)
 ```
 
 ## Before Every Commit
 
 ```sh
 ./s/lint      # pre-commit --all-files, then the Zizmor Actions audit
-./s/test      # 42 tests currently pass: 21 unit, 21 integration
+./s/test      # 152 tests: 110 in safety_file, 42 in api
 ```
 
 Do not commit red. CI runs the same checks.

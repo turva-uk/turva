@@ -207,13 +207,18 @@ Each Clinical Safety Management File is a Git repository on disk holding a Zensi
 
 ### Git as the System of Record
 
-- [ ] Repository creation from a project template
-- [ ] Repository layout convention (hazards, mitigations, safety case, values)
-- [ ] Read and write safety artefacts as Markdown with YAML frontmatter
-- [ ] Commit on save, attributed to the acting user
-- [ ] History and diff views for a safety artefact
+- [x] Repository layout convention, specified in [safety-file-layout.md](safety-file-layout.md)
+- [x] Repository creation from a project template
+- [x] Read and write safety artefacts as Markdown with YAML frontmatter
+- [x] Commit on save, attributed to the acting user
+- [x] Sequential identifiers allocated from Git history, never reused
+- [x] Validation on read and write, including derived-risk and cross-reference rules
+- [x] Generated hazard log, regenerated on every save
+- [x] History for a single safety artefact, and retrieval of a past version
+- [ ] Diff view between two versions of an artefact
 - [ ] Database index over repositories, rebuildable from disk
 - [ ] Repository storage layout, quotas and backup strategy
+- [ ] Concurrency: two users editing the same safety file at once
 - [ ] Branch management for major changes
 - [ ] Merge conflict resolution
 - [ ] Tag releases
@@ -223,6 +228,7 @@ Each Clinical Safety Management File is a Git repository on disk holding a Zensi
 - [ ] Build a project's Zensical site from its repository
 - [ ] PDF export via WeasyPrint over the built HTML (pattern per <https://growth.rcpch.ac.uk>)
 - [ ] PDF cached against the commit it was generated from
+- [ ] Generate the safety case report's summary figures from the hazard data rather than prose. While writing the demo safety file, a hand-written residual risk statement claimed all hazards were at risk level 2 or below when two derived level 3 - the same class of defect as TH-001
 - [ ] Markdown editor for safety documentation
 - [ ] Markdown preview
 
@@ -444,8 +450,8 @@ Each Clinical Safety Management File is a Git repository on disk holding a Zensi
 
 ---
 
-**Last Updated:** 1 October 2026
+**Last Updated:** 2 October 2026
 **Current Phase:** Funded phase one - see [Phase One Scope](phase-one-scope.md)
-**Next Milestone:** Safety file storage (Git repository per Clinical Safety Management File)
+**Next Milestone:** Django port, then project creation through the web interface
 
 Note on reading this roadmap: it tracks everything Turva might eventually do, and is much wider than the funded build. [Phase One Scope](phase-one-scope.md) is the authoritative list of what ships by Christmas.
