@@ -1,0 +1,7 @@
+schema_version: 1
+project_id: "{{ project_id }}"
+name: "{{ name }}"
+standard: DCB0160
+template: dcb0160-deployment
+template_version: 1
+created: "{{ created }}"

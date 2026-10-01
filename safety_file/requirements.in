@@ -1,0 +1,8 @@
+# Direct dependencies of the safety file storage layer.
+#
+# Deliberately tiny. This package is the architectural core and must stay
+# portable across web frameworks (ADR 0001), so it depends on nothing that
+# implies one. Git is invoked as a subprocess rather than through a binding.
+
+pyyaml
+jinja2

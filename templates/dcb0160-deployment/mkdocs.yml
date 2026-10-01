@@ -1,0 +1,15 @@
+site_name: "{{ name }} - Clinical Safety"
+copyright: "{{ organisation }}"
+
+theme:
+  variant: classic
+  navigation_depth: 3
+
+plugins:
+  - search
+
+nav:
+  - Overview: index.md
+  - Clinical risk management plan: clinical-risk-management-plan.md
+  - Hazard log: hazards/index.md
+  - Clinical safety case report: clinical-safety-case-report.md
