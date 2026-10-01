@@ -1,4 +1,5 @@
 zensical
 mkdocstrings[python]
-mkdocs-gen-files
-mkdocs-literate-nav
+# Plugins below are not referenced in mkdocs.yml plugins; suspended pending Zensical plugin support:
+# mkdocs-gen-files        # https://github.com/oprypin/mkdocs-gen-files
+# mkdocs-literate-nav     # https://github.com/oprypin/mkdocs-literate-nav

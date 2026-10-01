@@ -2,22 +2,15 @@
 
 Unified documentation for Turva's codebase.
 
-## Frontend (TypeScript)
-
-React application built with TypeScript, Vite, and Mantine UI.
-
-[Browse Frontend Documentation →](frontend/README.md)
-
 ## Backend (Python)
 
-FastAPI application with async PostgreSQL database.
+FastAPI application with async PostgreSQL database. The API serves both the HTML interface (server-rendered Jinja2 templates with HTMX) and the JSON API.
 
 [Browse Backend Documentation →](api/index.md)
 
 ## Architecture
 
-The frontend and backend communicate via REST API with automatic case conversion (camelCase ↔ snake_case).
-
-- **Frontend**: React 19 + TypeScript + Mantine UI
+- **Interface**: Server-rendered Jinja2 templates, progressively enhanced with HTMX
 - **Backend**: FastAPI + Ormar ORM + PostgreSQL
 - **Authentication**: Session-based with Argon2 password hashing
+- **Safety files**: Each Clinical Safety Management File is a Git repository on disk, holding a Zensical documentation site

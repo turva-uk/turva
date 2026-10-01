@@ -21,6 +21,7 @@
     ".git",
     "__pycache__",
     "htmlcov",
+    "HTMX",
     "dist",
     "build",
     ".venv",
@@ -30,6 +31,7 @@
     "Alembic",
     "Argon",
     "artefact",
+    "ASGI",
     "artefacts",
     "ASIC",
     "behaviour",
@@ -59,6 +61,7 @@
     "hazards",
     "healthtech",
     "htmlcov",
+    "HTMX",
     "inspectable",
     "isort",
     "Jinja",
@@ -101,6 +104,7 @@
     "Wouter",
     "WCAG",
     "WSGI",
+    "Zensical",
     "zstd"
   ]
 }

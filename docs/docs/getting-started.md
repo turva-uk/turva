@@ -49,14 +49,12 @@ j sc              # Stop all containers
    This will:
    - Build Docker images (if needed)
    - Start PostgreSQL database
-   - Start FastAPI backend (port 8000)
-   - Start React frontend (port 5173)
+   - Start FastAPI backend (port 8000), which serves both the HTML interface and the JSON API
    - Start Caddy reverse proxy (port 80/443)
 
 2. **Access the application:**
-   - Frontend: <http://localhost>
+   - Application: <http://localhost>
    - API: <http://localhost/api/>
-   - Direct frontend: <http://localhost:5173>
    - Direct API: <http://localhost:8000>
 
 3. **View logs:**
@@ -64,7 +62,6 @@ j sc              # Stop all containers
    ```bash
    docker compose logs -f        # All services
    docker compose logs -f api    # API only
-   docker compose logs -f frontend # Frontend only
    ```
 
 4. **Stop the services:**
@@ -103,20 +100,16 @@ docker compose exec api alembic upgrade head
 
 ## Development Tips
 
-- **Hot Reload**: Both frontend (Vite) and backend (Uvicorn) support hot reloading
-- **Code Formatting**:
-  - Python: `cd api/src && ruff format .`
-  - TypeScript: `cd frontend && yarn format`
-- **Linting**:
-  - Python: `cd api/src && ruff check .`
-  - TypeScript: `cd frontend && yarn lint`
+- **Hot Reload**: Uvicorn reloads on Python and template changes
+- **Code Formatting**: `cd api/src && ruff format .`
+- **Linting**: `cd api/src && ruff check .`
 - **Pre-commit Hooks**: Install with `pre-commit install` to automatically check code quality before commits
 
 ## Troubleshooting
 
 ### Port Conflicts
 
-If ports 80, 443, 5173, or 8000 are already in use, stop conflicting services or modify the ports in `docker-compose.yml`.
+If ports 80, 443, or 8000 are already in use, stop conflicting services or modify the ports in `docker-compose.yml`.
 
 ### Database Connection Issues
 

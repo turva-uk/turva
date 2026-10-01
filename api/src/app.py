@@ -53,7 +53,6 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "https://app.turva.org",
-        "http://localhost:5173",
         "https://localhost/",
         "http://localhost/",
     ],

@@ -7,25 +7,17 @@ on:
     branches-ignore: [main, master]
 
 permissions:
-  contents: write
-  pull-requests: write
+  contents: read
 
 concurrency:
   group: nonmain-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  # ---------- Python ----------
-  python_checks:
+  styling:
+    name: Styling (pre-commit)
     runs-on: ubuntu-latest
-    name: Python ${{ matrix.task }}
-    timeout-minutes: 20
-    strategy:
-      fail-fast: false
-      matrix:
-        task: [styling, unit]
-        python: ["3.13"]
-
+    timeout-minutes: 15
     env:
       PRE_COMMIT_HOME: ${{ github.workspace }}/.pre-commit-cache
       PIP_CACHE_DIR: ${{ github.workspace }}/.pip-cache
@@ -35,54 +27,21 @@ jobs:
 
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
-          python-version: ${{ matrix.python }}
+          python-version: "3.13"
 
-      # ---- caches (pick per task) ----
-      - name: Cache pre-commit & venv (styling)
-        if: matrix.task == 'styling'
+      - name: Cache pre-commit and venv
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             .venv
             ${{ env.PRE_COMMIT_HOME }}
             ${{ env.PIP_CACHE_DIR }}
-          key: pc-styling-${{ runner.os }}-py${{ matrix.python }}-${{ hashFiles('.pre-commit-config.yaml') }}
+          key: pc-styling-${{ runner.os }}-py3.13-${{ hashFiles('.pre-commit-config.yaml') }}
           restore-keys: |
-            pc-styling-${{ runner.os }}-py${{ matrix.python }}-
+            pc-styling-${{ runner.os }}-py3.13-
             pc-styling-${{ runner.os }}-
 
-      # ---- styling steps ----
-      - name: Setup Node.js (styling)
-        if: matrix.task == 'styling'
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: "22"
-
-      - name: Enable Corepack (styling)
-        if: matrix.task == 'styling'
-        run: |
-          corepack enable
-          corepack prepare yarn@4.10.3 --activate
-
-      - name: Cache frontend dependencies (styling)
-        if: matrix.task == 'styling'
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: |
-            frontend/.yarn/cache
-            frontend/.yarn/install-state.gz
-            frontend/node_modules
-          key: styling-yarn-${{ runner.os }}-${{ hashFiles('frontend/yarn.lock') }}
-          restore-keys: |
-            styling-yarn-${{ runner.os }}-
-
-      - name: Install frontend dependencies (styling)
-        if: matrix.task == 'styling'
-        working-directory: frontend
-        run: yarn install --immutable
-
-      - name: Ensure venv + pre-commit (styling)
-        if: matrix.task == 'styling'
+      - name: Ensure venv and pre-commit
         run: |
           if [ ! -x .venv/bin/pre-commit ]; then
             python -m venv .venv
@@ -93,145 +52,38 @@ jobs:
             echo "Using cached .venv with pre-commit."
           fi
 
-      - name: Warm pre-commit hooks (styling)
-        if: matrix.task == 'styling'
+      - name: Warm pre-commit hooks
         run: |
           . .venv/bin/activate
           pre-commit install-hooks
 
-      - name: Run pre-commit (styling)
-        if: matrix.task == 'styling'
+      - name: Run pre-commit
         run: |
           . .venv/bin/activate
           pre-commit run --all-files --show-diff-on-failure --color=always
 
-      - name: Copy CI/CD env file (unit)
-        if: matrix.task == 'unit'
+  unit:
+    name: Python unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { fetch-depth: 0 }
+
+      - name: Copy CI/CD env file
         run: cp api/.env.cicd api/.env
 
-      - name: Build and start Docker containers (unit)
-        if: matrix.task == 'unit'
+      - name: Build and start Docker containers
         run: docker compose up -d --build
 
-      - name: Wait for containers to be ready (unit)
-        if: matrix.task == 'unit'
+      - name: Wait for containers to be ready
         run: sleep 5
 
-      - name: Run pytest in Docker container (unit)
-        if: matrix.task == 'unit'
+      - name: Run pytest in Docker container
         env:
           TEST_ENVIRONMENT: "true"
         run: docker compose exec -T api pytest /app/src/tests/unit -v --maxfail=1
 
-      - name: Cleanup containers (unit)
-        if: matrix.task == 'unit' && always()
+      - name: Cleanup containers
+        if: always()
         run: docker compose down -v
-
-  # ---------- JS: run multiple tools in parallel via matrix ----------
-  typescript_checks:
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    strategy:
-      fail-fast: false
-      matrix:
-        task: [lint, prettier, stylelint, typecheck, "test:ci"]
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with: { fetch-depth: 0 }
-
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: "22"
-
-      - name: Enable Corepack & pin Yarn
-        run: |
-          corepack enable
-          corepack prepare yarn@4.10.3 --activate
-          yarn --version
-
-      - name: Cache Yarn
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: |
-            frontend/.yarn/cache
-            frontend/.yarn/install-state.gz
-            frontend/node_modules
-          key: ${{ runner.os }}-yarn4-nm-${{ hashFiles('frontend/yarn.lock', 'frontend/.yarnrc.yml') }}
-          restore-keys: |
-            ${{ runner.os }}-yarn4-nm-
-
-      - name: Install deps
-        working-directory: frontend
-        run: yarn install --immutable
-
-      - name: Install Playwright browsers (test:ci)
-        if: matrix.task == 'test:ci'
-        working-directory: frontend
-        run: yarn playwright install --with-deps
-
-      - name: Run ${{ matrix.task }}
-        working-directory: frontend
-        run: yarn ${{ matrix.task }}
-
-  # ---------- Frontend security (Semgrep) ----------
-  frontend_security:
-    runs-on: ubuntu-latest
-    name: Semgrep (frontend SAST)
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with: { fetch-depth: 0 }
-
-      # Install Semgrep via pipx (fast, isolated)
-      - name: Install Semgrep
-        run: pipx install semgrep
-
-      - name: Run Semgrep
-        working-directory: frontend
-        env:
-          SEMGREP_LOG_LEVEL: error
-          SEMGREP_DISABLE_ANALYTICS: "1"
-          SEMGREP_NO_VERSION_CHECK: "1"
-        run: semgrep --config .semgrep.yml --error
-
-  # ---------- Auto-create PR to main after all checks pass ----------
-  create_pr:
-    runs-on: ubuntu-latest
-    name: Create / updatePR to main
-    needs: [python_checks, typescript_checks, frontend_security]
-    if: github.event_name == 'push' && success()
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
-
-      - name: Create or update PR
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          BRANCH="${{ github.ref_name }}"
-
-          # Check if PR already exists
-          EXISTING_PR=$(gh pr list --head "$BRANCH" --base main --json number --jq '.[0].number')
-
-          if [ -z "$EXISTING_PR" ]; then
-            # Create new PR
-            gh pr create \
-              --base main \
-              --head "$BRANCH" \
-              --title "Merge $BRANCH to main" \
-              --body "Automated PR created after successful CI checks.
-
-          **Branch:** \`$BRANCH\`
-          **Workflow:** ${{ github.workflow }}
-          **Run:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-
-          All quality checks passed:
-          - ✅ Python checks (styling, unit tests)
-          - ✅ TypeScript checks (lint, prettier, stylelint, typecheck, test:ci)
-          - ✅ Security scanning (Semgrep)
-          "
-            echo "Created new PR for branch $BRANCH"
-          else
-            echo "PR #$EXISTING_PR already exists for branch $BRANCH"
-          fi

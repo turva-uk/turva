@@ -4,24 +4,19 @@ Clinical Safety is a laborious, dull and slow process. On the other side of this
 
 ## Features
 
-The underlying technology of Turva is designed to be interoperable, fast, automate where possible and to be easy to use. Turva is built on the VMPT technological stack:
+The underlying technology of Turva is designed to be interoperable, fast, automate where possible and to be easy to use. Turva keeps clinical safety evidence as Markdown in Git, generated from templates, and presents it through an ordinary web interface so the Clinical Safety Officer never has to touch Git directly.
 
-- V: version control
-- M: markdown
-- P: placeholders
-- T: templates
-
-On top of the VMPT stack, Turva enables the clinical safety officer and team to import safety case templates, search and import safety cases from other projects, create a clear and well defined sign off process.
+Each Clinical Safety Management File is a Git repository holding a documentation site. On top of that, Turva enables the clinical safety officer and team to import safety case templates, search and import safety cases from other projects, and follow a clear and well defined sign off process.
 
 ## Technological stack
 
-- React frontend with TypeScript
-- Mantine UI components
-- NGINX reverse proxy
-- Gunicorn WSGI server
+- Server-rendered Jinja2 templates, progressively enhanced with HTMX
 - FastAPI web framework
-- PostgreSQL database
-- VMPT
+- Uvicorn ASGI server
+- Caddy reverse proxy
+- PostgreSQL database, indexing the safety file repositories
+- Git as the system of record for safety evidence
+- Zensical for the generated safety documentation sites
 
 ## The backstory
 

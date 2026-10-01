@@ -3,16 +3,11 @@
 }
 
 localhost {
-	# Frontend
-	handle /* {
-		reverse_proxy frontend:5173
-	}
-
-	# API endpoints
-	handle /api/* {
-		uri strip_prefix /api
-		reverse_proxy api:8000
-	}
+	# The API serves both the HTML interface and the JSON API, so Caddy passes
+	# the whole URL space through unchanged and lets FastAPI own the routing.
+	# Previously `/api/*` was proxied with `strip_prefix /api` while the app
+	# mounted its router *at* `/api/`, which cancelled out incorrectly.
+	reverse_proxy api:8000
 
 	#    # Documentation
 	#    handle /docs/* {

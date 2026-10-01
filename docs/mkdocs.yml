@@ -25,6 +25,4 @@ nav:
   - Technical overview: technical-overview.md
 
   - Code Reference:
-      - Frontend API: code/frontend/README.md
       - Backend API: code/api/index.md
-      - Component Library: code/storybook/index.html

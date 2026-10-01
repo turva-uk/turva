@@ -53,15 +53,13 @@ dev-down:
 
 
 alias d := docs
-# Start the MkDocs documentation server on port 8001 with hot reload
+# Start the Zensical documentation server on port 8001 with hot reload
 docs:
     #!/usr/bin/env bash
     {{initialise}} "docs"
-    echo "Starting MkDocs documentation server with hot reload..."
-    cd frontend && yarn docs:build && yarn build-storybook
+    echo "Starting Zensical documentation server with hot reload..."
     echo "Documentation will be available at http://localhost:8001"
-    echo -e "\033[34mYou need to restart if you want to rebuild TypeScript docs or Storybook.\033[0m"
-    cd ../docs && mkdocs serve -a localhost:8001
+    cd docs && zensical serve -a localhost:8001
 
 
 alias l := logs
@@ -78,14 +76,6 @@ pre-commit:
     #!/usr/bin/env bash
     {{initialise}} "pre-commit"
     pre-commit run --all-files
-
-
-alias sg := semgrep
-# Run semgrep security checks on frontend code
-semgrep:
-    #!/usr/bin/env bash
-    {{initialise}} "semgrep"
-    cd frontend && semgrep --config .semgrep.yml --error
 
 
 alias sd := start-dev

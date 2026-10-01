@@ -8,7 +8,6 @@ repos:
         exclude: \.(svg|cjs)$
       - id: check-yaml
       - id: check-json
-        exclude: ^frontend/tsconfig.*\.json$
       - id: check-added-large-files
       - id: check-merge-conflict
 
@@ -23,8 +22,10 @@ repos:
   - repo: https://github.com/pre-commit/mirrors-prettier
     rev: v4.0.0-alpha.8
     hooks:
+      # Jinja2 templates are deliberately excluded - Prettier mangles `{% %}` and
+      # `{{ }}` syntax. Do not add `html` to types_or.
       - id: prettier
-        types_or: [markdown, json, yaml, ts, tsx, javascript, jsx, css]
+        types_or: [markdown, json, yaml, css]
         args: [--write]
 
   - repo: https://github.com/igorshubovych/markdownlint-cli
@@ -41,26 +42,3 @@ repos:
         files: ^api/
       - id: ruff-format
         files: ^api/
-
-  - repo: local
-    hooks:
-      - id: eslint
-        name: ESLint (frontend)
-        entry: bash -c 'cd frontend && npm run lint'
-        language: system
-        files: ^frontend/.*\.(ts|tsx|js|jsx)$
-        pass_filenames: false
-
-      - id: stylelint
-        name: Stylelint (frontend CSS)
-        entry: bash -c 'cd frontend && npm run stylelint:fix'
-        language: system
-        files: ^frontend/.*\.css$
-        pass_filenames: false
-
-      - id: typescript
-        name: TypeScript type check
-        entry: bash -c 'cd frontend && npm run typecheck'
-        language: system
-        files: ^frontend/.*\.(ts|tsx)$
-        pass_filenames: false
