@@ -26,6 +26,7 @@ Turva enables safety cases to flow between organizations in three directions:
 - Generate DCB0160 deployment safety case
 
 **Benefits**:
+
 - Deployers start from expert baseline, not blank page
 - Manufacturers maintain canonical safety case, deployers extend it
 - Changes to manufacturer safety case can propagate to deployers
@@ -39,6 +40,7 @@ Turva enables safety cases to flow between organizations in three directions:
 **Example**: NHS England publishes safety case for GP appointment booking system. Individual practices inherit it, add practice-specific context (e.g., patient demographics), and deploy.
 
 **Benefits**:
+
 - Democratizes access to clinical safety expertise
 - Smaller organizations don't need full-time CSO for simple systems
 - National bodies ensure baseline safety standards
@@ -48,11 +50,13 @@ Turva enables safety cases to flow between organizations in three directions:
 **Similar organizations** (e.g., acute trusts, mental health trusts) share hazard logs for comparable systems.
 
 **Example**:
+
 - Trust A identifies 12 hazards for telehealth platform
 - Trust B deploying similar platform searches Turva's public projects
 - Finds Trust A's hazard log, imports relevant hazards, avoids missing key risks
 
 **Benefits**:
+
 - Cross-organizational learning
 - Crowdsourced hazard identification
 - Benchmarking: "Are we missing hazards others found?"
@@ -145,6 +149,7 @@ Safety cases restricted to named team members. Justified when:
 ### Project Relationships
 
 Projects have:
+
 - **Upstream source**: Link to project this was forked from (if any)
 - **Downstream forks**: List of projects that forked from this one
 - **Sync status**: Which upstream version is this fork based on?
@@ -152,6 +157,7 @@ Projects have:
 ### Hazard Provenance
 
 Each hazard tagged with:
+
 - **Origin**: Created locally, inherited from upstream, suggested by community
 - **Override status**: Using upstream assessment or locally modified?
 - **Sync state**: Matches upstream, diverged, or upstream deleted
@@ -159,6 +165,7 @@ Each hazard tagged with:
 ### Diff and Merge
 
 When upstream safety case changes:
+
 - **Diff view**: Show changes since last sync (new hazards, modified assessments)
 - **Selective merge**: CSO chooses which changes to pull
 - **Conflict resolution**: If local and upstream both modified same hazard, CSO decides
@@ -166,6 +173,7 @@ When upstream safety case changes:
 ### Search and Discovery
 
 Public projects searchable by:
+
 - **System type**: EPR, PACS, telehealth, prescribing
 - **Clinical setting**: Acute, primary care, mental health, community
 - **Regulatory status**: DCB0129 approved, DCB0160 compliant
@@ -179,6 +187,7 @@ Public projects searchable by:
 **Context**: Small GP practice (5 partners, no CSO) wants to deploy online appointment booking.
 
 **Federation workflow**:
+
 1. Search Turva for "appointment booking, primary care"
 2. Find NHS England's pre-approved safety case
 3. Fork safety case into local project
@@ -193,6 +202,7 @@ Public projects searchable by:
 **Context**: EPR vendor releases v3.0 with new prescribing module.
 
 **Federation workflow**:
+
 1. Vendor updates canonical DCB0129 safety case (adds 12 prescribing hazards)
 2. Turva notifies all 50 NHS trusts that forked this safety case
 3. Each trust CSO reviews new hazards
@@ -206,6 +216,7 @@ Public projects searchable by:
 **Context**: Mental health trust deploying video consultation platform.
 
 **Federation workflow**:
+
 1. Search Turva for "telehealth, mental health"
 2. Find 3 similar trusts with public safety cases
 3. Review their hazard logs:
@@ -239,6 +250,7 @@ Federation value increases with adoption:
 ### Metadata Only Sharing
 
 Organizations uncomfortable publishing full safety case can share metadata:
+
 - "We identified 34 hazards for EPR deployment"
 - "18% were integration-related"
 - "Top 3 risk categories: wrong patient, medication error, data loss"

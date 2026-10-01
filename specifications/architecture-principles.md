@@ -7,6 +7,7 @@ Turva's architecture is guided by principles, not specific technologies. Impleme
 ### 1. Safety as a First-Class Concern
 
 Safety information must be:
+
 - Structured and consistent
 - Versioned with complete history
 - Attributed to named individuals
@@ -17,6 +18,7 @@ Safety information must be:
 ### 2. Separation of Concerns
 
 Frontend, backend, and data storage are logically separated:
+
 - Frontend focuses on user experience
 - Backend enforces business rules and data integrity
 - Database provides persistent, queryable storage
@@ -26,6 +28,7 @@ Frontend, backend, and data storage are logically separated:
 ### 3. API-First Design
 
 All functionality is exposed via API:
+
 - Frontend is one client among many (mobile app, CLI, integrations could be others)
 - API is versioned and documented
 - Breaking changes are managed with deprecation periods
@@ -35,6 +38,7 @@ All functionality is exposed via API:
 ### 4. Auditability by Default
 
 Every state-changing operation creates an audit record:
+
 - Who performed the action
 - When it occurred
 - What changed (before/after)
@@ -45,6 +49,7 @@ Every state-changing operation creates an audit record:
 ### 5. Type Safety Where Possible
 
 Use type systems to catch errors at compile time:
+
 - Database schema enforces constraints
 - API contracts define request/response shapes
 - Frontend type-checks data from API
@@ -54,6 +59,7 @@ Use type systems to catch errors at compile time:
 ### 6. Fail Secure
 
 Security and safety failures default to restrictive:
+
 - Authentication failures reject access (don't assume authenticated)
 - Invalid risk assessments reject submission (don't default to "low risk")
 - Missing data prevents completion (don't silently skip)
@@ -63,6 +69,7 @@ Security and safety failures default to restrictive:
 ### 7. Transparency as Default
 
 Information is public unless there's a specific reason for privacy:
+
 - Projects default to public visibility
 - Audit logs are accessible to project members
 - API responses include metadata (who, when, version)
@@ -74,6 +81,7 @@ Information is public unless there's a specific reason for privacy:
 ### Immutable Audit Records
 
 Once a safety decision is recorded, the historical record is permanent:
+
 - Corrections create new versions, don't overwrite
 - Deletions are soft deletes (marked deleted, not removed)
 - Version control provides immutable history
@@ -83,6 +91,7 @@ Once a safety decision is recorded, the historical record is permanent:
 ### Derived, Not Entered
 
 Risk level is calculated from severity and likelihood, not manually selected:
+
 - Users cannot arbitrarily assign risk levels
 - Changes to severity or likelihood recalculate risk level automatically
 - Formula is auditable and consistent
@@ -92,6 +101,7 @@ Risk level is calculated from severity and likelihood, not manually selected:
 ### Single Source of Truth
 
 Each piece of information has one canonical location:
+
 - User details in user table (not duplicated in project records)
 - Risk matrix defined once (not per-project)
 - Derived values calculated on read (not stored stale)
@@ -100,9 +110,10 @@ Each piece of information has one canonical location:
 
 ## Security Principles
 
-### Defense in Depth
+### Defence in Depth
 
 Security happens at multiple layers:
+
 1. Network (TLS, firewall)
 2. Authentication (session validation)
 3. Authorization (role-based access control)
@@ -114,6 +125,7 @@ Security happens at multiple layers:
 ### Principle of Least Privilege
 
 Users and services have minimum permissions required:
+
 - Read-only access where write isn't needed
 - Project-scoped permissions (can't access other projects)
 - Time-limited sessions (automatic expiration)
@@ -123,6 +135,7 @@ Users and services have minimum permissions required:
 ### Secure by Default
 
 Security features are on by default, not opt-in:
+
 - HTTPS required (HTTP redirects to HTTPS)
 - Sessions have reasonable expiration (not infinite)
 - Passwords require minimum strength
@@ -135,6 +148,7 @@ Security features are on by default, not opt-in:
 ### Optimize for Common Case
 
 Common workflows should be fast:
+
 - Viewing hazard log: <500ms
 - Creating new hazard: <1s
 - Searching projects: <2s
@@ -146,6 +160,7 @@ Rare operations (exporting full audit trail) can be slower.
 ### Async Where Beneficial
 
 Long-running operations run asynchronously:
+
 - Generating PDF safety case report
 - Importing large hazard logs
 - Bulk updates
@@ -157,6 +172,7 @@ User receives immediate feedback, operation completes in background.
 ### Cache Wisely
 
 Cache data that changes infrequently:
+
 - Risk matrix (static)
 - User profile (changes rarely)
 - Project metadata (changes occasionally)
@@ -186,6 +202,7 @@ Risk assessment calculation, audit trail generation, and permission checks must 
 ### Fast Feedback
 
 Tests should run quickly:
+
 - Unit tests: <5s for entire suite
 - Integration tests: <30s
 - E2E tests: <5min
@@ -197,6 +214,7 @@ Tests should run quickly:
 ### Infrastructure as Code
 
 Infrastructure defined in version-controlled files:
+
 - Container definitions (Dockerfile)
 - Service orchestration (docker-compose.yml, Kubernetes manifests)
 - Database schema (migrations)
@@ -206,6 +224,7 @@ Infrastructure defined in version-controlled files:
 ### Separate Config from Code
 
 Configuration lives in environment variables, not hardcoded:
+
 - Database connection strings
 - API keys
 - Feature flags
@@ -215,6 +234,7 @@ Configuration lives in environment variables, not hardcoded:
 ### Zero-Downtime Deployments
 
 New versions deploy without interrupting service:
+
 - Rolling updates (bring up new instance before shutting down old)
 - Database migrations backward-compatible
 - API versioning supports old and new clients simultaneously
@@ -226,6 +246,7 @@ New versions deploy without interrupting service:
 ### Stateless API Servers
 
 API servers store no local state (sessions in database, not memory):
+
 - Any server can handle any request
 - Servers can be added or removed dynamically
 - Load balancing is straightforward
@@ -235,6 +256,7 @@ API servers store no local state (sessions in database, not memory):
 ### Database as Bottleneck
 
 Assume database will be the scaling bottleneck:
+
 - Optimize queries early
 - Index appropriately
 - Consider read replicas for reporting
@@ -244,6 +266,7 @@ Assume database will be the scaling bottleneck:
 ### Scale When Needed, Not Prematurely
 
 Start simple (single database, single API server):
+
 - Add complexity only when performance requires it
 - Measure before optimizing
 - Optimize the bottleneck, not random code
@@ -255,6 +278,7 @@ Start simple (single database, single API server):
 ### New Safety Artefacts
 
 Domain model supports new artefact types:
+
 - Incident reports
 - Compliance checklists
 - Third-party assessments
@@ -266,6 +290,7 @@ New types inherit core properties (versioning, audit, ownership).
 ### Pluggable LLM Backends
 
 LLM integration supports multiple providers:
+
 - OpenAI GPT
 - Anthropic Claude
 - Local models (Llama, Mistral)
@@ -276,6 +301,7 @@ LLM integration supports multiple providers:
 ### API Extensibility
 
 API versioning allows backward-compatible evolution:
+
 - New endpoints added without breaking old clients
 - New fields added to responses (old clients ignore them)
 - Deprecated endpoints given sunset timeline

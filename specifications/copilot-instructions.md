@@ -25,6 +25,7 @@ See **[Architecture Principles](architecture-principles.md)** for design philoso
 - **Infrastructure**: Docker Compose + Caddy reverse proxy
 
 **Key patterns**:
+
 - Session-based auth (not JWT) - sessions in PostgreSQL
 - Automatic snake_case ↔ camelCase conversion at API boundary
 - Dynamic endpoint registration (file tree → URL structure)

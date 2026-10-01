@@ -7,6 +7,7 @@ Replaced verbose, repetitive specification documents with focused, concise ones 
 ## Before and After
 
 ### Before
+
 - **2,488 lines** across 7 files
 - Heavy repetition (audit trails explained 4+ times)
 - Implementation details mixed with principles
@@ -16,6 +17,7 @@ Replaced verbose, repetitive specification documents with focused, concise ones 
 - Verbose corporate-speak throughout
 
 ### After
+
 - **1,023 lines** across 4 core files (59% reduction)
 - Each concept explained once
 - Implementation separated into codebase documentation
@@ -63,6 +65,7 @@ Replaced verbose, repetitive specification documents with focused, concise ones 
 ### Archived
 
 Moved to `specifications/archive/`:
+
 - `spec-archive.md` (old 1026-line spec)
 - `architecture/*.md` (6 implementation-heavy docs)
 
@@ -71,6 +74,7 @@ Moved to `specifications/archive/`:
 ### 1. Removed Repetition
 
 **Before**: Audit trails explained in:
+
 - "Evidence and Audit Model" (90 lines)
 - "Governance and Accountability" (40 lines)
 - "Information Architecture" (30 lines)
@@ -89,6 +93,7 @@ Moved to `specifications/archive/`:
 **Before**: No mention of how LLMs change the game
 
 **After**: Entire document (llm-strategy.md) explaining:
+
 - Why LLMs don't make Turva obsolete
 - How LLMs augment CSOs
 - Embedded safety expert LLM
@@ -99,6 +104,7 @@ Moved to `specifications/archive/`:
 **Before**: Brief mention in one paragraph
 
 **After**: Dedicated document with:
+
 - Three federation models (downstream, upstream, lateral)
 - Concrete workflows (forking, merging, contributing back)
 - Governance (ownership, liability, attribution)
@@ -113,9 +119,11 @@ Moved to `specifications/archive/`:
 ### 6. Cut Corporate Verbiage
 
 **Before**:
+
 > "The clinical risk management file is a controlled repository containing all safety-related information for a healthcare IT system. The file exists because regulatory standards require traceability, auditability, and completeness of safety records..."
 
 **After**:
+
 > "Complete audit trail meeting DCB0129/DCB0160 requirements"
 
 ## What Was Preserved
@@ -137,13 +145,13 @@ Moved to `specifications/archive/`:
 
 ## Line Count Comparison
 
-| Category | Before | After | Change |
-|----------|--------|-------|--------|
-| Core spec | 1,026 | 245 | -76% |
-| Architecture | 1,462 | 287 | -80% |
-| LLM/AI | 0 | 212 | new |
-| Federation | ~20 | 279 | +1295% |
-| **Total** | **2,488** | **1,023** | **-59%** |
+| Category     | Before    | After     | Change   |
+| ------------ | --------- | --------- | -------- |
+| Core spec    | 1,026     | 245       | -76%     |
+| Architecture | 1,462     | 287       | -80%     |
+| LLM/AI       | 0         | 212       | new      |
+| Federation   | ~20       | 279       | +1295%   |
+| **Total**    | **2,488** | **1,023** | **-59%** |
 
 ## Impact on LLM Context Usage
 
@@ -167,7 +175,7 @@ When an LLM reads specifications to understand Turva:
 
 ## Files Created
 
-```
+```text
 specifications/
 ├── core-specification.md          (new, 245 lines)
 ├── llm-strategy.md               (new, 212 lines)
@@ -203,6 +211,7 @@ Successfully reduced specification from 2,488 lines to 1,023 lines (59% reductio
 - Preserving all essential domain knowledge
 
 The specifications are now suitable for:
+
 - LLM consumption (clear, concise, minimal tokens)
 - Team alignment (quick to read, easy to understand)
 - Strategic planning (LLM pivot and federation clearly articulated)

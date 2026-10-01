@@ -8,7 +8,7 @@ In early 2023, a competent developer could use ChatGPT or Claude to generate a c
 
 ## Why Turva Still Matters
 
-### 1. Structure Enforces Rigor
+### 1. Structure Enforces Rigour
 
 LLMs generate free text. Turva enforces a structured risk assessment model:
 
@@ -183,7 +183,7 @@ How do we know LLM integration is working?
 
 ## The Vision
 
-**Turva = Structured Safety + LLM Assistance**
+### Turva = Structured Safety + LLM Assistance
 
 A CSO working on a new patient portal:
 
@@ -198,7 +198,7 @@ A CSO working on a new patient portal:
 9. CSO reviews, edits, and approves
 10. Turva exports compliance evidence for DCB0129 submission
 
-**Result**: A rigorous, auditable safety case completed in hours instead of weeks, with the CSO's clinical judgment central to every decision.
+**Result**: A rigorous, auditable safety case completed in hours instead of weeks, with the CSO's clinical judgement central to every decision.
 
 ## Open Questions
 
@@ -209,4 +209,4 @@ A CSO working on a new patient portal:
 
 ---
 
-This document outlines how Turva integrates LLMs to accelerate clinical safety work without compromising rigor, accountability, or regulatory compliance. LLMs are assistants, not replacements, for Clinical Safety Officers.
+This document outlines how Turva integrates LLMs to accelerate clinical safety work without compromising rigour, accountability, or regulatory compliance. LLMs are assistants, not replacements, for Clinical Safety Officers.

@@ -91,6 +91,7 @@ A control measure reducing likelihood or severity of harm. Includes:
 - Links to affected hazards
 
 Hierarchy of controls (strongest to weakest):
+
 1. Eliminate the hazard through design
 2. Reduce via technical controls
 3. Warnings or alerts
@@ -213,7 +214,7 @@ The platform generates compliance evidence automatically from structured data.
 Turva is not:
 
 - A real-time patient safety monitoring system
-- A replacement for clinical competence or professional judgment
+- A replacement for clinical competence or professional judgement
 - A guarantee of safety (it supports the process, residual risks remain)
 - A general project management tool
 - A clinical decision support system

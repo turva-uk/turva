@@ -9,31 +9,29 @@ All scripts pass through any additional arguments to the underlying docker-compo
 ./s/logs api # Follow logs for the API service only
 ```
 
-### `./s/up`
+## `./s/up`
 
-Starts all services, running in Docker Compose.  
-Add the `--build` flag to rebuild images before starting.  
+Starts all services, running in Docker Compose.
+Add the `--build` flag to rebuild images before starting.
 Add the `-d` flag to run in detached mode.
 Usage: `./s/up` or `./s/up frontend` for specific service
 
-### `./s/down`
+## `./s/down`
 
-Stops all services  
+Stops all services
 Usage: `./s/down`
 
-### `./s/logs`
+## `./s/logs`
 
-Follows logs from services  
+Follows logs from services
 Usage: `./s/logs` or `./s/logs api` for specific service
 
-### `./s/restart`
+## `./s/restart`
 
-Restarts services  
+Restarts services
 Usage: `./s/restart` or `./s/restart frontend` for specific service
 
-### `./s/clean`
+## `./s/clean`
 
-Cleans up all containers, volumes, and cached images  
+Cleans up all containers, volumes, and cached images
 Usage: `./s/clean`
-
-
