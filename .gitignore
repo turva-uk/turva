@@ -227,3 +227,9 @@ site/
 # Intentionally retained local-only work (decks, reports, captures, notes).
 # See https://github.com/pacharanero/house-style/blob/main/private-workspace.md
 /.private
+
+# Safety file repositories created at runtime. Each one is its own Git
+# repository, so they must never be nested inside this one. In deployment this
+# path is a mounted volume on the VPS; locally it is where ./s/seed-demo writes
+# the demo safety file.
+/.turva-data

@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# Build the demo safety file into .turva-data/safety-files/demo-bp-at-home
+#
+# Goes through the production storage layer, so this doubles as an end-to-end
+# check of it. Pass --force to replace an existing demo.
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+
+if [ -x .venv/bin/python ]; then
+	PYTHON=.venv/bin/python
+else
+	PYTHON=python3
+fi
+
+exec "$PYTHON" demo/build.py "$@"

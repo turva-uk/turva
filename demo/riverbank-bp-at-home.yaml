@@ -1,0 +1,513 @@
+# Demo safety file: a fictional DCB0160 deployment safety case.
+#
+# Everything here is invented. "Riverbank Health Federation" and "BP@Home" do not
+# exist, the people are not real, and the email domains use the reserved
+# `.example` suffix so they cannot resolve. No real organisation's safety case,
+# and no patient data.
+#
+# The clinical content is written to be *plausible* rather than authoritative. It
+# is a fixture for testing and a demonstration of the interface. It has not been
+# reviewed by a Clinical Safety Officer and must not be reused as a template for
+# a real deployment.
+#
+# `s/seed-demo` builds this into a real Git repository through the production
+# storage layer, so seeding it is also an end-to-end test of that layer. Each
+# artefact is committed separately, by the named author, on the given date, so the
+# resulting audit trail looks like one produced by real use rather than a single
+# bulk import.
+
+name: BP@Home remote blood pressure monitoring
+standard: DCB0160
+template: dcb0160-deployment
+created: 2026-02-10
+
+values:
+  organisation: Riverbank Health Federation
+  cso_name: Dr Anita Patel
+  cso_registration: GMC 7654321
+  cso_email: a.patel@riverbank.example.nhs.uk
+  intended_use: >
+    BP@Home allows patients with diagnosed or suspected hypertension to record
+    blood pressure readings at home using a Federation-issued monitor, for review
+    by their general practice as part of routine hypertension management. It
+    replaces some in-practice blood pressure checks. It is not a monitoring
+    service for acute illness and does not provide a response outside practice
+    opening hours.
+  clinical_context: >
+    Hypertension management across the twelve member practices of Riverbank
+    Health Federation, covering approximately 94,000 registered patients. Adults
+    on the hypertension register, and adults under investigation for suspected
+    hypertension, are eligible. Patients who lack capacity to use the monitor
+    independently are eligible where a carer undertakes the readings. Readings
+    are reviewed by the patient's own practice.
+  risk_acceptability_criteria: >
+    No hazard may remain open at go-live with a derived residual risk level of 4
+    or 5. A residual risk level of 3 requires documented justification and the
+    explicit acceptance of the Clinical Safety Officer. Risk level is derived
+    from severity and likelihood using the matrix in this plan and is never
+    assigned directly.
+  governance: >
+    Clinical safety for this deployment is overseen by the Riverbank Health
+    Federation Clinical Governance Group, which meets monthly and receives a
+    standing report on BP@Home safety. The Clinical Safety Officer reports to the
+    Federation Medical Director and has delegated authority to suspend the
+    service. Each member practice nominates a clinical lead responsible for local
+    safety-netting arrangements.
+  residual_risk_statement: >
+    Six hazards were identified. Four have been reduced to a derived residual
+    risk level of 2. Two remain at level 3 - HAZ-003, inaccurate readings from an
+    unsuitable or faulty monitor, and HAZ-004, patients unable to use the service
+    being left without monitoring - each with a documented justification and the
+    explicit acceptance of the Clinical Safety Officer as the risk acceptability
+    criteria require. No hazard remains at a level requiring mandatory
+    elimination. The residual risks are considered acceptable in the context of
+    the clinical benefit of improved hypertension control and reduced need for
+    patients to attend the practice.
+
+# Authors appear as commit authors, so the demo audit trail shows a realistic
+# mix of people contributing to the same safety file.
+authors:
+  cso:
+    name: Dr Anita Patel
+    email: a.patel@riverbank.example.nhs.uk
+  digital_lead:
+    name: Joseph Okafor
+    email: j.okafor@riverbank.example.nhs.uk
+  pharmacist:
+    name: Sarah Whitlock
+    email: s.whitlock@riverbank.example.nhs.uk
+
+mitigations:
+  - id: MIT-001
+    title: Same-day automated flagging of readings above the escalation threshold
+    status: implemented
+    owner: j.okafor@riverbank.example.nhs.uk
+    created: 2026-02-18
+    updated: 2026-03-02
+    control_type: technical
+    author: digital_lead
+    hazards: [HAZ-001]
+    evidence: >
+      Threshold logic configured to supplier release 4.2 and covered by the
+      supplier's automated test suite. Verified locally against 412 readings
+      during the March 2026 pilot, with no missed threshold breaches. Test
+      evidence filed in docs/assets/.
+    body: |
+      ## Description
+
+      Any systolic reading of 180 mmHg or above, or diastolic of 120 mmHg or
+      above, raises a high-priority task in the patient's own practice workflow
+      on the day the reading is submitted. The task cannot be closed without
+      recording an outcome.
+
+      ## Implementation
+
+      Configured in the supplier portal at Federation level so that individual
+      practices cannot weaken the threshold. Thresholds follow the NICE
+      hypertension guideline values used in the Federation's existing pathway.
+
+      ## Limitations
+
+      Depends on the patient submitting the reading. It does not detect a patient
+      who takes a dangerously high reading and does not submit it, which is
+      covered separately by MIT-007.
+
+  - id: MIT-002
+    title: Daily safety-netting report reviewed by the duty clinician
+    status: implemented
+    owner: a.patel@riverbank.example.nhs.uk
+    created: 2026-02-19
+    updated: 2026-03-02
+    control_type: procedural
+    author: cso
+    hazards: [HAZ-001, HAZ-005]
+    evidence: >
+      Standard operating procedure issued to all twelve practices on 2026-03-02
+      and included in the duty clinician handover checklist. Completion audited
+      monthly; first audit due April 2026.
+    body: |
+      ## Description
+
+      Each practice's duty clinician reviews a daily report of readings flagged
+      in the previous 24 hours and of patients with readings submitted but not
+      yet filed to the record.
+
+      ## Why a procedural control is needed here
+
+      This is a weaker control than automation and is deliberately a backstop
+      rather than the primary defence. It exists because MIT-001 depends on the
+      supplier's integration continuing to work, and a silent integration failure
+      would otherwise be invisible until a patient came to harm.
+
+  - id: MIT-003
+    title: One account per patient, with identity confirmed at enrolment
+    status: implemented
+    owner: j.okafor@riverbank.example.nhs.uk
+    created: 2026-02-20
+    updated: 2026-02-28
+    control_type: technical
+    author: digital_lead
+    hazards: [HAZ-002]
+    evidence: >
+      Account creation requires NHS number, date of birth and a verification code
+      sent to the contact details already held in the GP record. Shared accounts
+      are rejected by the portal. Configuration screenshot filed in docs/assets/.
+    body: |
+      ## Description
+
+      Accounts are created by practice staff from the GP record rather than
+      self-registered, and each monitor is issued against a single account.
+
+      ## Residual concern
+
+      Two members of the same household may still physically share a monitor and
+      submit readings through the wrong account. The patient information
+      addresses this explicitly, and a reading that is clinically inconsistent
+      with the patient's history is flagged for review at the next routine
+      appointment rather than silently accepted.
+
+  - id: MIT-004
+    title: Only clinically validated monitors issued, replaced every three years
+    status: implemented
+    owner: s.whitlock@riverbank.example.nhs.uk
+    created: 2026-02-21
+    updated: 2026-03-04
+    control_type: technical
+    author: pharmacist
+    hazards: [HAZ-003]
+    evidence: >
+      Procurement restricted to monitors appearing on the British and Irish
+      Hypertension Society validated device list at the time of purchase.
+      Replacement schedule held in the Federation asset register. Patients are not
+      permitted to use their own devices with the service.
+    body: |
+      ## Description
+
+      The Federation issues a single validated upper-arm monitor model. Patients
+      are shown how to use it at enrolment, including cuff positioning and
+      resting before measurement.
+
+      ## Why patient-owned devices are excluded
+
+      Allowing patients to use their own monitors would remove any assurance of
+      accuracy, and wrist and finger devices in particular are unreliable. The
+      restriction is a design decision that eliminates a class of hazard rather
+      than mitigating it.
+
+  - id: MIT-005
+    title: Practice register of patients not participating, reviewed at routine recall
+    status: implemented
+    owner: a.patel@riverbank.example.nhs.uk
+    created: 2026-02-24
+    updated: 2026-03-03
+    control_type: procedural
+    author: cso
+    hazards: [HAZ-004]
+    evidence: >
+      Register implemented as a clinical system search available to all twelve
+      practices. Included in the hypertension annual review protocol so that
+      non-participating patients are offered an in-practice check rather than
+      being left without monitoring.
+    body: |
+      ## Description
+
+      Patients who decline, withdraw, or are unable to use BP@Home are recorded
+      and remain on the practice's standard hypertension recall, with in-practice
+      blood pressure checks.
+
+      ## Rationale
+
+      The hazard this addresses is created by the deployment itself: offering a
+      digital route risks the assumption that everyone is using it. Monitoring
+      who is *not* using it is what prevents those patients becoming invisible.
+
+  - id: MIT-006
+    title: Automated write-back to the GP record with a daily reconciliation report
+    status: verified
+    owner: j.okafor@riverbank.example.nhs.uk
+    created: 2026-02-25
+    updated: 2026-03-10
+    control_type: technical
+    author: digital_lead
+    hazards: [HAZ-005]
+    evidence: >
+      Readings are written to the GP record as coded observations within fifteen
+      minutes of submission. A daily reconciliation report lists any reading
+      submitted to the portal but absent from the record. Verified over the
+      four-week pilot with 1,118 readings and zero unreconciled discrepancies.
+    body: |
+      ## Description
+
+      Readings reach the GP record automatically as coded entries, so a clinician
+      reviewing the record sees the same data as the portal.
+
+      ## Why reconciliation matters
+
+      A one-way integration that fails quietly is worse than no integration,
+      because clinicians come to rely on it. The reconciliation report makes
+      failure visible the next day rather than at the next audit.
+
+  - id: MIT-007
+    title: Enrolment information stating the service is not for urgent symptoms
+    status: implemented
+    owner: a.patel@riverbank.example.nhs.uk
+    created: 2026-02-26
+    updated: 2026-03-05
+    control_type: warning
+    author: cso
+    hazards: [HAZ-006]
+    evidence: >
+      Patient information leaflet and portal landing text reviewed by the
+      Federation patient participation group in February 2026 and amended
+      following their feedback that the original wording was too technical.
+      Current version filed in docs/assets/.
+    body: |
+      ## Description
+
+      Patients are told, at enrolment and on every portal screen where a reading
+      is submitted, that BP@Home is for routine monitoring, that readings are not
+      watched in real time, and that they should seek urgent help in the normal
+      way if they feel unwell.
+
+      ## Why this is only a warning
+
+      Warnings are near the bottom of the hierarchy of controls because they
+      depend on the patient reading, understanding and remembering them. It is
+      recorded as a warning rather than dressed up as something stronger. The
+      patient participation group's view was that the wording mattered more than
+      its placement, which is why the leaflet was rewritten.
+
+hazards:
+  - id: HAZ-001
+    title: Reading above the escalation threshold is not acted on promptly
+    status: open
+    owner: a.patel@riverbank.example.nhs.uk
+    created: 2026-02-11
+    updated: 2026-03-02
+    author: cso
+    initial: { severity: 4, likelihood: 3 }
+    residual: { severity: 4, likelihood: 1 }
+    mitigations: [MIT-001, MIT-002]
+    cause: >
+      The original deployment design had practice staff review submitted readings
+      in a weekly batch, so a reading indicating severe hypertension could wait up
+      to seven days before any clinician saw it.
+    effect: >
+      Delay to assessment and treatment of severe hypertension, which the
+      Federation's hypertension pathway requires to be acted on within 24 hours.
+    harm: >
+      Avoidable stroke, myocardial infarction, or hypertensive emergency.
+    justification: >
+      Residual likelihood is reduced to Very low by same-day automated flagging
+      (MIT-001), with the daily safety-netting report (MIT-002) as a backstop
+      against silent integration failure. Severity is unchanged at Major, because
+      the potential harm from untreated severe hypertension is not altered by
+      detecting it sooner; only the probability of it occurring is reduced.
+    body: |
+      ## How this was identified
+
+      Raised during the pathway walkthrough on 2026-02-11, when the clinical
+      group compared the proposed weekly review cycle against the 24-hour
+      requirement in the existing hypertension pathway. The supplier's DCB0129
+      safety case assumes "timely clinical review" without defining it, so the
+      deployment carries this hazard.
+
+      ## Discussion
+
+      The group considered restricting the service to patients with well
+      controlled hypertension, which would have reduced the likelihood of a
+      severe reading. This was rejected because it would have excluded the
+      patients most likely to benefit from closer monitoring.
+
+  - id: HAZ-002
+    title: Reading is recorded against the wrong patient
+    status: open
+    owner: j.okafor@riverbank.example.nhs.uk
+    created: 2026-02-12
+    updated: 2026-02-28
+    author: digital_lead
+    initial: { severity: 3, likelihood: 3 }
+    residual: { severity: 3, likelihood: 1 }
+    mitigations: [MIT-003]
+    cause: >
+      Two people in the same household may share a monitor, or a carer taking
+      readings for one patient may be signed in as another.
+    effect: >
+      Clinical decisions, including changes to antihypertensive medication, are
+      made on another person's readings. The patient whose readings were not
+      recorded appears non-adherent.
+    harm: >
+      Inappropriate treatment change leading to hypotension and falls, or failure
+      to treat genuine hypertension.
+    justification: >
+      One account per patient with identity verified from the GP record (MIT-003)
+      reduces likelihood to Very low. Severity remains Considerable: a wrong-patient
+      medication change can cause severe injury with expected recovery.
+    body: |
+      ## How this was identified
+
+      Identified from a published incident at another federation, where a couple
+      shared a single monitor and account for eleven months.
+
+  - id: HAZ-003
+    title: Inaccurate readings from an unsuitable or faulty monitor
+    status: open
+    owner: s.whitlock@riverbank.example.nhs.uk
+    created: 2026-02-13
+    updated: 2026-03-04
+    author: pharmacist
+    initial: { severity: 3, likelihood: 4 }
+    residual: { severity: 3, likelihood: 2 }
+    mitigations: [MIT-004]
+    cause: >
+      Home blood pressure monitors vary widely in accuracy. Wrist and finger
+      devices are unreliable, cuffs can be the wrong size for the patient's arm,
+      and devices drift out of calibration over time.
+    effect: >
+      Systematically high or low readings, leading to over-treatment or to
+      hypertension being missed.
+    harm: >
+      Hypotension, falls and injury from over-treatment; or untreated
+      hypertension with its associated cardiovascular risk.
+    justification: >
+      Issuing only validated upper-arm monitors on a three-year replacement cycle
+      (MIT-004) reduces likelihood from High to Low. It is not reduced further
+      because cuff misapplication by the patient remains possible despite
+      training, and because no practical control detects gradual drift between
+      replacements.
+    body: |
+      ## How this was identified
+
+      Raised by the Federation pharmacist on review of the device procurement
+      specification, which originally permitted patients to use their own
+      monitors.
+
+  - id: HAZ-004
+    title: Patients unable to use the service are left without monitoring
+    status: open
+    owner: a.patel@riverbank.example.nhs.uk
+    created: 2026-02-14
+    updated: 2026-03-03
+    author: cso
+    initial: { severity: 3, likelihood: 4 }
+    residual: { severity: 3, likelihood: 2 }
+    mitigations: [MIT-005]
+    cause: >
+      The deployment shifts routine blood pressure checks out of the practice.
+      Patients without a smartphone, without connectivity, with limited digital
+      confidence, with visual or dexterity impairment, or who do not read English
+      may be unable to participate, and may be assumed to be monitored when they
+      are not.
+    effect: >
+      Hypertension goes unmonitored in exactly the groups least likely to
+      self-advocate, and the practice's hypertension register appears better
+      controlled than it is.
+    harm: >
+      Untreated or under-treated hypertension, with inequitable distribution of
+      that harm.
+    justification: >
+      An explicit register of non-participating patients, reviewed at routine
+      recall (MIT-005), reduces likelihood from High to Low by ensuring those
+      patients remain on in-practice monitoring. Severity is unchanged. Residual
+      likelihood is not Very low because the control depends on practices
+      maintaining the register accurately.
+    body: |
+      ## How this was identified
+
+      Raised by the patient participation group rather than by the clinical or
+      technical teams, which is itself worth recording: the hazard is created by
+      the deployment's success rather than its failure, and was not visible from
+      a review of the supplier's documentation.
+
+      ## Equity note
+
+      This hazard is the reason the deployment is not described as replacing
+      in-practice checks entirely.
+
+      ## Weakness of the control
+
+      MIT-005 is a procedural control and is the only mitigation for this
+      hazard. That is a recognised weakness of this part of the safety argument.
+      No technical control was identified: the system cannot detect a patient who
+      never enrolled, and automating the register would not change the fact that
+      it depends on practice staff acting on it. The alternative considered was to
+      require every eligible patient to be either enrolled or explicitly recorded
+      as declining before the practice could go live, which was rejected as
+      unworkable across twelve practices within the deployment timescale. It
+      should be revisited at the first annual review.
+
+  - id: HAZ-005
+    title: Submitted readings do not reach the GP record
+    status: open
+    owner: j.okafor@riverbank.example.nhs.uk
+    created: 2026-02-17
+    updated: 2026-03-10
+    author: digital_lead
+    initial: { severity: 3, likelihood: 3 }
+    residual: { severity: 3, likelihood: 1 }
+    mitigations: [MIT-002, MIT-006]
+    cause: >
+      The integration between the supplier portal and the GP clinical system can
+      fail, or fail partially, without raising an error visible to practice staff.
+    effect: >
+      A clinician reviewing the GP record sees an incomplete picture and believes
+      the patient has not been monitoring, or makes a decision on stale readings.
+    harm: >
+      Delayed treatment change, or a treatment decision made on incomplete
+      information.
+    justification: >
+      Automated write-back within fifteen minutes plus a daily reconciliation
+      report naming any unreconciled reading (MIT-006, MIT-002) reduces likelihood
+      to Very low, and makes integration failure visible within one working day
+      rather than at audit.
+    body: |
+      ## How this was identified
+
+      Identified during integration testing, when a deliberately malformed
+      reading was accepted by the portal and silently dropped before reaching the
+      record.
+
+  - id: HAZ-006
+    title: Patient delays seeking urgent help, believing they are being monitored
+    status: open
+    owner: a.patel@riverbank.example.nhs.uk
+    created: 2026-02-19
+    updated: 2026-03-05
+    author: cso
+    initial: { severity: 4, likelihood: 2 }
+    residual: { severity: 4, likelihood: 1 }
+    mitigations: [MIT-007]
+    cause: >
+      The name "BP@Home" and the act of submitting readings to the practice may
+      lead a patient to believe their readings are watched continuously and that
+      someone will contact them if a reading is dangerous.
+    effect: >
+      A patient with symptoms of a hypertensive emergency, stroke or cardiac event
+      submits a reading and waits to be contacted instead of calling 999 or
+      seeking urgent care.
+    harm: >
+      Death or life-changing incapacity from delayed treatment of a
+      time-critical condition.
+    justification: >
+      Explicit information at enrolment and on every submission screen stating
+      that readings are not monitored in real time and that urgent symptoms
+      require the normal urgent care route (MIT-007) reduces likelihood to Very
+      low. Severity remains Major and cannot be reduced: the harm from a delayed
+      stroke presentation is not affected by patient information. This residual
+      risk is accepted on the basis that the alternative - not offering home
+      monitoring - carries its own substantial harm from poorer hypertension
+      control.
+    body: |
+      ## How this was identified
+
+      Raised by the Clinical Safety Officer on considering what patients would
+      reasonably infer from the service name and the enrolment conversation,
+      rather than from what the documentation says.
+
+      ## Why this hazard is retained as open with Major severity
+
+      It would be possible to present this as closed on the grounds that the
+      information is clear. That would be a misrepresentation: the control is a
+      warning, warnings are weak, and the potential harm is severe. Recording it
+      as an accepted residual risk with a named justification is the honest
+      position and the one a reviewer can challenge.

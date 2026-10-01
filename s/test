@@ -1,13 +1,29 @@
 #!/usr/bin/env bash
-# Run the Python test suite inside the api container.
+# Run the test suites.
 #
-# Requires the stack to be running (./s/up). Forwards any extra arguments to
-# pytest, so `./s/test -k login` and `./s/test src/tests/unit` both work.
+# Two suites exist because they need different environments:
+#
+#   safety_file/  pure Python, no database, no web framework. Runs on the host,
+#                 needs only git. Fast.
+#   api/src/      needs PostgreSQL and the application container.
+#
+# With no arguments, runs both. Arguments are forwarded to the container suite,
+# so `./s/test -k login` behaves as before.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
+if [ -x .venv/bin/python ]; then
+	PYTHON=.venv/bin/python
+else
+	PYTHON=python3
+fi
+
 if [ "$#" -eq 0 ]; then
+	echo "==> safety_file (host)"
+	"$PYTHON" -m pytest safety_file -q
+	echo
+	echo "==> api (container)"
 	exec docker compose exec -T api pytest /app/src
 fi
 
