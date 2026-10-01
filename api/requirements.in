@@ -5,8 +5,14 @@
 fastapi
 uvicorn
 pydantic
-ormar==0.23.1
 asyncpg
+
+# Held at 0.23.1 deliberately. 0.26 drops the `databases` dependency and changes
+# the connection API; the current `ormar.DatabaseConnection` usage in
+# models/_database.py was written against 0.23.1. Upgrading is a code change, not
+# a version bump, so Dependabot is told to leave it alone in
+# .github/dependabot.yml. Revisit after phase one.
+ormar==0.23.1
 psycopg2-binary
 alembic
 argon2-cffi

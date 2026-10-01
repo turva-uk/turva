@@ -44,6 +44,16 @@ updates:
     cooldown:
       default-days: 7
       semver-major-days: 14
+    ignore:
+      # Pinned in api/requirements.in with the reason. 0.26 changes the
+      # connection API, so moving is a code change rather than a version bump.
+      # `ignore` suppresses version updates only - security updates still arrive.
+      - dependency-name: "ormar"
+      # Upper bound is deliberate: sqlalchemy-utils 0.42.1 does not import
+      # against SQLAlchemy 2.1. See api/requirements.in.
+      - dependency-name: "sqlalchemy"
+        update-types:
+          ["version-update:semver-minor", "version-update:semver-major"]
     groups:
       python-minor-and-patch:
         applies-to: version-updates
