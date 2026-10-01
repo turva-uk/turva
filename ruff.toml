@@ -1,5 +1,13 @@
 line-length = 100
-target-version = "py311"
+target-version = "py312"
+
+# The application lives in api/src, so that is the import root. Without this,
+# isort cannot see that `config`, `models`, `app` and friends are first-party
+# and shuffles them into the third-party block. This previously worked by
+# accident: api/pyproject.toml carried a duplicate [tool.ruff] section whose
+# location made `src` resolve to api/src. That duplicate has been removed in
+# favour of this single source of truth.
+src = ["api/src"]
 
 [lint]
 select = [
@@ -16,4 +24,19 @@ ignore = [
 ]
 
 [lint.isort]
-known-first-party = ["app", "models", "endpoints", "authentication"]
+known-first-party = [
+  "app",
+  "async_database_utils",
+  "authentication",
+  "common",
+  "config",
+  "endpoints",
+  "models",
+]
+
+[lint.per-file-ignores]
+# conftest.py must set TESTING and load .env.test *before* importing the app,
+# because Config is evaluated at module import time - importing `app` any earlier
+# binds development configuration and every integration test 404s. The late
+# imports are deliberate, so E402 is suppressed here rather than worked around.
+"api/src/tests/conftest.py" = ["E402"]

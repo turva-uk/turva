@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# Regenerate the fully pinned requirements locks from the `.in` declarations.
+#
+# Run this after editing api/requirements.in or api/requirements.dev.in, then
+# commit the resulting .txt files alongside the .in change. Python version is
+# matched to api/Dockerfile.
+set -euo pipefail
+
+cd "$(dirname "$0")/../api"
+
+PYTHON_VERSION="3.12"
+
+uv pip compile requirements.in \
+	--python-version "$PYTHON_VERSION" \
+	--output-file requirements.txt "$@"
+
+uv pip compile requirements.dev.in \
+	--python-version "$PYTHON_VERSION" \
+	--output-file requirements.dev.txt "$@"
+
+echo "Locks regenerated. Review the dependency diff before committing."
