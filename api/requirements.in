@@ -5,7 +5,7 @@
 fastapi
 uvicorn
 pydantic
-ormar==0.23.1
+ormar==0.26.0
 asyncpg
 psycopg2-binary
 alembic
