@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# Serve the documentation site locally with hot reload at http://localhost:8001
+set -euo pipefail
+
+cd "$(dirname "$0")/../docs"
+
+if [ -x ../.venv/bin/zensical ]; then
+	exec ../.venv/bin/zensical serve -a localhost:8001 "$@"
+fi
+
+exec zensical serve -a localhost:8001 "$@"

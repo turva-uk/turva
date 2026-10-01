@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# Run the Python test suite inside the api container.
+#
+# Requires the stack to be running (./s/up). Forwards any extra arguments to
+# pytest, so `./s/test -k login` and `./s/test src/tests/unit` both work.
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+
+if [ "$#" -eq 0 ]; then
+	exec docker compose exec -T api pytest /app/src
+fi
+
+exec docker compose exec -T api pytest "$@"

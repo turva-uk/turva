@@ -1,0 +1,31 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 2
+
+[*.py]
+indent_size = 4
+max_line_length = 100
+
+[*.md]
+# Trailing whitespace is significant in Markdown (two spaces = line break).
+trim_trailing_whitespace = false
+
+[Makefile]
+indent_style = tab
+
+# Shell scripts in s/ use tabs, matching the existing scripts.
+[s/*]
+indent_style = tab
+
+[*.{yml,yaml,json,toml}]
+indent_size = 2
+
+[*.html]
+# Jinja2 templates.
+indent_size = 2

@@ -215,3 +215,15 @@ node_modules/
 
 # MkDocs / Zensical
 site/
+
+# Disposable agent and browser-automation artefacts
+/.playwright-mcp
+/.playwright
+/playwright-report
+/blob-report
+/test-results
+/.claude
+
+# Intentionally retained local-only work (decks, reports, captures, notes).
+# See https://github.com/pacharanero/house-style/blob/main/private-workspace.md
+/.private

@@ -1,37 +1,54 @@
 # Convenience Scripts
 
-This directory contains convenience scripts for common development operations.
-
-All scripts pass through any additional arguments to the underlying docker-compose command. For example:
+Each script wraps one repeated process. All of them forward extra arguments to the underlying tool, so:
 
 ```bash
-./s/up -d    # Start in detached mode
-./s/logs api # Follow logs for the API service only
+./s/up -d        # Start in detached mode
+./s/logs api     # Follow logs for the API service only
+./s/test -k login  # Run only tests matching "login"
 ```
 
-## `./s/up`
+## Running the stack
 
-Starts all services, running in Docker Compose.
-Add the `--build` flag to rebuild images before starting.
-Add the `-d` flag to run in detached mode.
-Usage: `./s/up` or `./s/up frontend` for specific service
+### `./s/up`
 
-## `./s/down`
+Starts all services in Docker Compose.
+Add `--build` to rebuild images before starting, or `-d` to run detached.
+Usage: `./s/up` or `./s/up api` for a specific service.
 
-Stops all services
-Usage: `./s/down`
+### `./s/down`
 
-## `./s/logs`
+Stops all services.
 
-Follows logs from services
-Usage: `./s/logs` or `./s/logs api` for specific service
+### `./s/restart`
 
-## `./s/restart`
+Restarts services.
+Usage: `./s/restart` or `./s/restart api` for a specific service.
 
-Restarts services
-Usage: `./s/restart` or `./s/restart frontend` for specific service
+### `./s/logs`
 
-## `./s/clean`
+Follows logs from services.
+Usage: `./s/logs` or `./s/logs api` for a specific service.
 
-Cleans up all containers, volumes, and cached images
-Usage: `./s/clean`
+### `./s/clean`
+
+Removes all containers, volumes, and cached images. Destroys local database contents.
+
+## Development
+
+### `./s/test`
+
+Runs the Python test suite inside the api container. Requires the stack to be running.
+Usage: `./s/test`, or `./s/test /app/src/tests/unit` for a subset.
+
+### `./s/lint`
+
+Runs every check CI enforces: `pre-commit run --all-files`, then the Zizmor GitHub Actions audit. Run this before committing.
+
+### `./s/lock`
+
+Regenerates the pinned dependency locks from the `.in` declarations, for both `api/` and `docs/`. Run after editing any `requirements*.in`, and commit the `.in` and `.txt` changes together.
+
+### `./s/docs`
+
+Serves the documentation site with hot reload at <http://localhost:8001>.

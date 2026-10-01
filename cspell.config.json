@@ -30,6 +30,7 @@
   "words": [
     "Alembic",
     "Argon",
+    "Argon2",
     "artefact",
     "artefacts",
     "ASGI",
@@ -70,6 +71,7 @@
     "Jinja2",
     "Kuftinoff",
     "Mantine",
+    "MHRA",
     "mitigation",
     "mitigations",
     "mkdocs",
@@ -78,7 +80,9 @@
     "offs",
     "Ormar",
     "outputfile",
+    "pacharanero",
     "Pandoc",
+    "PGDATA",
     "Postgres",
     "postgresql",
     "Pydantic",
@@ -95,8 +99,8 @@
     "Tabler",
     "telehealth",
     "Traefik",
-    "turva",
     "Turva",
+    "turva",
     "Unauditable",
     "Uvicorn",
     "Vallance",
@@ -109,6 +113,7 @@
     "Wouter",
     "WSGI",
     "Zensical",
+    "Zizmor",
     "zstd"
   ]
 }
