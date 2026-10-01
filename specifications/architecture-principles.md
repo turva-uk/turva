@@ -17,13 +17,14 @@ Safety information must be:
 
 ### 2. Separation of Concerns
 
-Frontend, backend, and data storage are logically separated:
+Interface, business rules, and storage are logically separated:
 
-- Frontend focuses on user experience
-- Backend enforces business rules and data integrity
-- Database provides persistent, queryable storage
+- The interface layer focuses on user experience, and is server-rendered from the application that enforces the rules
+- The application enforces business rules and data integrity, and owns all Git operations
+- Git repositories hold the safety evidence
+- The database indexes those repositories and holds operational state such as users, sessions, and permissions
 
-**Why**: Enables independent evolution, testing, and scaling of each layer.
+**Why**: Enables independent evolution and testing of each concern. Note that separation here is about responsibility, not deployment: phase one deliberately serves the interface from the same process as the API, because maintaining a second codebase for the same screens was costing more than it returned.
 
 ### 3. API-First Design
 
@@ -78,6 +79,21 @@ Information is public unless there's a specific reason for privacy:
 
 ## Data Principles
 
+### Git Is the System of Record
+
+Each Clinical Safety Management File is its own Git repository on disk, holding a documentation site in Markdown. This is the defining architectural decision of the platform and it is not negotiable without revisiting everything else here.
+
+- Safety evidence is files in a repository, not rows in a table
+- The audit trail is the commit history: attributed, timestamped, and tamper-evident
+- The database is an **index over** those repositories, not the truth. It exists so projects can be listed, searched, and permission-checked quickly, and it must be rebuildable from the repositories
+- No safety evidence may exist only in the database
+- Generated documents, including the safety case PDF, are build artefacts reproducible from the commit they came from
+- The web application performs Git operations on the user's behalf; the Clinical Safety Officer never sees a commit, branch, or merge
+
+**Why**: Regulators and courts need an audit trail that cannot be quietly rewritten. A database row can be updated in place; a commit cannot be altered without detection. Git also gives branching for review, diffing of safety decisions, and distribution for federation, none of which a table provides. The structure resembles a code-hosting platform rather than a conventional web application, which is unusual enough to be worth stating plainly.
+
+This was previously documented in `archive/architecture/vmpt.md` and was lost in the December rationalisation, which removed the "VMPT stack" framing. Dropping the framing was right; dropping the architecture was not.
+
 ### Immutable Audit Records
 
 Once a safety decision is recorded, the historical record is permanent:
@@ -102,7 +118,8 @@ Risk level is calculated from severity and likelihood, not manually selected:
 
 Each piece of information has one canonical location:
 
-- User details in user table (not duplicated in project records)
+- Safety evidence lives in the project's Git repository, never duplicated into the database as its own truth
+- User details in the user table (not duplicated into project records)
 - Risk matrix defined once (not per-project)
 - Derived values calculated on read (not stored stale)
 
@@ -253,15 +270,21 @@ API servers store no local state (sessions in database, not memory):
 
 **Why**: Enables horizontal scaling.
 
-### Database as Bottleneck
+### Storage Scaling
 
-Assume database will be the scaling bottleneck:
+The database holds the index and operational state, so it is comparatively small and read-heavy:
 
-- Optimize queries early
-- Index appropriately
+- Index appropriately, and optimise queries when measurement says to
 - Consider read replicas for reporting
+- Remember the index is derivable: it can be rebuilt from the repositories, which makes it cheap to change
 
-**Why**: Databases are hardest to scale; minimize load on them.
+Filesystem and Git operations are the more likely bottleneck, since every project read or write touches a repository:
+
+- Repository operations are I/O bound; prefer plumbing commands over spawning full Git processes where it matters
+- Large repositories and long histories degrade differently from large tables, and need their own measurement
+- Generated artefacts such as PDFs should be cached against the commit they were built from, not rebuilt per request
+
+**Why**: Treating the database as the bottleneck would misdirect optimisation effort. The evidence lives on disk, so that is where the contention will be.
 
 ### Scale When Needed, Not Prematurely
 
@@ -310,4 +333,6 @@ API versioning allows backward-compatible evolution:
 
 ---
 
-These principles guide implementation choices. Specific technologies (React, FastAPI, PostgreSQL) are current implementations, not architectural requirements. Code should follow these principles regardless of tech stack.
+These principles guide implementation choices. Specific technologies (FastAPI, HTMX, PostgreSQL, Zensical) are current implementations, not architectural requirements, and code should follow these principles regardless of tech stack.
+
+Git is the exception. "Git is the system of record" is an architectural requirement, not an implementation detail - it is where the regulatory-grade audit trail comes from, and substituting a database for it would change what the product is.

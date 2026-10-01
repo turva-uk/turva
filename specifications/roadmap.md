@@ -44,17 +44,17 @@ This roadmap tracks the implementation status of Turva features based on the [sp
 - [ ] API versioning
 - [ ] OpenAPI documentation
 
-### Frontend Infrastructure
+### Interface Infrastructure
 
-- [x] React with TypeScript
-- [x] Vite build system
-- [x] Mantine UI component library
-- [x] Authentication pages (Login, Register, Verify)
-- [x] Dashboard layout structure
-- [x] Routing setup
-- [ ] Error boundary handling
-- [ ] Loading states and skeletons
-- [ ] Offline support
+The React/Mantine/Vite frontend was removed to avoid building every screen twice. Jinja2 templates served by FastAPI, progressively enhanced with HTMX, replace it. The React authentication pages remain in Git history as a reference for the equivalent HTMX flows.
+
+- [x] Removed React, Mantine, Vite, Storybook and the separate frontend build
+- [ ] Jinja2 template layer and base layout
+- [ ] HTMX wiring and partial-response conventions
+- [ ] Authentication pages (Login, Register, Verify)
+- [ ] Dashboard layout structure
+- [ ] Error and empty states
+- [ ] Accessibility pass (WCAG 2.2 AA)
 
 ## Core Domain Features
 
@@ -201,30 +201,36 @@ This roadmap tracks the implementation status of Turva features based on the [sp
 - [ ] API for external integrations
 - [ ] Webhook support
 
-## VMPT Stack Features
+## Safety File Storage
 
-### Version Control (V)
+Each Clinical Safety Management File is a Git repository on disk holding a Zensical site. See [Architecture Principles](architecture-principles.md#git-is-the-system-of-record). This is foundational: the domain features above depend on it, so it is built first, not last.
 
-- [ ] Git-based version control for safety documents
+### Git as the System of Record
+
+- [ ] Repository creation from a project template
+- [ ] Repository layout convention (hazards, mitigations, safety case, values)
+- [ ] Read and write safety artefacts as Markdown with YAML frontmatter
+- [ ] Commit on save, attributed to the acting user
+- [ ] History and diff views for a safety artefact
+- [ ] Database index over repositories, rebuildable from disk
+- [ ] Repository storage layout, quotas and backup strategy
 - [ ] Branch management for major changes
 - [ ] Merge conflict resolution
 - [ ] Tag releases
 
-### Markdown (M)
+### Document Generation
 
+- [ ] Build a project's Zensical site from its repository
+- [ ] PDF export via WeasyPrint over the built HTML (pattern per <https://growth.rcpch.ac.uk>)
+- [ ] PDF cached against the commit it was generated from
 - [ ] Markdown editor for safety documentation
 - [ ] Markdown preview
-- [ ] Markdown templates
-- [ ] Rich text formatting support
 
-### Placeholders (P)
+### Placeholders and Templates
 
 - [ ] Dynamic placeholder system
 - [ ] Auto-population of common fields
 - [ ] Context-aware suggestions
-
-### Templates (T)
-
 - [ ] Safety case templates
 - [ ] Hazard templates
 - [ ] Risk assessment templates
@@ -313,17 +319,6 @@ This roadmap tracks the implementation status of Turva features based on the [sp
 - [ ] Docstring linting
 - [ ] Complexity analysis
 
-#### TypeScript/JavaScript
-
-- [x] ESLint configuration
-- [x] Prettier formatter
-- [x] Format-on-save in VS Code
-- [x] React hooks linting
-- [x] TypeScript strict mode
-- [ ] Import sorting
-- [ ] Unused code detection
-- [ ] Bundle size analysis
-
 #### Pre-commit Hooks
 
 - [x] Pre-commit framework installed
@@ -335,8 +330,6 @@ This roadmap tracks the implementation status of Turva features based on the [sp
 - [x] Python linting (Ruff)
 - [x] Markdown formatting (Prettier)
 - [x] Markdown linting (markdownlint)
-- [ ] TypeScript/JavaScript formatting in pre-commit
-- [ ] TypeScript/JavaScript linting in pre-commit
 - [ ] Commit message linting (commitlint)
 - [ ] Branch name validation
 
@@ -344,9 +337,10 @@ This roadmap tracks the implementation status of Turva features based on the [sp
 
 - [x] Unit tests for user model
 - [x] Integration tests for authentication
+- [x] Integration tests running in CI (previously excluded and silently broken)
 - [ ] Unit tests for all models
 - [ ] Integration tests for all endpoints
-- [ ] End-to-end tests (frontend)
+- [ ] End-to-end tests
 - [ ] Performance testing
 - [ ] Security testing
 - [ ] Accessibility testing
@@ -370,9 +364,11 @@ This roadmap tracks the implementation status of Turva features based on the [sp
 
 - [x] Docker Compose setup
 - [x] Development environment
+- [x] Pin Python dependencies with a resolved lock (`api/requirements*.txt`, regenerate with `s/lock`)
+- [x] Pin every GitHub Action to a commit SHA
 - [ ] Production deployment configuration
-- [ ] Pin version numbers for all Docker images (PostgreSQL, Node, Python, Caddy, etc.) before production
-- [ ] Pin version numbers for all dependencies (Python packages, npm packages) before production
+- [ ] Pin version numbers for all Docker images (PostgreSQL, Python, Caddy) before production
+- [ ] Pin docs dependencies (`docs/requirements.txt` is currently unpinned)
 - [ ] Kubernetes deployment
 - [ ] Database backup strategy
 - [ ] Disaster recovery plan
@@ -446,6 +442,8 @@ This roadmap tracks the implementation status of Turva features based on the [sp
 
 ---
 
-**Last Updated:** 15 January 2026
-**Current Phase:** Foundation & Infrastructure
-**Next Milestone:** Core Domain Features (Projects & Hazards)
+**Last Updated:** 1 October 2026
+**Current Phase:** Funded phase one - see [Phase One Scope](phase-one-scope.md)
+**Next Milestone:** Safety file storage (Git repository per Clinical Safety Management File)
+
+Note on reading this roadmap: it tracks everything Turva might eventually do, and is much wider than the funded build. [Phase One Scope](phase-one-scope.md) is the authoritative list of what ships by Christmas.

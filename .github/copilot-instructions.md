@@ -1,3 +1,3 @@
 # Turva AI Agent Instructions
 
-See [copilot-instructions.md](../docs/docs/specifications/copilot-instructions.md) for detailed instructions on how to assist with the Turva project.
+See [specifications/copilot-instructions.md](../specifications/copilot-instructions.md) for instructions on how to assist with the Turva project, and [AGENTS.md](../AGENTS.md) for the invariants and validation commands.
