@@ -1,4 +1,10 @@
 #!/usr/bin/env bash
+# Follow logs for all services, or one named service.
+#
+#   ./s/logs            everything
+#   ./s/logs api        just the application
 set -euo pipefail
 
-docker compose logs -f "$@"
+cd "$(dirname "$0")/.."
+
+exec docker compose logs -f "$@"

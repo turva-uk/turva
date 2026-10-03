@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# Open a psql session against the development database.
+#
+#   ./s/psql                        interactive shell
+#   ./s/psql -c 'select 1'          one-off query
+#
+# The database is only an index over the safety file repositories, so anything
+# here is rebuildable. It is still the wrong place to make manual changes.
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+
+exec docker compose exec postgres psql -U postgres -d postgres "$@"

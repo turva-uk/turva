@@ -3,15 +3,26 @@
 #
 # Two suites exist because they need different environments:
 #
-#   safety_file/  pure Python, no database, no web framework. Runs on the host,
-#                 needs only git. Fast.
+#   safety_file/  pure Python. No database, no web framework, no container.
+#                 Needs only git. Runs on the host in about two seconds.
 #   api/src/      needs PostgreSQL and the application container.
 #
-# With no arguments, runs both. Arguments are forwarded to the container suite,
-# so `./s/test -k login` behaves as before.
+# Routing:
+#
+#   ./s/test                      both suites
+#   ./s/test safety_file          host suite only
+#   ./s/test safety_file -k risk  host suite, filtered
+#   ./s/test -k login             container suite, filtered
+#
+# An argument naming the safety_file package runs on the host; anything else
+# goes to the container, which is where the application tests need a database.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
+
+# Single place to change when the application service is renamed.
+SERVICE=api
+CONTAINER_TESTS=/app/src
 
 if [ -x .venv/bin/python ]; then
 	PYTHON=.venv/bin/python
@@ -24,7 +35,13 @@ if [ "$#" -eq 0 ]; then
 	"$PYTHON" -m pytest safety_file -q
 	echo
 	echo "==> api (container)"
-	exec docker compose exec -T api pytest /app/src
+	exec docker compose exec -T "$SERVICE" pytest "$CONTAINER_TESTS"
 fi
 
-exec docker compose exec -T api pytest "$@"
+case "$1" in
+safety_file | safety_file/* | ./safety_file | ./safety_file/*)
+	exec "$PYTHON" -m pytest "$@"
+	;;
+esac
+
+exec docker compose exec -T "$SERVICE" pytest "$@"

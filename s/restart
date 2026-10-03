@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Restart all services, or one named service.
 set -euo pipefail
 
-docker compose restart "$@"
+cd "$(dirname "$0")/.."
+
+exec docker compose restart "$@"

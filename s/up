@@ -1,4 +1,15 @@
 #!/usr/bin/env bash
+# Start the development stack. This is the primary way to run Turva locally.
+#
+# Runs attached so you see the logs; Ctrl-C stops it. Add --build to rebuild
+# images first, or -d to detach.
+#
+#   ./s/up              start everything
+#   ./s/up --build      rebuild images first
+#   ./s/up -d           detached
+#   ./s/up api          just one service and its dependencies
 set -euo pipefail
 
-docker compose up "$@"
+cd "$(dirname "$0")/.."
+
+exec docker compose up "$@"

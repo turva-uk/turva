@@ -1,7 +1,32 @@
 #!/usr/bin/env bash
+# Remove this project's containers and volumes. Destroys the local database.
+#
+# Scoped to this project by default. The previous version also ran
+# `docker system prune -f`, which deletes dangling images, networks and build
+# cache for *every* project on the machine - a surprising amount of collateral
+# damage for a script named after one repository. That is now opt-in:
+#
+#   ./s/clean           this project's containers and volumes
+#   ./s/clean --system   ... and prune system-wide Docker artefacts
+#
+# Safety file repositories under .turva-data are NOT touched: they are the data,
+# not disposable state. Remove them deliberately, or rebuild the demo with
+# ./s/seed-demo --force
 set -euo pipefail
 
-# Clean up all containers, volumes, and cached images
-docker compose down -v
-docker compose rm -fsv
-docker system prune -f
+cd "$(dirname "$0")/.."
+
+docker compose down --volumes --remove-orphans
+
+if [ "${1:-}" = "--system" ]; then
+	echo
+	echo "About to run 'docker system prune -f', which affects every project on"
+	echo "this machine, not just Turva."
+	read -r -p "Continue? [y/N] " reply
+	case "$reply" in
+	[yY] | [yY][eE][sS]) docker system prune -f ;;
+	*) echo "Skipped system prune." ;;
+	esac
+fi
+
+echo "Done. Safety files under .turva-data were left alone."

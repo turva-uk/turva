@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Stop the development stack, leaving volumes intact.
 set -euo pipefail
 
-docker compose down "$@"
+cd "$(dirname "$0")/.."
+
+exec docker compose down "$@"
