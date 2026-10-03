@@ -7,13 +7,12 @@ This roadmap tracks the implementation status of Turva features based on the [sp
 ### User Management & Authentication
 
 - [x] User model with password hashing (Argon2)
-- [x] User registration endpoint
-- [x] User login endpoint
-- [x] Email verification system
-- [x] Session management
-- [x] Authentication middleware
-- [x] JWT-based authentication
-- [ ] Password reset functionality
+- [x] User registration
+- [x] User login and logout
+- [x] Email verification, with an eight-hour token lifetime and a resend cooldown
+- [x] Session management (Django sessions in PostgreSQL)
+- [x] Password reset
+- [x] Admin interface for support
 - [ ] User profile management
 - [ ] Professional registration tracking
 - [ ] Clinical Safety Officer designation
@@ -21,9 +20,9 @@ This roadmap tracks the implementation status of Turva features based on the [sp
 ### Database & Data Layer
 
 - [x] PostgreSQL database setup
-- [x] Alembic migrations
+- [x] Django migrations
 - [x] User table
-- [x] Session table
+- [x] Session table (`django.contrib.sessions`)
 - [ ] Organization table
 - [ ] Project table
 - [ ] Hazard table
@@ -33,28 +32,30 @@ This roadmap tracks the implementation status of Turva features based on the [sp
 - [ ] Audit trail table
 - [ ] Change record table
 
-### API Infrastructure
+### Application Infrastructure
 
-- [x] FastAPI framework setup
-- [x] Docker containerization
-- [x] NGINX reverse proxy
+- [x] Django framework setup ([ADR 0001](adr/0001-use-django-for-phase-one.md))
+- [x] Docker containerisation, application container running as a non-root user
+- [x] Caddy reverse proxy
 - [x] Gunicorn WSGI server
-- [x] CORS middleware
-- [ ] Rate limiting
-- [ ] API versioning
-- [ ] OpenAPI documentation
+- [x] Health check endpoint that touches the database
+- [x] `check --deploy` audit in CI, run against production-like settings
+- [ ] Rate limiting, particularly on login and password reset
+- [ ] Error tracking
 
 ### Interface Infrastructure
 
-The React/Mantine/Vite frontend was removed to avoid building every screen twice. Jinja2 templates served by FastAPI, progressively enhanced with HTMX, replace it. The React authentication pages remain in Git history as a reference for the equivalent HTMX flows.
+The React/Mantine/Vite frontend was removed to avoid building every screen twice. Django templates, progressively enhanced with HTMX, replace it.
 
 - [x] Removed React, Mantine, Vite, Storybook and the separate frontend build
-- [ ] Jinja2 template layer and base layout
-- [ ] HTMX wiring and partial-response conventions
-- [ ] Authentication pages (Login, Register, Verify)
-- [ ] Dashboard layout structure
+- [x] Django template layer and base layout
+- [x] HTMX vendored and served from the application rather than a CDN
+- [x] Authentication pages (register, login, verify, password reset)
+- [x] Hand-written stylesheet, no utility framework
+- [ ] HTMX partial-response conventions, once a view needs them
+- [ ] Dashboard showing the user's safety files
 - [ ] Error and empty states
-- [ ] Accessibility pass (WCAG 2.2 AA)
+- [ ] Accessibility audit against WCAG 2.2 AA with a screen reader and keyboard only
 
 ## Core Domain Features
 
@@ -344,8 +345,9 @@ Each Clinical Safety Management File is a Git repository on disk holding a Zensi
 - [x] Unit tests for user model
 - [x] Integration tests for authentication
 - [x] Integration tests running in CI (previously excluded and silently broken)
-- [ ] Run the suite against PostgreSQL as well as SQLite. Tests currently use SQLite only, so Postgres-specific regressions are invisible to CI - an asyncpg 0.31 incompatibility in the `search_path` connection arguments reached `main` with all 42 tests green
+- [x] Run the suite against PostgreSQL rather than SQLite. The SQLite-only suite is how an asyncpg incompatibility in the `search_path` connection arguments reached `main` with all 42 tests green
 - [ ] Apply migrations automatically on startup, or add a startup check that fails loudly when migrations are pending
+- [ ] Coverage reporting in CI with a floor for the risk matrix and permission code
 - [ ] Unit tests for all models
 - [ ] Integration tests for all endpoints
 - [ ] End-to-end tests
@@ -450,8 +452,8 @@ Each Clinical Safety Management File is a Git repository on disk holding a Zensi
 
 ---
 
-**Last Updated:** 2 October 2026
+**Last Updated:** 3 October 2026
 **Current Phase:** Funded phase one - see [Phase One Scope](phase-one-scope.md)
-**Next Milestone:** Django port, then project creation through the web interface
+**Next Milestone:** Project creation through the web interface, then the Zensical/WeasyPrint PDF
 
 Note on reading this roadmap: it tracks everything Turva might eventually do, and is much wider than the funded build. [Phase One Scope](phase-one-scope.md) is the authoritative list of what ships by Christmas.

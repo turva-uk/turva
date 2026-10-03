@@ -49,19 +49,19 @@ j sc              # Stop all containers
    This will:
    - Build Docker images (if needed)
    - Start PostgreSQL database
-   - Start FastAPI backend (port 8000), which serves both the HTML interface and the JSON API
+   - Start the Django application (port 8000), which serves the pages and performs Git operations on safety files
    - Start Caddy reverse proxy (port 80/443)
 
 2. **Access the application:**
    - Application: <http://localhost>
-   - API: <http://localhost/api/>
-   - Direct API: <http://localhost:8000>
+   - Direct, bypassing Caddy: <http://localhost:8000>
+   - Admin: <http://localhost/admin/> (create an account with `./s/manage createsuperuser`)
 
 3. **View logs:**
 
    ```bash
    docker compose logs -f        # All services
-   docker compose logs -f api    # API only
+   docker compose logs -f web    # application only
    ```
 
 4. **Stop the services:**
@@ -83,28 +83,29 @@ j sd                       # Start fresh
 
 ### Environment Variables
 
-The API requires a `.env` file at `api/.env`. A template is provided:
+The application requires a `.env` file at `app/.env`. A template is provided:
 
 ```bash
-cp api/.env.example api/.env  # If .env.example exists
-# or manually create api/.env with required variables
+cp app/.env.example app/.env
 ```
+
+`SECRET_KEY` and the database settings have no defaults: a misconfigured deployment fails at startup rather than running with a predictable signing key.
 
 ### Running Migrations
 
 Migrations are **not** applied automatically. Run them after first starting the stack, and after pulling changes that add a migration:
 
 ```bash
-docker compose exec -w /app/src api alembic upgrade head
+./s/manage migrate
 ```
 
 Without this the application starts but every query fails with `relation "tbl_user" does not exist`.
 
 ## Development Tips
 
-- **Hot Reload**: Uvicorn reloads on Python and template changes
-- **Code Formatting**: `cd api/src && ruff format .`
-- **Linting**: `cd api/src && ruff check .`
+- **Hot Reload**: the Django development server reloads on Python and template changes
+- **Code Formatting**: `ruff format .`
+- **Linting**: `ruff check .`, or `./s/lint` for everything CI enforces
 - **Pre-commit Hooks**: Install with `pre-commit install` to automatically check code quality before commits
 
 ## Troubleshooting
@@ -115,7 +116,7 @@ If ports 80, 443, or 8000 are already in use, stop conflicting services or modif
 
 ### Database Connection Issues
 
-Ensure the `DB_HOST` in `api/.env` is set to `postgres` (the Docker service name), not `localhost`.
+Ensure the `DB_HOST` in `app/.env` is set to `postgres` (the Docker service name), not `localhost`.
 
 ### Container Issues
 

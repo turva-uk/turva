@@ -29,20 +29,19 @@ This is not a conventional database-backed CRUD application. If you are about to
 
 ### Current Stack
 
-- **Interface**: Jinja2 templates server-rendered by FastAPI, progressively enhanced with HTMX. There is no separate frontend build
-- **Backend**: FastAPI + Ormar ORM + PostgreSQL
+- **Interface**: Django templates, progressively enhanced with HTMX (vendored, not from a CDN). There is no separate frontend build
+- **Backend**: Django 6.1 + PostgreSQL via psycopg 3
 - **Safety file storage**: Git repositories on disk, each containing a Zensical site
 - **Document output**: Zensical build, then WeasyPrint over the built HTML for PDF
 - **Infrastructure**: Docker Compose + Caddy reverse proxy
 
 **Key patterns**:
 
-- Session-based auth (not JWT) - sessions in PostgreSQL
-- Dynamic endpoint registration (file tree → URL structure)
-- All API operations async (async/await pattern)
-- Caddy passes the whole URL space to FastAPI, which owns its routing
+- Session-based auth (not JWT) - `django.contrib.sessions` with the database backend
+- Synchronous views. Git and PDF work is blocking, which is why Django was chosen (ADR 0001)
+- Caddy passes the whole URL space to Django, which owns its routing, and sets `X-Forwarded-Proto`
 
-Implementation details live in the codebase - see the README in `api/`.
+The Django project is `app/`, with `manage.py` at the repository root so that `app` and `safety_file` are importable siblings.
 
 ## Development Workflows
 
@@ -59,12 +58,13 @@ Implementation details live in the codebase - see the README in `api/`.
 **Testing**: the whole suite runs in the container.
 
 ```bash
-docker compose exec api pytest /app/src        # 42 tests: 21 unit, 21 integration
-docker compose exec api pytest /app/src/tests/unit
+./s/test                      # both suites: 110 safety_file + 74 Django
+./s/test safety_file          # host suite, no container needed
+./s/test -k login             # container suite, filtered
 ```
 
-- Tests load `.env.test` with `override=True`, which is required because docker-compose injects `api/.env` into the container. Removing `override=True` makes every integration test 404
-- Each test gets an isolated SQLite DB via pytest-asyncio fixtures
+- pytest-django creates and destroys the test database, named by `DB_TEST_DATABASE`. There is no `.env.test`: the previous implementation needed one and the `override=True` trap that came with it
+- Tests run against **PostgreSQL**, not SQLite. The old suite used SQLite, which is how an asyncpg incompatibility reached `main` with all 42 tests green
 
 **Dependencies**: declarations live in `api/requirements.in` and `api/requirements.dev.in`; the `.txt` files are generated locks.
 
@@ -74,11 +74,11 @@ docker compose exec api pytest /app/src/tests/unit
 
 Never hand-edit a `.txt` lock, and never add a dependency to only the lock.
 
-**Database migrations** (from [api/src/](../api/src/)):
+**Database migrations** are Django's:
 
 ```bash
-alembic revision --autogenerate -m "description"
-alembic upgrade head
+./s/manage makemigrations accounts
+./s/manage migrate
 ```
 
 **Documentation**:
@@ -87,7 +87,7 @@ alembic upgrade head
 ./s/docs       # or: cd docs && zensical serve -a localhost:8001
 ```
 
-**Template system**: [example_template/build.py](../example_template/build.py) processes Jinja2 templates from `template/*.md` with `values.json` variables. This is the seed of the per-project safety file template.
+**Safety file templates** live in `safety-file-templates/`, rendered once at project creation by `safety_file/scaffold.py`. Not to be confused with `app/templates/`, which are Django page templates. The `example_template/` prototype that preceded both was removed; it is in Git history.
 
 ## Project-Specific Conventions
 
@@ -98,11 +98,11 @@ alembic upgrade head
 
 Write "rigour" not "rigor", "judgement" not "judgment", "defence" not "defense". Note that the adjective "rigorous" is correct in British English - only the noun takes "-our". The directive above is what lets this paragraph name the spellings it rejects; do not add them to the dictionary.
 
-**Ruff config is `ruff.toml` at the repo root only** - it sets `src = ["api/src"]` so isort can resolve first-party modules. Do not reintroduce a `[tool.ruff]` section in `api/pyproject.toml`; the duplicate caused silent import reshuffling.
+**Ruff config is `ruff.toml` at the repo root only** - it sets `src = ["."]` so isort resolves `app`, `demo` and `safety_file` as first-party. Do not add a `[tool.ruff]` section to `pyproject.toml`; a duplicate previously caused silent import reshuffling. `specifications/archive/` is excluded because ruff formats Python inside Markdown and rewriting archived specs would falsify them.
 
-**Coverage exclusions**: [pyproject.toml](../api/pyproject.toml) excludes `tests/`, `alembic/`, `models/`, `async_database_utils.py` from coverage.
+**`pyproject.toml` deliberately does not set `DJANGO_SETTINGS_MODULE`.** It is shared with the `safety_file` suite, which has no Django dependency and runs on the host. The container supplies it as an environment variable.
 
-**Email validation**: Uses `email-validator` library with `TEST_ENVIRONMENT = True` flag in tests.
+**Email configuration is `MAILERS`, not `EMAIL_*`.** Django 6.1 deprecated the latter and the two cannot coexist - reading `settings.EMAIL_BACKEND` raises once `MAILERS` is defined. Note that non-SMTP backends reject SMTP options, so `OPTIONS` is only populated for the SMTP backend.
 
 ## Critical Context
 
@@ -110,14 +110,18 @@ Write "rigour" not "rigor", "judgement" not "judgment", "defence" not "defense".
 
 **Do not use JWT** - This is session-based auth. Sessions stored in PostgreSQL, validated by middleware.
 
-**Always use Ormar async methods** - No raw SQL unless absolutely necessary. Models use `await User.objects.get()`, not Django-style synchronous queries.
+**Use the ORM, not raw SQL** unless there is a measured reason.
 
-**Routing guards** - Check the `isVerified` flag. Unverified users can't access the dashboard even if authenticated.
+**Routing guards** - views check `request.user.is_verified`. An unverified user can sign in but is redirected to the verification notice rather than the dashboard.
 
 **Never commit `.env` files** - Use `.env.test` for testing (not tracked). Production uses environment variables.
 
 **Container development** - Code changes hot-reload via Docker volumes. No need to rebuild unless dependencies change.
 
-**Database schema management** - PostgreSQL uses `search_path` for schema isolation (see `api/src/models/_database.py` server settings).
+**Database schema management** - PostgreSQL uses `search_path` for schema isolation, set in `DATABASES["default"]["OPTIONS"]`.
+
+**The container runs as a non-root user** (uid 1000). Files it writes into the bind-mounted source tree, `makemigrations` output in particular, are therefore editable on the host. Do not revert it to root.
+
+**Static files** - the manifest storage used outside DEBUG requires `collectstatic` to have run, or every `{% static %}` call raises. The Dockerfile does it at build time; DEBUG uses the plain backend so a CSS edit does not need a rebuild.
 
 **GitHub Actions are SHA-pinned** - every `uses:` has a full commit SHA and a `# vX.Y.Z` comment. Confirm the current latest tag from the action's repo before bumping; never pin from memory.

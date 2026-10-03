@@ -12,7 +12,7 @@ plugins:
   - mkdocstrings:
       handlers:
         python:
-          paths: [../api/src]
+          paths: [..]
           options:
             docstring_style: google
             show_source: true
@@ -25,4 +25,4 @@ nav:
   - Technical overview: technical-overview.md
 
   - Code Reference:
-      - Backend API: code/api/index.md
+      - Safety file storage layer: code/safety-file/index.md

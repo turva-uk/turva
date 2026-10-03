@@ -6,35 +6,37 @@
 2. Make the convenience scripts executable, if your checkout has not preserved the mode bits:
    `chmod +x ./s/*`
 3. Copy the environment template and edit as needed:
-   `cp api/.env.example api/.env`
+   `cp app/.env.example app/.env`
 4. Start the dockerised development environment:
    `./s/up`
 
 The application is served through Caddy at <http://localhost>. The API is also directly available at <http://localhost:8000>, where it serves its OpenAPI UI in development only.
 
-There is no separate frontend server. The API renders the HTML interface from Jinja2 templates, progressively enhanced with HTMX, so Uvicorn's reloader picks up both Python and template changes.
+There is no separate frontend server and no frontend build. Django renders the pages from templates in `app/templates/`, progressively enhanced with HTMX, and the development server reloads on both Python and template changes.
 
 ## Services
 
 | Service    | Purpose                                                    | Port        |
 | ---------- | ---------------------------------------------------------- | ----------- |
-| `api`      | FastAPI: HTML interface, JSON API, Git operations          | 8000        |
+| `web`      | Django: pages, forms, and Git operations on safety files   | 8000        |
 | `postgres` | Index and operational state (users, sessions, permissions) | 5433 → 5432 |
 | `caddy`    | Reverse proxy, passes the whole URL space to the API       | 80, 443     |
 
 ## Tests
 
 ```bash
-./s/test                          # whole suite
-./s/test /app/src/tests/unit      # unit only
-./s/test -k login                 # by name
+./s/test                      # both suites
+./s/test safety_file          # storage layer only, runs on the host
+./s/test -k login             # container suite, filtered
 ```
 
-The suite requires the stack to be running. Tests load `api/.env.test` with `override=True`, which is necessary because Docker Compose injects `api/.env` into the container; without the override the suite silently runs against development configuration.
+The container suite requires the stack to be running; the `safety_file` suite does not. pytest-django creates and destroys a separate test database named by `DB_TEST_DATABASE`, so your development data is untouched.
+
+Tests run against PostgreSQL, not SQLite. That is deliberate: the previous implementation tested on SQLite, which is how a PostgreSQL connection regression reached `main` with every test passing.
 
 ## Dependencies
 
-Declarations live in `api/requirements.in`, `api/requirements.dev.in` and `docs/requirements.in`. The matching `.txt` files are fully pinned locks and are generated - do not hand-edit them.
+Declarations live in `app/requirements.in`, `app/requirements.dev.in` and `docs/requirements.in`. The matching `.txt` files are fully pinned locks and are generated - do not hand-edit them.
 
 ```bash
 ./s/lock      # regenerate all three locks
@@ -44,12 +46,12 @@ Commit the `.in` change and the regenerated `.txt` together, and review the reso
 
 ## Database migrations
 
-From `api/src/`:
-
 ```bash
-alembic revision --autogenerate -m "description"
-alembic upgrade head
+./s/manage makemigrations accounts
+./s/manage migrate
 ```
+
+Migrations are **not** applied automatically on startup. Run `./s/manage migrate` after first starting the stack and after pulling a change that adds one.
 
 PostgreSQL is pinned to an exact minor version in `docker-compose.yml`. A major upgrade needs a dump and restore, not a tag change - `PGDATA` includes the major version while the volume mounts one level above it.
 

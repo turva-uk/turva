@@ -10,9 +10,9 @@ Each Clinical Safety Management File is a Git repository holding a documentation
 
 ## Technological stack
 
-- Server-rendered Jinja2 templates, progressively enhanced with HTMX
-- FastAPI web framework
-- Uvicorn ASGI server
+- Server-rendered Django templates, progressively enhanced with HTMX
+- Django web framework
+- Gunicorn WSGI server
 - Caddy reverse proxy
 - PostgreSQL database, indexing the safety file repositories
 - Git as the system of record for safety evidence

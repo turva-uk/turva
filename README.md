@@ -40,11 +40,12 @@ Requires [Docker Engine](https://docs.docker.com/engine/install/) and Docker Com
 ```bash
 git clone git@github.com:turva-uk/turva.git
 cd turva
-cp api/.env.example api/.env    # then edit as needed
+cp app/.env.example app/.env    # then edit as needed
+./s/manage migrate              # create the database tables
 ./s/up
 ```
 
-The application is served at <http://localhost>. In development the API also serves its OpenAPI UI at <http://localhost:8000>.
+The application is served at <http://localhost> through Caddy, and directly at <http://localhost:8000>.
 
 ## Testing and contributing
 
