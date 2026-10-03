@@ -72,6 +72,22 @@ updates:
       day: "monday"
     cooldown:
       default-days: 7
+    ignore:
+      # Patch bumps of the Python image (3.14.6 -> 3.14.7) are safe and welcome.
+      # Minor and major bumps are not, for two reasons:
+      #
+      #  1. The dependency locks are compiled for a specific interpreter
+      #     (`s/lock` passes --python-version). Changing the image without
+      #     regenerating them installs a resolution nobody tested. That is a code
+      #     change, not a version bump.
+      #  2. Dependabot offers pre-release tags. Its first attempt here proposed
+      #     `python:3.15.0rc2-slim`, which failed CI because `brotli` has no
+      #     cp315 wheel and the slim image has no compiler - so it tried to build
+      #     from source. A release candidate interpreter has no business in a
+      #     clinical safety tool regardless of whether it happens to build.
+      - dependency-name: "python"
+        update-types:
+          ["version-update:semver-minor", "version-update:semver-major"]
     groups:
       docker-minor-and-patch:
         applies-to: version-updates
