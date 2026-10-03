@@ -130,6 +130,7 @@ jobs:
             -e SECRET_KEY='deploy-check-only-aG7xK2mQ9pLvR4nZ8wYtB6cJ3hD5sF1eU0iO7rT2yA' \
             -e SESSION_COOKIE_SECURE=true \
             -e CSRF_COOKIE_SECURE=true \
+            -e SECURE_SSL_REDIRECT=true \
             -e EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend \
             web python manage.py check --deploy --fail-level WARNING
 
