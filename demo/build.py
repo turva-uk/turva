@@ -53,7 +53,7 @@ def build(target: Path, *, force: bool = False) -> SafetyFileRepository:
             )
         shutil.rmtree(target)
 
-    template_dir = REPO_ROOT / "templates" / definition["template"]
+    template_dir = REPO_ROOT / "safety-file-templates" / definition["template"]
     cso = _author(definition, "cso")
 
     repo = SafetyFileRepository.create(

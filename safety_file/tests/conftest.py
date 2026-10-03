@@ -16,7 +16,7 @@ import pytest
 from safety_file import Author, SafetyFileRepository
 from safety_file.models import Assessment, Hazard, Mitigation
 
-TEMPLATE_DIR = Path(__file__).resolve().parents[2] / "templates" / "dcb0160-deployment"
+TEMPLATE_DIR = Path(__file__).resolve().parents[2] / "safety-file-templates" / "dcb0160-deployment"
 
 
 @pytest.fixture

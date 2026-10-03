@@ -67,7 +67,7 @@ class TestCreation:
                 name="x",
                 standard="DCB0160",
                 template_dir=Path(__file__).resolve().parents[2]
-                / "templates"
+                / "safety-file-templates"
                 / "dcb0160-deployment",
                 values=template_values,
                 author=author,
@@ -81,7 +81,7 @@ class TestCreation:
                 name="x",
                 standard="DCB0160",
                 template_dir=Path(__file__).resolve().parents[2]
-                / "templates"
+                / "safety-file-templates"
                 / "dcb0160-deployment",
                 values={},  # nothing supplied
                 author=author,
