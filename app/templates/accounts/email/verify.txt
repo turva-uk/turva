@@ -1,0 +1,17 @@
+Hello {{ user.first_name }},
+
+Please confirm your email address for Turva by opening this link:
+
+{{ verification_url }}
+
+The link is valid for eight hours and can be used once.
+
+Turva keeps clinical safety evidence under version control, and attributes every
+change to the person who made it. Confirming your address is how we establish
+that those attributions are yours.
+
+If you did not create a Turva account, you can ignore this email and no account
+will be confirmed.
+
+--
+Turva

@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block title %}Sign in - Turva{% endblock %}
+
+{% block content %}
+  <div class="form-panel">
+    <h1>Sign in</h1>
+
+    <form method="post" novalidate>
+      {% csrf_token %}
+      {{ form.as_p }}
+      {% if next %}<input type="hidden" name="next" value="{{ next }}" />{% endif %}
+      <div class="form-actions">
+        <button type="submit">Sign in</button>
+        <a href="{% url 'accounts:password_reset' %}">Forgotten your password?</a>
+      </div>
+    </form>
+
+    <p class="form-aside">
+      No account yet? <a href="{% url 'accounts:register' %}">Create one</a>.
+    </p>
+  </div>
+{% endblock %}

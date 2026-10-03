@@ -1,13 +1,23 @@
 line-length = 100
-target-version = "py312"
+target-version = "py314"
 
-# The application lives in api/src, so that is the import root. Without this,
-# isort cannot see that `config`, `models`, `app` and friends are first-party
-# and shuffles them into the third-party block. This previously worked by
-# accident: api/pyproject.toml carried a duplicate [tool.ruff] section whose
-# location made `src` resolve to api/src. That duplicate has been removed in
-# favour of this single source of truth.
-src = ["api/src"]
+# The repository root is the import root: `app` (the Django project) and
+# `safety_file` (the storage library) are sibling top-level packages, and
+# manage.py sits beside them. Without this, isort shuffles them into the
+# third-party block.
+src = ["."]
+
+exclude = [
+  ".venv",
+  ".turva-data",
+  # Generated documentation output.
+  "docs/site",
+  "docs/.cache",
+  "staticfiles",
+  # A historical record. Ruff formats Python code blocks inside Markdown, and
+  # rewriting archived specifications would falsify what they said at the time.
+  "specifications/archive",
+]
 
 [lint]
 select = [
@@ -24,19 +34,9 @@ ignore = [
 ]
 
 [lint.isort]
-known-first-party = [
-  "app",
-  "async_database_utils",
-  "authentication",
-  "common",
-  "config",
-  "endpoints",
-  "models",
-]
+known-first-party = ["app", "demo", "safety_file"]
 
 [lint.per-file-ignores]
-# conftest.py must set TESTING and load .env.test *before* importing the app,
-# because Config is evaluated at module import time - importing `app` any earlier
-# binds development configuration and every integration test 404s. The late
-# imports are deliberate, so E402 is suppressed here rather than worked around.
-"api/src/tests/conftest.py" = ["E402"]
+# Django migrations are generated, and reformatting them creates a diff against
+# what Django would write next time.
+"app/*/migrations/*.py" = ["E501", "I001"]

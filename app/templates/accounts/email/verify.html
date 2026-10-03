@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en-GB">
+  <body style="font-family: system-ui, sans-serif; line-height: 1.5; color: #1a1a2e">
+    <p>Hello {{ user.first_name }},</p>
+
+    <p>
+      Please
+      <a href="{{ verification_url }}">confirm your email address for Turva</a>,
+      or copy this link into your browser:
+    </p>
+
+    <p><a href="{{ verification_url }}">{{ verification_url }}</a></p>
+
+    <p>The link is valid for eight hours and can be used once.</p>
+
+    <p>
+      Turva keeps clinical safety evidence under version control, and attributes
+      every change to the person who made it. Confirming your address is how we
+      establish that those attributions are yours.
+    </p>
+
+    <p>
+      If you did not create a Turva account, you can ignore this email and no
+      account will be confirmed.
+    </p>
+
+    <p>&mdash; Turva</p>
+  </body>
+</html>

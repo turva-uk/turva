@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}Turva - clinical safety evidence{% endblock %}
+
+{% block content %}
+  <h1>Clinical safety evidence, under version control</h1>
+
+  <p class="lede">
+    Turva manages hazards, risk assessments, mitigations and safety cases for
+    healthcare IT systems, with an audit trail that can withstand regulatory
+    scrutiny.
+  </p>
+
+  <p>
+    Each Clinical Safety Management File is a Git repository, so every change is
+    attributed, timestamped and permanent. You never need to touch Git: Turva
+    does that for you.
+  </p>
+
+  <p class="form-actions">
+    <a class="button" href="{% url 'accounts:register' %}">Create an account</a>
+    <a class="button button-secondary" href="{% url 'accounts:login' %}">Sign in</a>
+  </p>
+
+  <p class="form-aside">
+    Turva supports the DCB0129 and DCB0160 clinical risk management processes. It
+    does not make clinical decisions, does not process patient data, and does not
+    replace a Clinical Safety Officer.
+  </p>
+{% endblock %}

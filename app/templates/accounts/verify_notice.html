@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block title %}Confirm your email address - Turva{% endblock %}
+
+{% block content %}
+  <div class="form-panel">
+    <h1>Confirm your email address</h1>
+
+    <p>
+      We have sent a confirmation link to <strong>{{ user.email }}</strong>.
+      Open it to confirm the address.
+    </p>
+
+    <p>
+      The link is valid for eight hours. If it has expired, request another
+      below.
+    </p>
+
+    <form method="post" action="{% url 'accounts:verify_resend' %}">
+      {% csrf_token %}
+      <div class="form-actions">
+        <button type="submit">Send another confirmation email</button>
+      </div>
+    </form>
+
+    <p class="form-aside">
+      Confirmation exists so that a safety decision can be traced to someone who
+      demonstrably controls the address it is attributed to.
+    </p>
+  </div>
+{% endblock %}

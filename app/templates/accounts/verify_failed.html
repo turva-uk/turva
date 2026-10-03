@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block title %}Confirmation link not valid - Turva{% endblock %}
+
+{% block content %}
+  <div class="form-panel">
+    <h1>That confirmation link is not valid</h1>
+
+    <p>
+      The link may have expired, or it may already have been used. Confirmation
+      links last eight hours and work once.
+    </p>
+
+    {% if user.is_authenticated and user.pk == verified_user.pk %}
+      <form method="post" action="{% url 'accounts:verify_resend' %}">
+        {% csrf_token %}
+        <div class="form-actions">
+          <button type="submit">Send a new confirmation email</button>
+        </div>
+      </form>
+    {% else %}
+      <p class="form-actions">
+        <a class="button" href="{% url 'accounts:login' %}">Sign in to request a new link</a>
+      </p>
+    {% endif %}
+  </div>
+{% endblock %}

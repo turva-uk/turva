@@ -1,0 +1,36 @@
+# Tooling configuration for the repository.
+#
+# Ruff is configured separately in ruff.toml, which is the single source of
+# truth for lint and format. Do not add a [tool.ruff] section here.
+
+[tool.pytest.ini_options]
+# DJANGO_SETTINGS_MODULE is deliberately NOT set here. This file is shared with
+# the `safety_file` suite, which has no Django dependency by design (ADR 0001)
+# and runs on the host where pytest-django is not installed - it would warn
+# "Unknown config option" on every run. The application container sets
+# DJANGO_SETTINGS_MODULE as an environment variable instead, which pytest-django
+# reads.
+#
+# Both suites live under the repository root: `safety_file` needs no database,
+# `app` does. pytest-django only creates a database for tests that ask for one.
+testpaths = ["safety_file", "app"]
+python_files = ["test_*.py"]
+# `--import-mode=importlib` avoids needing __init__.py gymnastics for test
+# packages that share module names across directories.
+addopts = "--import-mode=importlib"
+
+[tool.coverage.run]
+branch = true
+source = ["app", "safety_file"]
+omit = [
+  "*/migrations/*",
+  "*/tests/*",
+  "*/config/wsgi.py",
+  "manage.py",
+]
+
+[tool.coverage.report]
+exclude_also = [
+  "if TYPE_CHECKING:",
+  "raise NotImplementedError",
+]

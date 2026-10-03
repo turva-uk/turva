@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block title %}Create an account - Turva{% endblock %}
+
+{% block content %}
+  <div class="form-panel">
+    <h1>Create an account</h1>
+
+    <p>
+      We will send a confirmation email to the address you give. You will need to
+      confirm it before you can create or edit a safety file.
+    </p>
+
+    <form method="post" novalidate>
+      {% csrf_token %}
+      {{ form.as_p }}
+      <div class="form-actions">
+        <button type="submit">Create account</button>
+      </div>
+    </form>
+
+    <p class="form-aside">
+      Already have an account? <a href="{% url 'accounts:login' %}">Sign in</a>.
+    </p>
+  </div>
+{% endblock %}

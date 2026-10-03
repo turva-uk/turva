@@ -1,0 +1,54 @@
+{% load static %}<!doctype html>
+<html lang="en-GB">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{% block title %}Turva{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'css/turva.css' %}" />
+    <link rel="icon" href="{% static 'favicon.svg' %}" type="image/svg+xml" />
+    <script src="{% static 'vendor/htmx-2.0.11.min.js' %}" defer></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to main content</a>
+
+    <header class="site-header">
+      <a class="site-title" href="{% url 'home' %}">Turva</a>
+      {% if user.is_authenticated %}
+        <nav aria-label="Account">
+          <span class="site-user">{{ user.get_full_name|default:user.email }}</span>
+          <form method="post" action="{% url 'accounts:logout' %}" class="inline-form">
+            {% csrf_token %}
+            <button type="submit" class="button-link">Sign out</button>
+          </form>
+        </nav>
+      {% endif %}
+    </header>
+
+    {% if user.is_authenticated and not user.is_verified %}
+      <p class="banner banner-warning" role="status">
+        Your email address is not yet confirmed.
+        <a href="{% url 'accounts:verify_notice' %}">Confirm your email address</a>
+        to create and edit safety files.
+      </p>
+    {% endif %}
+
+    {% if messages %}
+      {# role="status" rather than "alert": these are the result of an action the
+         user just took, so they do not need to interrupt a screen reader. #}
+      <ul class="messages" role="status">
+        {% for message in messages %}
+          <li class="message message-{{ message.tags|default:'info' }}">{{ message }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+
+    <main id="main">{% block content %}{% endblock %}</main>
+
+    <footer class="site-footer">
+      <p>
+        Turva manages clinical safety evidence. It does not make clinical
+        decisions and does not replace a Clinical Safety Officer.
+      </p>
+    </footer>
+  </body>
+</html>

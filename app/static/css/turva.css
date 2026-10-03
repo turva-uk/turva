@@ -1,0 +1,324 @@
+/* Turva interface styles.
+ *
+ * Hand-written rather than a framework. The interface is a small number of
+ * domain-specific screens - hazard forms, risk tables, a safety file index -
+ * and a utility framework would add a build step and a vocabulary without
+ * answering any of those design problems.
+ *
+ * Colour choices are checked for WCAG 2.2 AA contrast against their
+ * backgrounds. Risk levels in particular must never rely on colour alone,
+ * because the information is safety-relevant and some readers cannot
+ * distinguish the hues: every risk indicator also carries its number and label.
+ */
+
+:root {
+  --ink: #1a1a2e;
+  --ink-muted: #4a4a63;
+  --paper: #fdfdfc;
+  --paper-sunk: #f2f1ef;
+  --rule: #d6d4d0;
+
+  /* Turva's brand purple and yellow, darkened where needed so that text on
+     them clears 4.5:1. */
+  --brand: #4a2d7a;
+  --brand-ink: #ffffff;
+  --accent: #f2c200;
+
+  --danger: #a01b2b;
+  --danger-bg: #fdf0f1;
+  --warning: #7a4e00;
+  --warning-bg: #fdf6e3;
+  --success: #1c6136;
+  --success-bg: #eef7f1;
+  --info: #1b4f72;
+  --info-bg: #eef4f9;
+
+  --measure: 38rem;
+  --radius: 4px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  /* Never disable zoom or fix the root font size: users set a base size for a
+     reason, and overriding it is an accessibility regression. */
+  color-scheme: light;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family:
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+/* ----------------------------------------------------------- landmarks */
+
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  background: var(--brand);
+  color: var(--brand-ink);
+  padding: 0.5rem 1rem;
+  z-index: 10;
+}
+
+.skip-link:focus {
+  left: 0;
+}
+
+.site-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1.5rem;
+  background: var(--brand);
+  color: var(--brand-ink);
+}
+
+.site-title {
+  color: var(--brand-ink);
+  font-weight: 700;
+  font-size: 1.25rem;
+  letter-spacing: 0.02em;
+  text-decoration: none;
+}
+
+.site-title:hover,
+.site-title:focus {
+  text-decoration: underline;
+}
+
+.site-header nav {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.site-user {
+  font-size: 0.9375rem;
+}
+
+.site-footer {
+  margin-top: 3rem;
+  padding: 1.5rem;
+  border-top: 1px solid var(--rule);
+  color: var(--ink-muted);
+  font-size: 0.875rem;
+}
+
+main {
+  padding: 1.5rem;
+}
+
+/* ------------------------------------------------------------- typography */
+
+h1,
+h2,
+h3 {
+  line-height: 1.25;
+  margin: 0 0 0.5rem;
+}
+
+h1 {
+  font-size: 1.75rem;
+}
+
+h2 {
+  font-size: 1.25rem;
+  margin-top: 2rem;
+}
+
+p,
+ul,
+ol {
+  max-width: var(--measure);
+}
+
+a {
+  color: var(--brand);
+}
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  /* A visible focus ring of at least 2px, offset so it is not swallowed by the
+     control's own border. WCAG 2.2 adds focus-appearance requirements. */
+  outline: 3px solid var(--brand);
+  outline-offset: 2px;
+}
+
+.lede {
+  font-size: 1.125rem;
+  color: var(--ink-muted);
+}
+
+/* ------------------------------------------------------- banners, messages */
+
+.banner,
+.message {
+  max-width: none;
+  margin: 0;
+  padding: 0.75rem 1.5rem;
+  border-left: 4px solid currentcolor;
+  font-size: 0.9375rem;
+}
+
+.banner-warning {
+  background: var(--warning-bg);
+  color: var(--warning);
+}
+
+.messages {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.message-success {
+  background: var(--success-bg);
+  color: var(--success);
+}
+
+.message-error {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+
+.message-warning {
+  background: var(--warning-bg);
+  color: var(--warning);
+}
+
+.message-info,
+.message-debug {
+  background: var(--info-bg);
+  color: var(--info);
+}
+
+/* ------------------------------------------------------------------ forms */
+
+.form-panel {
+  max-width: var(--measure);
+}
+
+form p {
+  margin: 0 0 1rem;
+}
+
+label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+input[type="text"],
+input[type="email"],
+input[type="password"],
+select,
+textarea {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid var(--ink-muted);
+  border-radius: var(--radius);
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+}
+
+.helptext {
+  display: block;
+  margin-top: 0.25rem;
+  color: var(--ink-muted);
+  font-size: 0.875rem;
+}
+
+ul.errorlist {
+  margin: 0 0 0.5rem;
+  padding: 0.5rem 0.75rem;
+  list-style: none;
+  background: var(--danger-bg);
+  border-left: 4px solid var(--danger);
+  color: var(--danger);
+  font-size: 0.9375rem;
+}
+
+button,
+.button {
+  display: inline-block;
+  padding: 0.5rem 1.25rem;
+  border: 1px solid var(--brand);
+  border-radius: var(--radius);
+  background: var(--brand);
+  color: var(--brand-ink);
+  font: inherit;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  /* 44px minimum target height, per WCAG 2.2 target size guidance. */
+  min-height: 2.75rem;
+}
+
+button:hover,
+.button:hover {
+  background: #3a2360;
+}
+
+.button-secondary {
+  background: transparent;
+  color: var(--brand);
+}
+
+.button-secondary:hover {
+  background: var(--paper-sunk);
+}
+
+.button-link {
+  min-height: auto;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--brand-ink);
+  font-weight: 400;
+  text-decoration: underline;
+}
+
+.button-link:hover {
+  background: none;
+}
+
+.inline-form {
+  display: inline;
+}
+
+.form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  margin-top: 1.5rem;
+}
+
+.form-aside {
+  max-width: var(--measure);
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--rule);
+  font-size: 0.9375rem;
+}
