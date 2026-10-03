@@ -50,7 +50,7 @@ Runs the test suites. There are two, because they need different environments:
 | Suite          | Environment                                                                  |
 | -------------- | ---------------------------------------------------------------------------- |
 | `safety_file/` | pure Python, no database or container. Runs on the host in about two seconds |
-| `api/src/`     | needs PostgreSQL and the application container                               |
+| `app/`         | needs PostgreSQL and the application container                               |
 
 ```bash
 ./s/test                       # both suites
@@ -67,7 +67,18 @@ Runs every check CI enforces: `pre-commit run --all-files`, then the Zizmor GitH
 
 ### `./s/lock`
 
-Regenerates the pinned dependency locks from the `.in` declarations, for both `api/` and `docs/`. Run after editing any `requirements*.in`, and commit the `.in` and `.txt` changes together.
+Regenerates the pinned dependency locks from the `.in` declarations, for both `app/` and `docs/`. Run after editing any `requirements*.in`, and commit the `.in` and `.txt` changes together.
+
+### `./s/manage`
+
+Runs a Django management command in the application container. Works whether or not the stack is already running.
+
+```bash
+./s/manage migrate
+./s/manage makemigrations accounts
+./s/manage createsuperuser
+./s/manage shell
+```
 
 ### `./s/psql`
 

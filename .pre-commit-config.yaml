@@ -25,8 +25,8 @@ repos:
   - repo: https://github.com/rbubley/mirrors-prettier
     rev: v3.9.9
     hooks:
-      # Jinja2 templates are deliberately excluded - Prettier mangles `{% %}` and
-      # `{{ }}` syntax. Do not add `html` to types_or.
+      # HTML is deliberately excluded - Prettier mangles Django and Jinja2
+      # `{% %}` and `{{ }}` syntax. Do not add `html` to types_or.
       - id: prettier
         types_or: [markdown, json, yaml, css]
         args: [--write]
@@ -40,8 +40,9 @@ repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.16.10
     hooks:
+      # No `files:` filter: ruff.toml owns the include/exclude rules, so the
+      # hook and a bare `ruff check .` agree. The previous `^api/` filter meant
+      # demo/, safety_file/ and manage.py were never linted by pre-commit.
       - id: ruff-check
         args: [--fix]
-        files: ^api/
       - id: ruff-format
-        files: ^api/

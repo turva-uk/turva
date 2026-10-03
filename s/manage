@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# Run a Django management command inside the application container.
+#
+#   ./s/manage migrate
+#   ./s/manage makemigrations accounts
+#   ./s/manage createsuperuser
+#   ./s/manage shell
+#   ./s/manage collectstatic --noinput
+#
+# Works whether or not the stack is running: `exec` into the running container
+# when there is one, otherwise a one-off container, so that `migrate` on a cold
+# machine does not need a separate start first.
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+
+if [ "$#" -eq 0 ]; then
+	set -- help
+fi
+
+if docker compose ps --status running --services 2>/dev/null | grep -qx web; then
+	exec docker compose exec web python manage.py "$@"
+fi
+
+echo "web is not running; using a one-off container." >&2
+exec docker compose run --rm web python manage.py "$@"

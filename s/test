@@ -5,7 +5,7 @@
 #
 #   safety_file/  pure Python. No database, no web framework, no container.
 #                 Needs only git. Runs on the host in about two seconds.
-#   api/src/      needs PostgreSQL and the application container.
+#   app/          needs PostgreSQL and the application container.
 #
 # Routing:
 #
@@ -21,8 +21,8 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 # Single place to change when the application service is renamed.
-SERVICE=api
-CONTAINER_TESTS=/app/src
+SERVICE=web
+CONTAINER_TESTS=app
 
 if [ -x .venv/bin/python ]; then
 	PYTHON=.venv/bin/python
@@ -34,7 +34,7 @@ if [ "$#" -eq 0 ]; then
 	echo "==> safety_file (host)"
 	"$PYTHON" -m pytest safety_file -q
 	echo
-	echo "==> api (container)"
+	echo "==> app (container)"
 	exec docker compose exec -T "$SERVICE" pytest "$CONTAINER_TESTS"
 fi
 

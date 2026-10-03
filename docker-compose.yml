@@ -1,35 +1,32 @@
 services:
-  api:
-    container_name: "turva-api"
+  web:
+    container_name: "turva-web"
     build:
-      context: ./api
-      dockerfile: Dockerfile
+      # Context is the repository root: the image needs both the Django project
+      # and the safety_file library as sibling packages.
+      context: .
+      dockerfile: app/Dockerfile
     volumes:
-      - ./api:/app
+      - ./app:/srv/app
+      - ./safety_file:/srv/safety_file
+      - ./safety-file-templates:/srv/safety-file-templates
+      - ./demo:/srv/demo
+      - ./manage.py:/srv/manage.py
+      - ./pyproject.toml:/srv/pyproject.toml
+      # Safety file repositories. A named volume rather than a bind mount, so
+      # the container owns the file ownership and git does not trip over host
+      # uid mismatches. In deployment this is a backed-up volume on the VPS.
+      - safety_files:/srv/.turva-data/safety-files
     ports:
       - "8000:8000"
     env_file:
-      - api/.env
-    environment:
-      - PYTHONPATH=/app
-      - DEBUG=true
-    # Uvicorn connects to the database during startup and exits if it cannot,
-    # so it must not start before PostgreSQL accepts connections. Without this
-    # the stack came up correctly only by timing luck.
+      - app/.env
+    # Overridden for development: the autoreloader picks up Python and template
+    # changes. Gunicorn (the image default) is what runs in deployment.
+    command: python manage.py runserver 0.0.0.0:8000
     depends_on:
       postgres:
         condition: service_healthy
-    command: uvicorn app:app --host 0.0.0.0 --port 8000 --reload
-
-  # docs:
-  #   build:
-  #     context: .
-  #     dockerfile: docs/Dockerfile
-  #   volumes:
-  #     - ./docs:/docs
-  #   ports:
-  #     - "8001:8001"
-  #   command: zensical serve -a 0.0.0.0:8001
 
   caddy:
     container_name: "turva-caddy"
@@ -42,8 +39,7 @@ services:
       - caddy_data:/data
       - caddy_config:/config
     depends_on:
-      - api
-      # - docs
+      - web
 
   postgres:
     container_name: "turva-postgres"
@@ -72,3 +68,4 @@ volumes:
   caddy_data:
   caddy_config:
   postgres_data:
+  safety_files:

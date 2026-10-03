@@ -3,15 +3,14 @@
 }
 
 localhost {
-	# The API serves both the HTML interface and the JSON API, so Caddy passes
-	# the whole URL space through unchanged and lets FastAPI own the routing.
-	# Previously `/api/*` was proxied with `strip_prefix /api` while the app
-	# mounted its router *at* `/api/`, which cancelled out incorrectly.
-	reverse_proxy api:8000
-
-	#    # Documentation
-	#    handle /docs/* {
-	#        uri strip_prefix /docs
-	#        reverse_proxy docs:8001
-	#    }
+	# Django serves the whole URL space: HTML pages, static files via WhiteNoise,
+	# and any JSON endpoints. Caddy passes everything through and lets Django own
+	# its routing.
+	#
+	# X-Forwarded-Proto is set so Django knows the original request was HTTPS;
+	# without it, SECURE_PROXY_SSL_HEADER has nothing to read and Django builds
+	# http:// URLs and rejects cross-origin POSTs it should accept.
+	reverse_proxy web:8000 {
+		header_up X-Forwarded-Proto {scheme}
+	}
 }
