@@ -14,7 +14,7 @@ cffi==2.1.1
     # via argon2-cffi-bindings
 coverage==7.16.2
     # via pytest-cov
-django==6.1.1
+django==6.1.2
     # via
     #   -r app/requirements.in
     #   django-htmx
@@ -22,7 +22,7 @@ django-htmx==1.29.0
     # via -r app/requirements.in
 gunicorn==26.2.0
     # via -r app/requirements.in
-iniconfig==2.3.0
+iniconfig==2.3.1
     # via pytest
 jinja2==3.1.6
     # via -r app/../safety_file/requirements.in
@@ -38,7 +38,7 @@ psycopg==3.3.6
     # via -r app/requirements.in
 psycopg-binary==3.3.6
     # via psycopg
-pycparser==3.0
+pycparser==3.11
     # via cffi
 pygments==2.21.0
     # via pytest

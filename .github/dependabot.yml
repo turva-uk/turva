@@ -1,8 +1,16 @@
 # Dependency update policy. See https://github.com/pacharanero/house-style/blob/main/ci.md
 #
 # Cooldown gives a release time to be noticed, yanked, or superseded before it
-# lands here. Cooldown does not apply to security updates, so urgent security
-# fixes still arrive immediately.
+# lands here.
+#
+# IMPORTANT: cooldown is bypassed for security updates only if Dependabot
+# *security updates* are enabled on the repository, which is a repository
+# setting and not something this file controls. That setting was off until
+# 2026-10-09, so the 7-day cooldown applied to security releases too - Django
+# 6.1.2, a four-CVE security release, sat unraised for three days and was found
+# by hand. Check it is still on:
+#
+#   gh api repos/turva-uk/turva --jq '.security_and_analysis.dependabot_security_updates.status'
 #
 # `default-days: 7` is set deliberately. Three sources disagree on the floor:
 # house style suggests at least 1, Dependabot now applies 3 when unconfigured,
