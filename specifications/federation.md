@@ -1,5 +1,7 @@
 # Federation: Sharing Clinical Safety Knowledge
 
+> **Scope**: Federation is **deferred, not in phase one**. See [phase-one-scope.md](phase-one-scope.md). This document describes where the platform is going, and exists now because it is the main argument for choosing Git as the system of record - decisions taken during phase one should not foreclose it.
+
 ## The Problem with Isolated Safety Cases
 
 Currently, every organization recreates clinical safety work:
@@ -145,6 +147,27 @@ Safety cases restricted to named team members. Justified when:
 - **Inheritance is a starting point**, not a delegation of responsibility
 
 ## Technical Implementation
+
+### Federation is Git, Not a Web API
+
+Read the vocabulary of the workflows above: fork, pull request, diff, merge, lineage, "which upstream version is this fork based on?". Every one of those is an operation Git already implements.
+
+That is not a coincidence. It is the reason [architecture-principles.md](architecture-principles.md) treats Git as the system of record rather than as an implementation detail, and the reason federation does **not** require the API-first design that was withdrawn in [ADR 0002](adr/0002-monolith-over-api-first.md):
+
+| Federation concept                     | Git mechanism                          |
+| -------------------------------------- | -------------------------------------- |
+| Inherit a manufacturer's safety case   | Clone, or fork and clone               |
+| Maintain a link to upstream            | A remote                               |
+| Receive upstream updates               | Fetch, then review before merging      |
+| "Which version is this fork based on?" | The merge base commit                  |
+| Diff since last sync                   | `git diff <base>..<upstream>`          |
+| Contribute a hazard back               | A pull request                         |
+| Lineage and attribution                | The commit history, already attributed |
+| Selective merge                        | Cherry-pick, or a partial merge        |
+
+Building this over JSON endpoints would mean reimplementing distributed version control, badly, on top of a system that already has it. The work that remains is genuinely Turva's: presenting these operations in language a Clinical Safety Officer recognises, so that "review the manufacturer's three new hazards" never requires knowing what a merge base is.
+
+The one part that is not Git is **discovery** - finding a relevant public safety case in the first place. That needs an index across repositories, which is exactly what the database is for.
 
 ### Project Relationships
 

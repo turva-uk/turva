@@ -1,6 +1,8 @@
 # Turva Development Roadmap
 
-This roadmap tracks the implementation status of Turva features based on the [specification](spec.md). Features are organized by domain area and marked with checkboxes to indicate completion status.
+This roadmap tracks the implementation status of Turva features. Items are organised by domain area and marked with checkboxes.
+
+**It is much wider than the funded build.** [phase-one-scope.md](phase-one-scope.md) is the authoritative list of what ships by Christmas; everything else here is direction. See also [core-specification.md](core-specification.md) for the domain model and [architecture-principles.md](architecture-principles.md) for the design constraints.
 
 ## Foundation & Infrastructure
 
@@ -195,12 +197,20 @@ The React/Mantine/Vite frontend was removed to avoid building every screen twice
 
 ### Export & Interoperability
 
+Export is the integration story. The repository itself is the most interoperable
+format available - it is a `git clone` away and is plain Markdown - so the work
+here is about the formats people ask for on top of that.
+
 - [ ] Export hazard log (CSV/Excel)
-- [ ] Export safety case (PDF)
-- [ ] Export safety case (Markdown)
+- [ ] Export safety case (PDF) - phase one
+- [ ] Export safety case (Markdown) - already true: the repository _is_ Markdown
 - [ ] Import hazard log
-- [ ] API for external integrations
 - [ ] Webhook support
+- [ ] HTTP API for external integrations. **Deliberately deferred**, not merely
+      unscheduled: API-first was withdrawn as a principle in
+      [ADR 0002](adr/0002-monolith-over-api-first.md). Build it when a named
+      consumer is funded, over `safety_file`, versioned from its first release -
+      and revisit the ADR rather than adding one endpoint at a time
 
 ## Safety File Storage
 
@@ -360,7 +370,10 @@ Each Clinical Safety Management File is a Git repository on disk holding a Zensi
 
 - [x] Specification document
 - [x] README
-- [ ] API documentation (OpenAPI/Swagger)
+- [x] Architecture decision records ([adr/](adr/))
+- [x] Generated reference documentation for the storage layer
+- [ ] API documentation (OpenAPI/Swagger) - nothing to document while there is
+      no API; see [ADR 0002](adr/0002-monolith-over-api-first.md)
 - [ ] User guide
 - [ ] Administrator guide
 - [ ] Developer guide
@@ -374,7 +387,7 @@ Each Clinical Safety Management File is a Git repository on disk holding a Zensi
 
 - [x] Docker Compose setup
 - [x] Development environment
-- [x] Pin Python dependencies with a resolved lock (`api/requirements*.txt`, regenerate with `s/lock`)
+- [x] Pin Python dependencies with a resolved lock (`app/requirements*.txt`, `docs/requirements.txt`, regenerate with `s/lock`)
 - [x] Pin every GitHub Action to a commit SHA
 - [ ] Production deployment configuration
 - [ ] Pin version numbers for all Docker images (PostgreSQL, Python, Caddy) before production
@@ -435,7 +448,7 @@ Each Clinical Safety Management File is a Git repository on disk holding a Zensi
 - [ ] Custom safety artefact types
 - [ ] Custom workflow definitions
 - [ ] Custom report templates
-- [ ] API for third-party integrations
+- [ ] HTTP API for third-party integrations (see Export & Interoperability above)
 
 ### Internationalization
 
@@ -452,7 +465,7 @@ Each Clinical Safety Management File is a Git repository on disk holding a Zensi
 
 ---
 
-**Last Updated:** 3 October 2026
+**Last Updated:** 9 October 2026
 **Current Phase:** Funded phase one - see [Phase One Scope](phase-one-scope.md)
 **Next Milestone:** Project creation through the web interface, then the Zensical/WeasyPrint PDF
 

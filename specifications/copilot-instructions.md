@@ -27,6 +27,14 @@ See **[Architecture Principles](architecture-principles.md)** for design philoso
 
 This is not a conventional database-backed CRUD application. If you are about to add a `hazards` table as the authoritative home for hazard text, stop and re-read `architecture-principles.md`.
 
+### The second thing
+
+**It is a monolith, deliberately.** One Django process renders the HTML, enforces the rules and runs Git. There is no separate frontend and no general-purpose HTTP API - API-first was withdrawn as a principle in [ADR 0002](adr/0002-monolith-over-api-first.md).
+
+So: do not add a serialisation layer, a JSON representation of a safety artefact, or a versioned endpoint. HTMX views return HTML fragments, not JSON. `/healthz/` is the one JSON response and it is a monitoring probe, not a contract.
+
+If a genuine second consumer appears, the answer is an HTTP layer over `safety_file`, and that is a decision to record in an ADR rather than to start one endpoint at a time.
+
 ### Current Stack
 
 - **Interface**: Django templates, progressively enhanced with HTMX (vendored, not from a CDN). There is no separate frontend build
@@ -48,11 +56,13 @@ The Django project is `app/`, with `manage.py` at the repository root so that `a
 **Start development**:
 
 ```bash
-./s/up         # Start all services (builds automatically)
-./s/logs api   # Follow API logs
-./s/restart api  # Restart specific service
-./s/down       # Stop everything
-./s/clean      # Nuclear option - removes volumes
+./s/up          # Start all services. The primary way to run Turva locally
+./s/logs web    # Follow application logs
+./s/restart web # Restart one service
+./s/manage      # Django management commands: migrate, makemigrations, createsuperuser
+./s/psql        # A psql session against the development database
+./s/down        # Stop everything
+./s/clean       # Removes this project's containers and volumes. Destroys the local database
 ```
 
 **Testing**: the whole suite runs in the container.
@@ -66,7 +76,7 @@ The Django project is `app/`, with `manage.py` at the repository root so that `a
 - pytest-django creates and destroys the test database, named by `DB_TEST_DATABASE`. There is no `.env.test`: the previous implementation needed one and the `override=True` trap that came with it
 - Tests run against **PostgreSQL**, not SQLite. The old suite used SQLite, which is how an asyncpg incompatibility reached `main` with all 42 tests green
 
-**Dependencies**: declarations live in `api/requirements.in` and `api/requirements.dev.in`; the `.txt` files are generated locks.
+**Dependencies**: declarations live in `app/requirements.in`, `app/requirements.dev.in` and `docs/requirements.in`; the `.txt` files are generated locks.
 
 ```bash
 ./s/lock       # Regenerate locks after editing a .in file. Commit both together

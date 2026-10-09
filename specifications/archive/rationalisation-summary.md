@@ -1,4 +1,8 @@
-# Specification Rationalization Summary
+# Specification Rationalisation Summary (December 2025)
+
+> **Archived.** This is a record of a past editing exercise, not a specification. It is kept for one reason: it is the document that recorded removing the Git-repository-per-safety-file architecture along with the "VMPT stack" framing it was described under, and that removal went unnoticed for months. The architecture was restored to [architecture-principles.md](../architecture-principles.md) in October 2026.
+>
+> Read it as a cautionary tale about rewriting a specification without recording what was dropped, which is why decisions now go in [adr/](../adr/). Its claims about the current stack and file layout are long out of date.
 
 ## What Changed
 
