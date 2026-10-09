@@ -2,6 +2,11 @@
 
 Turva's architecture is guided by principles, not specific technologies. Implementation details live in the codebase.
 
+Two decisions are load-bearing enough that the rest of this document assumes them:
+
+- **Git is the system of record.** Each Clinical Safety Management File is its own Git repository. The database is a rebuildable index over those repositories. See [Git Is the System of Record](#git-is-the-system-of-record).
+- **The application is a monolith.** One Django process renders the pages, enforces the rules, and performs the Git operations. There is no separate frontend and no general-purpose HTTP API. See [ADR 0002](adr/0002-monolith-over-api-first.md).
+
 ## Core Principles
 
 ### 1. Safety as a First-Class Concern
@@ -15,26 +20,34 @@ Safety information must be:
 
 **Why**: Clinical safety requires audit trails that can withstand regulatory scrutiny and legal challenge.
 
-### 2. Separation of Concerns
+### 2. Separation of Responsibility, Not of Deployment
 
-Interface, business rules, and storage are logically separated:
+Interface, business rules, and storage are separate responsibilities inside one application:
 
-- The interface layer focuses on user experience, and is server-rendered from the application that enforces the rules
-- The application enforces business rules and data integrity, and owns all Git operations
-- Git repositories hold the safety evidence
-- The database indexes those repositories and holds operational state such as users, sessions, and permissions
+- **Templates** render; they do not reach past the view to a repository or run a query of their own
+- **Views** handle HTTP, authorisation and form validation; they do not implement safety rules
+- **The storage layer** (`safety_file/`) owns the safety rules and is the only code that reads or writes a safety file. No framework imports
+- **Git repositories** hold the safety evidence
+- **The database** indexes those repositories and holds operational state: users, sessions, permissions
 
-**Why**: Enables independent evolution and testing of each concern. Note that separation here is about responsibility, not deployment: phase one deliberately serves the interface from the same process as the API, because maintaining a second codebase for the same screens was costing more than it returned.
+**Why**: These boundaries are about where a rule lives, not about how many processes run. Keeping the safety rules in a library below the view layer means they cannot be bypassed by a handler that forgets to call something, and it is what let the application move from FastAPI to Django without touching them.
 
-### 3. API-First Design
+Deployment is deliberately _not_ separated. One process serves everything. Splitting it would add a boundary for safety rules to leak across and audit records to go missing at, in exchange for scaling we do not need. See [ADR 0002](adr/0002-monolith-over-api-first.md).
 
-All functionality is exposed via API:
+### 3. One Application, Server-Rendered
 
-- Frontend is one client among many (mobile app, CLI, integrations could be others)
-- API is versioned and documented
-- Breaking changes are managed with deprecation periods
+The application renders its own HTML. There is no separate frontend and no general-purpose HTTP API:
 
-**Why**: Supports future clients, third-party integrations, and federation between Turva instances.
+- Pages are Django templates, progressively enhanced with HTMX
+- HTMX endpoints return HTML fragments coupled to the templates that request them, and may change without notice. They are interface, not API
+- `/healthz/` returns JSON for monitoring. Nothing is promised about its shape
+- Integration in phase one is by export: the safety case PDF, and the repository itself, which is a `git clone` away
+
+**Why**: This replaces an "API-First Design" principle that was written when a React single-page application was the only consumer. That frontend is gone, and the principle outlived its beneficiary - it would have required building and versioning a JSON API during a twelve-week funded build, for clients nobody asked for.
+
+The extensibility it was protecting is better protected where it now sits. `safety_file/` is a framework-free library that owns the safety invariants, so if a second client is ever funded, an HTTP layer goes over the same core - and because the core holds the rules, that layer cannot weaken them. An API is a surface a handler can forget to validate; a library that owns its invariants is not.
+
+Federation does not need a JSON API either: its vocabulary is fork, pull request, diff and lineage, which is Git. See [ADR 0002](adr/0002-monolith-over-api-first.md) for the full reasoning and the review trigger.
 
 ### 4. Auditability by Default
 
@@ -47,15 +60,17 @@ Every state-changing operation creates an audit record:
 
 **Why**: Regulatory compliance, accountability, and trust require complete traceability.
 
-### 5. Type Safety Where Possible
+### 5. Validate at the Boundary, Reject Rather Than Coerce
 
-Use type systems to catch errors at compile time:
+Python has no compile-time guarantees, so correctness comes from refusing bad data at each boundary it crosses:
 
-- Database schema enforces constraints
-- API contracts define request/response shapes
-- Frontend type-checks data from API
+- The database schema enforces constraints: uniqueness, nullability, foreign keys
+- Forms validate what arrives from a browser
+- The storage layer validates every safety artefact on read _and_ on write, and will not write an invalid one
+- Configuration rejects malformed environment values rather than defaulting. A `DEBUG=yes` that quietly evaluates to False is a production incident
+- Invalid values are rejected, never coerced. A severity of `"4"` is a data-quality problem upstream, not a 4, and accepting it hides whatever produced a string
 
-**Why**: Reduces runtime errors, improves developer confidence, and makes refactoring safer.
+**Why**: In a safety record, silently repaired data is worse than rejected data: it looks like evidence and is not. The earlier version of this principle described a TypeScript frontend type-checking an API response, which no longer describes anything that exists.
 
 ### 6. Fail Secure
 
@@ -73,7 +88,7 @@ Information is public unless there's a specific reason for privacy:
 
 - Projects default to public visibility
 - Audit logs are accessible to project members
-- API responses include metadata (who, when, version)
+- Every safety artefact shows who last changed it and when, because that is read from the commit history rather than assembled separately
 
 **Why**: Openness builds trust and enables federation of safety knowledge.
 
@@ -133,7 +148,7 @@ Security happens at multiple layers:
 
 1. Network (TLS, firewall)
 2. Authentication (session validation)
-3. Authorization (role-based access control)
+3. Authorisation (role-based access control)
 4. Input validation (reject malformed data)
 5. Output encoding (prevent injection attacks)
 
@@ -153,16 +168,16 @@ Users and services have minimum permissions required:
 
 Security features are on by default, not opt-in:
 
-- HTTPS required (HTTP redirects to HTTPS)
-- Sessions have reasonable expiration (not infinite)
-- Passwords require minimum strength
-- CORS restricted to known origins
+- HTTPS required (HTTP redirects to HTTPS), with HSTS outside development
+- Sessions have reasonable expiration (not infinite), and session and CSRF cookies are secure and HTTP-only
+- Passwords require minimum strength, and are hashed with Argon2
+- CSRF protection on every state-changing request. A same-origin monolith needs this rather than the CORS policy a separate frontend required
 
 **Why**: Users shouldn't have to opt into security.
 
 ## Performance Principles
 
-### Optimize for Common Case
+### Optimise for the Common Case
 
 Common workflows should be fast:
 
@@ -174,17 +189,17 @@ Rare operations (exporting full audit trail) can be slower.
 
 **Why**: User experience depends on perceived performance of frequent actions.
 
-### Async Where Beneficial
+### Long Operations Need an Answer, Not Necessarily a Queue
 
-Long-running operations run asynchronously:
+Some operations are slow: building a Zensical site and rendering it to PDF, importing a large hazard log, a bulk update.
 
-- Generating PDF safety case report
-- Importing large hazard logs
-- Bulk updates
+Phase one has **no task queue**, and runs these in the request. That is a known constraint, not an oversight:
 
-User receives immediate feedback, operation completes in background.
+- A PDF is generated from a specific commit, so the result is cacheable against that commit SHA and the second request is free
+- A safety file with tens of hazards builds in well under a request timeout, and the funded deployment is twelve practices
+- Adding Celery or similar means a broker, a worker container, and a second failure mode, for a problem not yet measured
 
-**Why**: Keeps UI responsive, prevents timeouts.
+**Why**: The honest position is that this will need revisiting before it needs scaling, and the trigger is measurement - a PDF build that approaches the proxy timeout - not anticipation. Recorded so that the first slow PDF is recognised as the expected signal rather than a surprise.
 
 ### Cache Wisely
 
@@ -202,13 +217,13 @@ Don't cache hazard data (changes frequently and must be current).
 
 ### Test at Multiple Levels
 
-- **Unit tests**: Individual functions and components
-- **Integration tests**: API endpoints with database
-- **End-to-end tests**: Complete user workflows
+- **Storage layer**: the safety rules, tested with no database, no framework and no container. Fast, and it fails first when the architectural core breaks
+- **Application**: views, forms and authentication through Django's test client, against **PostgreSQL**
+- **End to end**: complete user workflows, and building the demo safety file through the production storage layer
 
-Each level catches different types of errors.
+**Why**: Each level catches different errors, and the first level is fast enough to run constantly because it was kept free of infrastructure.
 
-**Why**: Comprehensive coverage requires testing at all levels.
+Test against the engine that is deployed. The suite once ran on SQLite while production used PostgreSQL, and a PostgreSQL connection regression reached the main branch with every test passing. A suite that exercises a different database than the one shipped is a false signal.
 
 ### Test Safety-Critical Paths
 
@@ -232,11 +247,14 @@ Tests should run quickly:
 
 Infrastructure defined in version-controlled files:
 
-- Container definitions (Dockerfile)
-- Service orchestration (docker-compose.yml, Kubernetes manifests)
-- Database schema (migrations)
+- Container definitions (Dockerfile), with base images pinned to exact patch versions
+- Service orchestration (docker-compose.yml)
+- Database schema (Django migrations)
+- Dependencies declared in `.in` files and resolved into committed locks
 
 **Why**: Reproducible deployments, reviewable changes, rollback capability.
+
+The funded deployment is a single VPS running Docker Compose: Caddy, the Django application, PostgreSQL, and a volume holding the safety file repositories. Kubernetes is not in phase one, and the orchestration files should not pretend otherwise.
 
 ### Separate Config from Code
 
@@ -248,27 +266,31 @@ Configuration lives in environment variables, not hardcoded:
 
 **Why**: Same code runs in dev, staging, and production with different config.
 
-### Zero-Downtime Deployments
+### Deploy Without Losing Evidence
 
-New versions deploy without interrupting service:
+A single VPS running one application process cannot deploy with zero downtime, and phase one does not try to. What it must not do is lose or corrupt safety evidence while restarting:
 
-- Rolling updates (bring up new instance before shutting down old)
-- Database migrations backward-compatible
-- API versioning supports old and new clients simultaneously
+- Migrations are backward-compatible where practical, so a rollback does not strand the database
+- The safety file repositories live on a volume that outlives the container, and are what the backup strategy must cover. The database is rebuildable from them; they are not rebuildable from anything
+- A restart interrupts in-flight requests. Because every write is committed as it is made rather than batched at the end of a session, an interrupted request loses at most the edit in progress, not the file
 
-**Why**: Healthcare systems require high availability.
+**Why**: The earlier version of this principle promised rolling updates, backward-compatible API versioning and high availability. None of that is true of a single VPS, and claiming it would mislead whoever plans the first deployment. Availability is a legitimate later goal; evidence durability is a requirement now.
+
+A brief outage during a deploy is acceptable for a tool used by Clinical Safety Officers during office hours. It would not be acceptable for a system used at the point of care, which Turva explicitly is not.
 
 ## Scalability Principles
 
-### Stateless API Servers
+### Stateless Application Processes
 
-API servers store no local state (sessions in database, not memory):
+The application stores no state in process memory:
 
-- Any server can handle any request
-- Servers can be added or removed dynamically
-- Load balancing is straightforward
+- Sessions live in PostgreSQL, not in memory, so a restart does not sign everyone out
+- Any worker can serve any request
+- Generated artefacts are cached against a commit SHA, not held per process
 
-**Why**: Enables horizontal scaling.
+**Why**: It keeps restarts cheap today, which is the immediate benefit, and leaves horizontal scaling available later without a rewrite.
+
+Note the limit: the safety file repositories are on local disk, so adding a second machine is not simply a matter of another process. It would need shared storage, or routing each safety file to a consistent host. That is a real constraint of choosing Git as the system of record, and it is worth knowing before anyone promises a cluster.
 
 ### Storage Scaling
 
@@ -288,13 +310,13 @@ Filesystem and Git operations are the more likely bottleneck, since every projec
 
 ### Scale When Needed, Not Prematurely
 
-Start simple (single database, single API server):
+Start simple - single database, single application process, no task queue, no cache server:
 
-- Add complexity only when performance requires it
-- Measure before optimizing
-- Optimize the bottleneck, not random code
+- Add complexity only when measurement requires it
+- Measure before optimising
+- Optimise the bottleneck, not whatever is most interesting
 
-**Why**: Premature optimization adds complexity without benefit.
+**Why**: Premature optimisation adds complexity without benefit, and every added component is another thing that can fail while holding safety evidence. The funded deployment serves twelve GP practices; a design for that is the right design to build.
 
 ## Extensibility Principles
 
@@ -319,20 +341,36 @@ LLM integration supports multiple providers:
 - Local models (Llama, Mistral)
 - Custom fine-tuned models
 
-**Why**: Avoid vendor lock-in, support on-premises deployment, optimize cost/performance.
+**Why**: Avoid vendor lock-in, support on-premises deployment, optimise cost/performance.
 
-### API Extensibility
+### The Storage Layer Is a Library, and Stays One
 
-API versioning allows backward-compatible evolution:
+`safety_file/` imports no web framework and is the only code that reads or writes a safety file. That is the project's main extension point:
 
-- New endpoints added without breaking old clients
-- New fields added to responses (old clients ignore them)
-- Deprecated endpoints given sunset timeline
+- A new interface - an HTTP API, a CLI, a scheduled job - is built over it rather than beside it
+- Because the library owns the safety invariants, a new interface cannot weaken them
+- It is testable with no database, no server and no container, which is why that suite runs in two seconds
 
-**Why**: Deployed clients can't all update simultaneously.
+**Why**: This replaces an "API Extensibility" principle about versioned endpoints and deprecation timelines, which had no referent once API-first was withdrawn ([ADR 0002](adr/0002-monolith-over-api-first.md)).
+
+It has already earned its keep: the library survived the move from FastAPI to Django untouched. The constraint is worth defending for that reason alone - the next time the framework question is reopened, this is the part that does not need reconsidering.
+
+### Schema Versioning for Safety Files
+
+A safety file records the schema version it was written with, in `.turva/manifest.yaml`. The on-disk layout is the long-lived contract: repositories outlive application versions, and a file created today must still be readable years later.
+
+- A file with a newer schema version than the code understands is **refused**, not opened. Opening it could silently drop fields it does not recognise
+- Changing the layout means bumping the version and providing an upgrade path, not editing the specification
+
+**Why**: Regulatory evidence has to be readable for as long as it must be retained, which is longer than any particular release of Turva will live. See [safety-file-layout.md](safety-file-layout.md).
 
 ---
 
-These principles guide implementation choices. Specific technologies (FastAPI, HTMX, PostgreSQL, Zensical) are current implementations, not architectural requirements, and code should follow these principles regardless of tech stack.
+These principles guide implementation choices. Specific technologies - Django, HTMX, PostgreSQL, Zensical, Caddy - are current implementations, not architectural requirements. The framework has already changed once ([ADR 0001](adr/0001-use-django-for-phase-one.md)), which is the argument for writing principles rather than a stack.
 
-Git is the exception. "Git is the system of record" is an architectural requirement, not an implementation detail - it is where the regulatory-grade audit trail comes from, and substituting a database for it would change what the product is.
+Two things are not implementation details:
+
+- **Git is the system of record.** It is where the regulatory-grade audit trail comes from, and substituting a database for it would change what the product is.
+- **The safety rules live in a library below the interface.** Not which library, or which framework calls it - but that the invariants sit beneath whatever serves HTTP, so no handler can skip them.
+
+Everything else here is revisable on evidence. Where a principle is revised, record the reversal rather than deleting it: the Git architecture was lost once because a document was rewritten without one. ADRs live in [adr/](adr/).
