@@ -8,6 +8,8 @@ tests passing.
 
 from __future__ import annotations
 
+import re
+
 import pytest
 from django.core import mail
 from django.urls import reverse
@@ -75,6 +77,43 @@ class TestRegistration:
         assert "confirm" in message.subject.lower()
         user = User.objects.get(email=REGISTRATION["email"])
         assert user.verification_token in message.body
+
+    @pytest.mark.parametrize(
+        ("field", "token"),
+        [
+            ("email", "username"),
+            ("first_name", "given-name"),
+            ("last_name", "family-name"),
+            ("organisation", "organization"),
+            ("job_role", "organization-title"),
+            ("password1", "new-password"),
+            ("password2", "new-password"),
+        ],
+    )
+    def test_fields_carry_autofill_tokens(self, client, field, token):
+        """Browsers and password managers need these, and WCAG 2.2 SC 1.3.5 asks for them.
+
+        Chrome logs a console warning without them, which is how this was found.
+        """
+        html = client.get(reverse("accounts:register")).content.decode()
+        tag = re.search(rf'<input[^>]*name="{field}"[^>]*>', html)
+        assert tag, f"no input rendered for {field}"
+        assert f'autocomplete="{token}"' in tag.group(0), (
+            f'{field} should carry autocomplete="{token}", got: {tag.group(0)}'
+        )
+
+    def test_login_and_registration_agree_on_the_identifier_token(self, client):
+        """Otherwise a credential saved at registration is not offered at sign-in."""
+
+        def token_for(url: str, field: str) -> str | None:
+            html = client.get(url).content.decode()
+            tag = re.search(rf'<input[^>]*name="{field}"[^>]*>', html).group(0)
+            found = re.search(r'autocomplete="([^"]+)"', tag)
+            return found.group(1) if found else None
+
+        assert token_for(reverse("accounts:register"), "email") == token_for(
+            reverse("accounts:login"), "username"
+        )
 
     def test_verification_link_survives_the_wire_encoding(self, client):
         """The link must still work after MIME encoding, not just in `message.body`.

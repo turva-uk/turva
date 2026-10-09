@@ -8,6 +8,17 @@ from django.utils.translation import gettext_lazy as _
 
 from app.accounts.models import User
 
+#: Autofill tokens from the HTML specification, so browsers and password
+#: managers can fill and store these fields correctly. Also WCAG 2.2 SC 1.3.5,
+#: Identify Input Purpose.
+#:
+#: `username` rather than `email` for the address: it is the account identifier,
+#: and it is the token password managers use to associate a saved credential.
+#: The login form uses the same token so that a credential saved at registration
+#: is offered at sign-in. Django already applies `new-password` and
+#: `current-password` to the password fields itself.
+AUTOCOMPLETE_EMAIL = "username"
+
 
 class RegistrationForm(BaseUserCreationForm):
     """Create an account.
@@ -27,6 +38,15 @@ class RegistrationForm(BaseUserCreationForm):
         help_texts = {
             "organisation": _("Optional. The organisation you are doing this work for."),
             "job_role": _("Optional. For example: Clinical Safety Officer, developer."),
+        }
+        widgets = {
+            "email": forms.EmailInput(
+                attrs={"autocomplete": AUTOCOMPLETE_EMAIL, "autofocus": True}
+            ),
+            "first_name": forms.TextInput(attrs={"autocomplete": "given-name"}),
+            "last_name": forms.TextInput(attrs={"autocomplete": "family-name"}),
+            "organisation": forms.TextInput(attrs={"autocomplete": "organization"}),
+            "job_role": forms.TextInput(attrs={"autocomplete": "organization-title"}),
         }
 
     def clean_email(self) -> str:
@@ -55,7 +75,7 @@ class LoginForm(AuthenticationForm):
 
     username = forms.EmailField(
         label=_("Email address"),
-        widget=forms.EmailInput(attrs={"autofocus": True, "autocomplete": "email"}),
+        widget=forms.EmailInput(attrs={"autofocus": True, "autocomplete": AUTOCOMPLETE_EMAIL}),
     )
 
     error_messages = {
