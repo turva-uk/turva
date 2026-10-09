@@ -1,24 +1,39 @@
 #!/usr/bin/env bash
 # Regenerate the fully pinned requirements locks from the `.in` declarations.
 #
-# Run this after editing api/requirements.in or api/requirements.dev.in, then
-# commit the resulting .txt files alongside the .in change. Python version is
-# matched to api/Dockerfile.
+# Run after editing any `requirements*.in`, then commit the `.in` change and the
+# regenerated `.txt` together and review the resolved dependency diff.
+#
+#   ./s/lock              re-resolve, honouring existing pins where possible
+#   ./s/lock --upgrade    take the newest version of everything allowed
+#
+# The Python version must match the Dockerfiles. A lock resolved for one
+# interpreter and installed on another is an untested dependency set, which is
+# also why Dependabot is restricted to patch bumps of the python image.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-# Python versions are matched to the respective Dockerfiles.
-uv pip compile api/requirements.in \
-	--python-version 3.14 \
-	--output-file api/requirements.txt "$@"
+PYTHON_VERSION=3.14
 
-uv pip compile api/requirements.dev.in \
-	--python-version 3.14 \
-	--output-file api/requirements.dev.txt "$@"
+# Captured before the loop so the function can forward the script's arguments
+# rather than its own.
+EXTRA_ARGS=("$@")
 
-uv pip compile docs/requirements.in \
-	--python-version 3.14 \
-	--output-file docs/requirements.txt "$@"
+compile() {
+	local stem="$1"
+	echo "==> ${stem}.txt"
+	uv pip compile "${stem}.in" \
+		--python-version "$PYTHON_VERSION" \
+		--output-file "${stem}.txt" \
+		--quiet \
+		"${EXTRA_ARGS[@]}"
+}
 
-echo "Locks regenerated. Review the dependency diff before committing."
+compile app/requirements
+compile app/requirements.dev
+compile docs/requirements
+
+echo
+echo "Locks regenerated for Python ${PYTHON_VERSION}."
+echo "Review the dependency diff before committing:  git diff -- '*requirements*.txt'"

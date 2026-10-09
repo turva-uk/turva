@@ -89,6 +89,38 @@ jobs:
       - name: Run tests
         run: python -m pytest safety_file -q
 
+  locks:
+    name: Dependency locks are reproducible
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+
+      # Regenerate the locks from the `.in` declarations and fail if the result
+      # differs from what is committed. Catches three things:
+      #
+      #  - a lock hand-edited rather than generated
+      #  - a `.in` change committed without regenerating
+      #  - `s/lock` itself being broken, which is how it went unnoticed that the
+      #    script still pointed at the pre-Django `api/` paths. Nothing in CI ran
+      #    it, so nothing caught it.
+      - name: Regenerate locks
+        run: ./s/lock
+
+      - name: Fail if the committed locks differ
+        run: |
+          if ! git diff --quiet -- '*requirements*.txt'; then
+            echo "::error::Committed dependency locks do not match the .in declarations."
+            echo "Run ./s/lock and commit the result."
+            git diff -- '*requirements*.txt'
+            exit 1
+          fi
+          echo "Locks match their declarations."
+
   tests:
     name: Django tests
     runs-on: ubuntu-latest
