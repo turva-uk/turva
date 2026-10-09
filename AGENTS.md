@@ -65,7 +65,10 @@ This file is the entry point for AI coding agents. Read it before changing anyth
 ./s/test      # 184 tests: 110 in safety_file, 74 in app
 ```
 
-Do not commit red. CI runs the same checks.
+Do not commit red. CI runs the same checks, on pull requests **and on pushes to
+`main`** - until 2026-10-09 the quality workflow explicitly skipped `main`, which
+is the branch this project commits to, so the gate existed everywhere except
+where it was needed.
 
 ## Git Workflow
 

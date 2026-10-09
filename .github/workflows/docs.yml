@@ -1,5 +1,9 @@
-name: Main branch workflows
+name: Docs
 
+# Builds the Zensical documentation site and deploys it to GitHub Pages.
+# Named for what it does: the quality gate lives in ci.yml and now runs on main
+# too, so "main branch workflows" was both a misleading name and an incomplete
+# description of what happens on main.
 on:
   push:
     branches: [main]

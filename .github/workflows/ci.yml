@@ -1,16 +1,25 @@
-name: Non-main branch workflows
+name: CI
 
+# Runs on pull requests and on pushes to main.
+#
+# It previously ran on *every branch except* main, which meant the branch this
+# project actually commits to - AGENTS.md permits direct commits to main while
+# there is one contributor - was the one branch with no tests, no lint and no
+# lock check. Only the docs build and the Actions audit ran there.
+#
+# `pull_request` plus `push: main` covers both the proposed and the merged state
+# without running twice for a branch that has a PR open.
 on:
   push:
-    branches-ignore: [main, master]
+    branches: [main]
   pull_request:
-    branches-ignore: [main, master]
+  workflow_dispatch: {}
 
 permissions:
   contents: read
 
 concurrency:
-  group: nonmain-${{ github.ref }}
+  group: ci-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
