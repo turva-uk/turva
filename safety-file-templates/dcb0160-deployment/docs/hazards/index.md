@@ -1,7 +1,5 @@
-<!-- GENERATED FILE - do not edit by hand.
-     Produced from the individual hazard files in this directory.
-     Regenerate with Turva, or `python -m turva_safety_file.render <repo>`. -->
+<!-- Placeholder. Turva replaces this with the generated hazard log when the
+     safety file is created, and regenerates it whenever a hazard changes.
+     Editing it here has no effect. -->
 
 # Hazard log
-
-No hazards have been recorded yet.

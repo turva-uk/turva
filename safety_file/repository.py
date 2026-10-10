@@ -129,12 +129,24 @@ class SafetyFileRepository:
                 created=created,
             ),
         )
+        # Scaffolding has written the manifest and git.init has run, so the
+        # directory is already a valid safety file and can be opened normally.
+        repository = cls(root)
+
+        # Generate the hazard log before the first commit, rather than
+        # committing the template's hand-written placeholder and replacing it
+        # the first time a hazard is saved. One producer for this file means it
+        # cannot drift from what `render_hazard_log` would say, and a brand new
+        # safety file carries the same "an empty hazard log is not evidence of a
+        # safe system" wording as one whose hazards have all been closed.
+        repository._write_hazard_log()
+
         git.commit_all(
             root,
             f"feat: create safety file for {name}",
             author=author,
         )
-        return cls(root)
+        return repository
 
     # ---------------------------------------------------------------- manifest
 
