@@ -213,10 +213,10 @@ class TestRegistration:
         assert PASSWORD not in user.password
         assert user.password.startswith("argon2$")
 
-    def test_signed_in_user_is_sent_to_the_dashboard(self, client, verified_user):
+    def test_signed_in_user_is_sent_to_the_safety_file_list(self, client, verified_user):
         client.force_login(verified_user)
         response = client.get(reverse("accounts:register"))
-        assert response["Location"] == reverse("accounts:dashboard")
+        assert response["Location"] == reverse("safetyfiles:list")
 
 
 class TestLogin:
@@ -269,7 +269,7 @@ class TestLogin:
             reverse("accounts:login"),
             {"username": unverified_user.email, "password": PASSWORD},
         )
-        response = client.get(reverse("accounts:dashboard"))
+        response = client.get(reverse("safetyfiles:list"))
         assert response["Location"] == reverse("accounts:verify_notice")
 
     def test_logout_requires_post(self, client, verified_user):
@@ -324,11 +324,11 @@ class TestEmailVerification:
         unverified_user.refresh_from_db()
         assert unverified_user.is_verified is True
 
-    def test_signed_in_user_lands_on_the_dashboard(self, client, unverified_user):
+    def test_signed_in_user_lands_on_the_safety_file_list(self, client, unverified_user):
         client.force_login(unverified_user)
         token = unverified_user.issue_verification_token()
         response = client.get(self._verify_url(unverified_user, token))
-        assert response["Location"] == reverse("accounts:dashboard")
+        assert response["Location"] == reverse("safetyfiles:list")
 
 
 class TestResendVerification:
@@ -430,19 +430,19 @@ class TestPasswordReset:
 
 
 class TestAccessControl:
-    def test_dashboard_requires_sign_in(self, client):
-        response = client.get(reverse("accounts:dashboard"))
+    def test_safety_file_list_requires_sign_in(self, client):
+        response = client.get(reverse("safetyfiles:list"))
         assert response.status_code == 302
         assert reverse("accounts:login") in response["Location"]
 
-    def test_dashboard_requires_a_verified_address(self, client, unverified_user):
+    def test_safety_file_list_requires_a_verified_address(self, client, unverified_user):
         client.force_login(unverified_user)
-        response = client.get(reverse("accounts:dashboard"))
+        response = client.get(reverse("safetyfiles:list"))
         assert response["Location"] == reverse("accounts:verify_notice")
 
-    def test_verified_user_reaches_the_dashboard(self, client, verified_user):
+    def test_verified_user_reaches_the_safety_file_list(self, client, verified_user):
         client.force_login(verified_user)
-        assert client.get(reverse("accounts:dashboard")).status_code == 200
+        assert client.get(reverse("safetyfiles:list")).status_code == 200
 
     def test_unverified_user_sees_a_banner_prompting_confirmation(self, client, unverified_user):
         client.force_login(unverified_user)

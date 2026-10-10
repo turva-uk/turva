@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block title %}Create a safety file - Turva{% endblock %}
+
+{% block content %}
+  <div class="form-panel">
+    <h1>Create a safety file</h1>
+
+    <p>
+      This creates a Git repository holding a clinical risk management plan, an
+      empty hazard log and a safety case report, and records you as the author of
+      its first commit.
+    </p>
+
+    <p>
+      Four questions now. Everything else is marked <em>to be completed</em> in
+      the documents and can be filled in afterwards.
+    </p>
+
+    <form method="post" novalidate>
+      {% csrf_token %}
+      {{ form.as_p }}
+      <div class="form-actions">
+        <button type="submit">Create safety file</button>
+        <a href="{% url 'safetyfiles:list' %}">Cancel</a>
+      </div>
+    </form>
+  </div>
+{% endblock %}

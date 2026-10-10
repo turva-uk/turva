@@ -9,7 +9,7 @@ from django.shortcuts import redirect, render
 
 def home(request: HttpRequest) -> HttpResponse:
     if request.user.is_authenticated:
-        return redirect("accounts:dashboard")
+        return redirect("safetyfiles:list")
     return render(request, "home.html")
 
 

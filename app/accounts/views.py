@@ -23,7 +23,7 @@ from app.accounts.models import AlreadyVerified, TokenCooldownActive, User
 def register(request: HttpRequest) -> HttpResponse:
     """Create an account and send the verification email."""
     if request.user.is_authenticated:
-        return redirect("accounts:dashboard")
+        return redirect("safetyfiles:list")
 
     if request.method == "POST":
         form = RegistrationForm(request.POST)
@@ -71,7 +71,7 @@ def verify(request: HttpRequest, user_id: str, token: str) -> HttpResponse:
 def verify_notice(request: HttpRequest) -> HttpResponse:
     """Explain that a verification email has been sent."""
     if request.user.is_verified:
-        return redirect("accounts:dashboard")
+        return redirect("safetyfiles:list")
     return render(request, "accounts/verify_notice.html")
 
 
@@ -81,19 +81,6 @@ def verify_resend(request: HttpRequest) -> HttpResponse:
     """Send another verification email to the signed-in user."""
     _try_send_verification(request, request.user)
     return redirect("accounts:verify_notice")
-
-
-@login_required
-def dashboard(request: HttpRequest) -> HttpResponse:
-    """Placeholder landing page.
-
-    Replaced by the safety file list once project creation exists. It is here so
-    that `LOGIN_REDIRECT_URL` points somewhere real and the authentication flow
-    can be tested end to end.
-    """
-    if not request.user.is_verified:
-        return redirect("accounts:verify_notice")
-    return render(request, "accounts/dashboard.html")
 
 
 # ----------------------------------------------------------------- internals
@@ -135,5 +122,5 @@ def _post_verification_target(request: HttpRequest) -> str:
     different browser is sent to log in.
     """
     if request.user.is_authenticated:
-        return reverse("accounts:dashboard")
+        return reverse("safetyfiles:list")
     return reverse("accounts:login")

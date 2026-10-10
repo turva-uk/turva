@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}Your safety files - Turva{% endblock %}
+
+{% block content %}
+  <div class="page-header">
+    <h1>Your safety files</h1>
+    <a class="button" href="{% url 'safetyfiles:create' %}">Create a safety file</a>
+  </div>
+
+  {% if safety_files %}
+    <table class="data-table">
+      <caption class="visually-hidden">
+        Safety files you own or that have been published
+      </caption>
+      <thead>
+        <tr>
+          <th scope="col">System</th>
+          <th scope="col">Standard</th>
+          <th scope="col">Organisation</th>
+          <th scope="col">Visibility</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for file in safety_files %}
+          <tr>
+            <th scope="row">
+              <a href="{{ file.get_absolute_url }}">{{ file.name }}</a>
+            </th>
+            <td>{{ file.standard }}</td>
+            <td>{{ file.organisation }}</td>
+            <td>{{ file.get_visibility_display }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <div class="empty-state">
+      <p class="lede">You have no safety files yet.</p>
+      <p>
+        A safety file is a Git repository holding the hazards, risk assessments,
+        mitigations and safety case for one system. Turva creates and commits to
+        it for you; you never need to use Git.
+      </p>
+      <p class="form-actions">
+        <a class="button" href="{% url 'safetyfiles:create' %}">Create your first safety file</a>
+      </p>
+    </div>
+  {% endif %}
+{% endblock %}

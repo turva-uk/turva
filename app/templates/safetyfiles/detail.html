@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+
+{% block title %}{{ safety_file.name }} - Turva{% endblock %}
+
+{% block content %}
+  <div class="page-header">
+    <div>
+      <h1>{{ safety_file.name }}</h1>
+      <p class="lede">
+        {{ safety_file.get_standard_display }} &middot; {{ safety_file.organisation }}
+      </p>
+    </div>
+    <a class="button button-secondary" href="{% url 'safetyfiles:list' %}">All safety files</a>
+  </div>
+
+  {% if repository_missing %}
+    <div class="banner banner-danger" role="alert">
+      <h2>The repository for this safety file is not on disk</h2>
+      <p>
+        Turva expected to find it at <code>{{ safety_file.repository_path }}</code>.
+      </p>
+      <p>
+        The repository is the record and the database is only an index, so this
+        is recoverable but needs a person: restore the repository from backup,
+        then run <code>manage.py reindex_safety_files</code>. Do not delete this
+        entry - it is the evidence that the safety file existed.
+      </p>
+    </div>
+  {% else %}
+
+    {% if problems %}
+      <div class="banner banner-danger" role="alert">
+        <h2>This safety file does not validate</h2>
+        <ul>
+          {% for problem in problems %}<li>{{ problem }}</li>{% endfor %}
+        </ul>
+      </div>
+    {% endif %}
+
+    {% if blocking %}
+      <div class="banner banner-danger" role="alert">
+        <h2>Residual risk requires elimination before go-live</h2>
+        <p>
+          {% for hazard in blocking %}{{ hazard.id }}{% if not forloop.last %}, {% endif %}{% endfor %}
+          {{ blocking|length|pluralize:"has,have" }} a derived residual risk level
+          of 4 or 5 and {{ blocking|length|pluralize:"is,are" }} still open.
+        </p>
+      </div>
+    {% endif %}
+
+    <h2>Hazards</h2>
+
+    {% if hazards %}
+      <table class="data-table">
+        <caption class="visually-hidden">Hazards recorded in this safety file</caption>
+        <thead>
+          <tr>
+            <th scope="col">ID</th>
+            <th scope="col">Hazard</th>
+            <th scope="col">Status</th>
+            <th scope="col">Initial risk</th>
+            <th scope="col">Residual risk</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for hazard in hazards %}
+            <tr>
+              <th scope="row">{{ hazard.id }}</th>
+              <td>{{ hazard.title }}</td>
+              <td>{{ hazard.status }}</td>
+              {% comment %}
+                Risk level always appears with its number, never colour alone:
+                the information is safety-relevant and some readers cannot
+                distinguish the hues.
+              {% endcomment %}
+              <td>
+                S{{ hazard.initial.severity }} L{{ hazard.initial.likelihood }}
+                &rarr; <strong>{{ hazard.initial.risk_level }}</strong>
+              </td>
+              <td>
+                S{{ hazard.residual.severity }} L{{ hazard.residual.likelihood }}
+                &rarr; <strong>{{ hazard.residual.risk_level }}</strong>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <p class="form-aside">
+        Risk level is derived from severity and likelihood. It is never entered,
+        and cannot be set to disagree with the assessment it summarises.
+      </p>
+    {% else %}
+      <div class="empty-state">
+        <p>No hazards recorded yet.</p>
+        <p>
+          An empty hazard log is not evidence of a safe system. It means hazard
+          identification has not been done. Adding hazards through Turva is the
+          next piece of work; until then they can be added to the repository
+          directly.
+        </p>
+      </div>
+    {% endif %}
+
+    <h2>Repository</h2>
+
+    <dl class="detail-list">
+      <dt>Mitigations</dt>
+      <dd>{{ mitigations|length }}</dd>
+      <dt>On disk at</dt>
+      <dd><code>{{ safety_file.repository_path }}</code></dd>
+      <dt>Current commit</dt>
+      <dd><code>{{ head_sha|slice:":8" }}</code></dd>
+    </dl>
+
+    <h2>Audit trail</h2>
+
+    <p>
+      Every change is a commit attributed to the person who made it. This is the
+      record a regulator or a court would examine.
+    </p>
+
+    <table class="data-table">
+      <caption class="visually-hidden">The ten most recent changes</caption>
+      <thead>
+        <tr>
+          <th scope="col">Commit</th>
+          <th scope="col">Change</th>
+          <th scope="col">By</th>
+          <th scope="col">When</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for commit in history %}
+          <tr>
+            <th scope="row"><code>{{ commit.short_sha }}</code></th>
+            <td>{{ commit.subject }}</td>
+            <td>{{ commit.author_name }}</td>
+            <td>
+              <time datetime="{{ commit.committed_at|date:'c' }}">
+                {{ commit.committed_at|date:"j M Y, H:i" }}
+              </time>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+{% endblock %}

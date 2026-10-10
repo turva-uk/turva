@@ -33,8 +33,10 @@
     {% endif %}
 
     {% if messages %}
-      {# role="status" rather than "alert": these are the result of an action the
-         user just took, so they do not need to interrupt a screen reader. #}
+      {% comment %}
+        role="status" rather than "alert": these are the result of an action the
+        user just took, so they do not need to interrupt a screen reader.
+      {% endcomment %}
       <ul class="messages" role="status">
         {% for message in messages %}
           <li class="message message-{{ message.tags|default:'info' }}">{{ message }}</li>

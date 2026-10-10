@@ -86,3 +86,49 @@ class TestAdmin:
         )
         client.force_login(admin)
         assert client.get("/admin/").status_code == 200
+
+
+class TestTemplatesDoNotLeakComments:
+    """`{# ... #}` is single-line only in Django.
+
+    A multi-line one renders as visible text on the page. That happened: the
+    note explaining the `role="status"` choice on the messages region appeared
+    above every flash message, because Prettier had wrapped it. Nothing in the
+    suite noticed, because no test read the page as a person would.
+    """
+
+    def test_no_template_source_uses_a_multiline_hash_comment(self):
+        import re
+        from pathlib import Path
+
+        from django.conf import settings
+
+        offenders = []
+        for path in sorted(Path(settings.BASE_DIR, "app", "templates").rglob("*.html")):
+            text = path.read_text(encoding="utf-8")
+            for match in re.finditer(r"\{#", text):
+                end = text.find("#}", match.start())
+                if end == -1 or "\n" in text[match.start() : end]:
+                    line = text[: match.start()].count("\n") + 1
+                    offenders.append(f"{path.name}:{line}")
+
+        assert not offenders, (
+            "multi-line {# #} comments render as visible text; use "
+            f"{{% comment %}} instead: {', '.join(offenders)}"
+        )
+
+    def test_no_rendered_page_contains_template_comment_syntax(self, client, django_user_model):
+        user = django_user_model.objects.create_user(
+            email="reader@riverbank.example.nhs.uk",
+            password="correct-horse-battery-7",
+            first_name="Read",
+            last_name="Er",
+        )
+        user.is_verified = True
+        user.save(update_fields=["is_verified"])
+        client.force_login(user)
+
+        for url in ("/", "/accounts/register/", "/accounts/login/", "/safety-files/"):
+            body = client.get(url).content.decode()
+            assert "{#" not in body and "#}" not in body, f"template comment leaked on {url}"
+            assert "{%" not in body and "%}" not in body, f"unrendered tag on {url}"

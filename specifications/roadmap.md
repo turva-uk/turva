@@ -63,12 +63,15 @@ The React/Mantine/Vite frontend was removed to avoid building every screen twice
 
 ### Projects
 
-- [ ] Create new project
-- [ ] Project listing (My Projects)
-- [ ] Project listing (Community/Public Projects)
-- [ ] Project details page
+- [x] Create new project - scaffolds a Git repository and indexes it
+- [x] Project listing (My Projects)
+- [x] Project details page, reading hazards and history from the repository
+- [ ] Project listing (Community/Public Projects) - the queryset supports it; no page yet
 - [ ] Edit project information
-- [ ] Project visibility settings (public/private)
+- [ ] Project visibility settings (public/private) - modelled, defaults to private, no UI to change it
+- [ ] Browse the safety file's documents in the interface. Today the detail page
+      summarises the repository but there is no way to read the clinical risk
+      management plan without opening the files
 - [ ] Project archival
 - [ ] Project ownership transfer
 - [ ] Project team member management
@@ -85,8 +88,9 @@ The React/Mantine/Vite frontend was removed to avoid building every screen twice
 
 ### Hazards
 
-- [ ] Hazard model with versioning
-- [ ] Create hazard
+- [x] Hazard model with versioning (in the storage layer; no interface yet)
+- [ ] Create hazard through the interface - the next piece of work, and the
+      point at which the generated hazard log's write pattern has to be settled
 - [ ] Edit hazard (with version control)
 - [ ] Hazard log view
 - [ ] Hazard detail view
@@ -227,8 +231,10 @@ Each Clinical Safety Management File is a Git repository on disk holding a Zensi
 - [x] Generated hazard log, regenerated on every save
 - [x] History for a single safety artefact, and retrieval of a past version
 - [ ] Diff view between two versions of an artefact
-- [ ] Database index over repositories, rebuildable from disk
-- [ ] Repository storage layout, quotas and backup strategy
+- [x] Database index over repositories, rebuildable from disk - `manage.py reindex_safety_files`, with a test that deletes every row and recovers the index from the repositories alone
+- [x] Repository storage layout - one directory per safety file, named for the system, bind-mounted so it is browsable on the host
+- [ ] Backup strategy and quotas. The repositories are the only thing that cannot be rebuilt, so this is the one backup that matters
+- [ ] Record the organisation in `.turva/manifest.yaml`. It is currently recovered from the mkdocs copyright line during reindex, which works but means a safety file does not state plainly which organisation it belongs to
 - [ ] Concurrency: two users editing the same safety file at once
 - [ ] Branch management for major changes
 - [ ] Merge conflict resolution
@@ -245,6 +251,9 @@ Each Clinical Safety Management File is a Git repository on disk holding a Zensi
 
 ### Placeholders and Templates
 
+- [ ] A DCB0129 manufacture template. Creating a DCB0129 safety file currently
+      scaffolds from the DCB0160 deployment template, which is a closer start
+      than nothing but is not the right document set
 - [ ] Dynamic placeholder system
 - [ ] Auto-population of common fields
 - [ ] Context-aware suggestions
@@ -465,8 +474,8 @@ Each Clinical Safety Management File is a Git repository on disk holding a Zensi
 
 ---
 
-**Last Updated:** 9 October 2026
+**Last Updated:** 10 October 2026
 **Current Phase:** Funded phase one - see [Phase One Scope](phase-one-scope.md)
-**Next Milestone:** Project creation through the web interface, then the Zensical/WeasyPrint PDF
+**Next Milestone:** Hazard creation and editing, then the Zensical/WeasyPrint PDF
 
 Note on reading this roadmap: it tracks everything Turva might eventually do, and is much wider than the funded build. [Phase One Scope](phase-one-scope.md) is the authoritative list of what ships by Christmas.

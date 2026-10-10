@@ -88,6 +88,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "django_htmx",
     "app.accounts",
+    "app.safetyfiles",
 ]
 
 MIDDLEWARE = [
@@ -164,7 +165,7 @@ SESSION_COOKIE_SECURE = env_bool("SESSION_COOKIE_SECURE", not DEBUG)
 CSRF_COOKIE_SECURE = env_bool("CSRF_COOKIE_SECURE", not DEBUG)
 
 LOGIN_URL = "accounts:login"
-LOGIN_REDIRECT_URL = "accounts:dashboard"
+LOGIN_REDIRECT_URL = "safetyfiles:list"
 LOGOUT_REDIRECT_URL = "accounts:login"
 
 # Argon2 first, so new and rehashed passwords use it.
