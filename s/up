@@ -7,9 +7,15 @@
 #   ./s/up              start everything
 #   ./s/up --build      rebuild images first
 #   ./s/up -d           detached
-#   ./s/up api          just one service and its dependencies
+#   ./s/up web          just one service and its dependencies
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
+
+# The safety file repositories are bind-mounted from here. Create the directory
+# first: Docker creates a missing bind-mount source as root, which the container
+# user (uid 1000) could then not write into, and the failure appears later as a
+# confusing permission error when creating a safety file rather than now.
+mkdir -p .turva-data/safety-files
 
 exec docker compose up "$@"

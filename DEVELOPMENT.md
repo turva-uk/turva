@@ -22,6 +22,39 @@ There is no separate frontend server and no frontend build. Django renders the p
 | `postgres` | Index and operational state (users, sessions, permissions) | 5433 → 5432 |
 | `caddy`    | Reverse proxy, passes the whole URL space to the API       | 80, 443     |
 
+## Where the safety files live
+
+Each Clinical Safety Management File is a Git repository under
+`.turva-data/safety-files/`, one directory per safety file, named for the system.
+The directory is bind-mounted into the container, so the repositories are
+visible on the host and ordinary Git works on them:
+
+```bash
+ls .turva-data/safety-files/
+git -C .turva-data/safety-files/<slug> log --format='%h %an %s'
+git -C .turva-data/safety-files/<slug> show HEAD
+```
+
+That is the point of keeping evidence in Git rather than a database: the audit
+trail is inspectable with tools everyone already has, and does not depend on
+Turva being running.
+
+`.turva-data/` is gitignored - these are generated repositories and must never
+be nested inside this one. `./s/up` creates the directory before starting, so
+Docker cannot create it as root and leave it unwritable by the container user.
+
+**These repositories are the system of record.** The database is an index over
+them and can be rebuilt:
+
+```bash
+./s/manage reindex_safety_files --dry-run
+./s/manage reindex_safety_files --owner you@example.nhs.uk
+```
+
+Nothing else in the stack needs backing up with the same care. Postgres can be
+reconstructed from the repositories; the repositories cannot be reconstructed
+from anything.
+
 ## Tests
 
 ```bash

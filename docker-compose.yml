@@ -13,10 +13,21 @@ services:
       - ./demo:/srv/demo
       - ./manage.py:/srv/manage.py
       - ./pyproject.toml:/srv/pyproject.toml
-      # Safety file repositories. A named volume rather than a bind mount, so
-      # the container owns the file ownership and git does not trip over host
-      # uid mismatches. In deployment this is a backed-up volume on the VPS.
-      - safety_files:/srv/.turva-data/safety-files
+      # Safety file repositories - the system of record.
+      #
+      # A bind mount, not a named volume, so the repositories are visible on the
+      # host: you can `cd .turva-data/safety-files/<slug>` and run `git log` to
+      # see exactly what Turva committed, which is the whole point of keeping
+      # evidence in Git. A named volume hid them inside Docker.
+      #
+      # This works because the container runs as uid 1000, matching the default
+      # host user. `s/up` creates the directory first, so Docker cannot create
+      # it as root and leave it unwritable.
+      #
+      # On the VPS this is a host path on backed-up storage. It is the one
+      # directory that genuinely must survive: the database is rebuildable from
+      # these repositories, and they are rebuildable from nothing.
+      - ./.turva-data/safety-files:/srv/.turva-data/safety-files
     ports:
       - "8000:8000"
     env_file:
@@ -68,4 +79,3 @@ volumes:
   caddy_data:
   caddy_config:
   postgres_data:
-  safety_files:
