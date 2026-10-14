@@ -1,11 +1,32 @@
 #!/usr/bin/env bash
 # Run every check CI enforces, in the order CI runs them.
 #
-# This is the same gate as the `styling` job plus the Zizmor workflow audit.
+# This is the same gate as CI's `styling` job plus the Zizmor workflow audit.
 # Run it before committing.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
+
+ZIZMOR_WORKFLOW=.github/workflows/workflow-security.yml
+
+# The Zizmor version is read from the workflow rather than written here as well.
+#
+# Two reasons. It was duplicated, so the local gate could drift from CI and the
+# drift would be invisible until a new audit rule failed in one place and not
+# the other. And Dependabot cannot help: it updates the `uses:` SHA of
+# `taiki-e/install-action`, but `tool: zizmor@X.Y.Z` is an input to that action,
+# not a dependency manifest, so nothing watches it. One source at least means
+# one thing to update by hand.
+zizmor_version() {
+	local version
+	version=$(grep -oE 'zizmor@[0-9]+\.[0-9]+\.[0-9]+' "$ZIZMOR_WORKFLOW" | head -1 | cut -d@ -f2)
+	if [ -z "$version" ]; then
+		echo "Could not read the pinned Zizmor version from $ZIZMOR_WORKFLOW." >&2
+		echo "Expected a line like:  tool: zizmor@1.30.1" >&2
+		return 1
+	fi
+	printf '%s' "$version"
+}
 
 if [ -x .venv/bin/pre-commit ]; then
 	PRE_COMMIT=.venv/bin/pre-commit
@@ -20,12 +41,23 @@ fi
 echo "==> pre-commit"
 "$PRE_COMMIT" run --all-files --show-diff-on-failure "$@"
 
-echo "==> zizmor (GitHub Actions audit)"
-if command -v zizmor >/dev/null 2>&1; then
+PINNED=$(zizmor_version)
+echo "==> zizmor $PINNED (GitHub Actions audit)"
+
+if command -v uvx >/dev/null 2>&1; then
+	# Preferred: runs exactly the version CI runs, whatever is installed locally.
+	uvx "zizmor@${PINNED}" --strict-collection .
+elif command -v zizmor >/dev/null 2>&1; then
+	# Fall back to an installed zizmor, but say so if it is not the pinned one.
+	# Previously this branch ran whichever version happened to be on PATH and
+	# reported nothing, so a local pass did not mean CI would pass.
+	INSTALLED=$(zizmor --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+	if [ "$INSTALLED" != "$PINNED" ]; then
+		echo "Warning: using zizmor $INSTALLED from PATH, but CI pins $PINNED." >&2
+		echo "Findings may differ. Install uv to run the pinned version." >&2
+	fi
 	zizmor --strict-collection .
-elif command -v uvx >/dev/null 2>&1; then
-	uvx zizmor@1.30.1 --strict-collection .
 else
-	echo "zizmor not found and uvx unavailable; skipping workflow audit." >&2
+	echo "zizmor not found and uvx unavailable; skipping the workflow audit." >&2
 	echo "CI will still run it. Install uv to run it locally." >&2
 fi

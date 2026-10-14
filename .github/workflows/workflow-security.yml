@@ -27,6 +27,19 @@ jobs:
       # or a source build.
       - uses: taiki-e/install-action@f7e5d7c961414b23f5b25b2da9294395d08513ad # v2.87.26
         with:
+          # This version is the single source of truth: `s/lint` reads it from
+          # this file so the local gate cannot drift from CI.
+          #
+          # Dependabot keeps the `uses:` SHA above current, but cannot see this
+          # input - it is an action parameter, not a dependency manifest - so a
+          # new Zizmor release will not be proposed. Check it by hand when
+          # reviewing the Actions bumps:
+          #
+          #   gh api repos/zizmorcore/zizmor/releases/latest --jq .tag_name
+          #
+          # Pinned deliberately rather than tracking latest, so a new audit rule
+          # arrives through a reviewed bump instead of turning main red without
+          # warning.
           tool: zizmor@1.30.1
           fallback: none
 
