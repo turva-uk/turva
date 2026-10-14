@@ -49,6 +49,38 @@ class TestHealthCheck:
         assert response.json()["status"] == "unhealthy"
 
 
+class TestHealthCheckReachability:
+    """The container healthcheck calls /healthz/ over plain HTTP from inside the
+    container. These assert the two properties that makes depend on."""
+
+    def test_healthz_is_exempt_from_the_https_redirect(self, client, settings):
+        """Otherwise the check gets a 301 in production and can never pass.
+
+        Accepting the 301 instead would prove only that Django redirects, not
+        that it can reach the database - which is the whole question.
+        """
+        settings.DEBUG = False
+        settings.SECURE_SSL_REDIRECT = True
+        settings.SECURE_REDIRECT_EXEMPT = [r"^healthz/$"]
+
+        response = client.get(reverse("healthz"), secure=False)
+        assert response.status_code == 200
+
+    def test_everything_else_still_redirects_to_https(self, client, settings):
+        """The exemption must be the health endpoint alone."""
+        settings.DEBUG = False
+        settings.SECURE_SSL_REDIRECT = True
+        settings.SECURE_REDIRECT_EXEMPT = [r"^healthz/$"]
+
+        response = client.get("/", secure=False)
+        assert response.status_code == 301
+        assert response["Location"].startswith("https://")
+
+    def test_healthz_needs_no_authentication(self, client):
+        """It is polled by the container runtime, which has no session."""
+        assert client.get(reverse("healthz")).status_code == 200
+
+
 class TestSecurityHeadersAndCookies:
     def test_csrf_protection_is_active_on_registration(self, client):
         """Posting without the token must fail.

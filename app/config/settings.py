@@ -292,4 +292,15 @@ if not DEBUG:
     # on by default rather than off because the safe failure mode is a
     # redundant redirect, not a page served in clear.
     SECURE_SSL_REDIRECT = env_bool("SECURE_SSL_REDIRECT", True)
+
+    # The container healthcheck calls /healthz/ over plain HTTP from inside the
+    # container, where there is no TLS. Without this exemption it would be
+    # answered with a 301 and the check could never pass in production - and a
+    # check that accepted the 301 would prove only that Django redirects, not
+    # that it can reach the database.
+    #
+    # Safe to exempt: the endpoint returns a status and nothing else, and in
+    # deployment it is only reachable from inside the Docker network because
+    # Caddy fronts the application.
+    SECURE_REDIRECT_EXEMPT = [r"^healthz/$"]
     X_FRAME_OPTIONS = "DENY"

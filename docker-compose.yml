@@ -38,6 +38,26 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    # Without this, `docker compose up --wait` returns as soon as the container
+    # is running, which is before Django has bound the port - so the stack
+    # reports ready and the next request gets a 502 from Caddy.
+    #
+    # /healthz/ touches the database, so a passing check means the application
+    # can actually serve, not merely that a process exists. urllib rather than
+    # curl because the slim image has no curl, and adding one to answer a
+    # healthcheck is a poor trade.
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import sys,urllib.request; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/healthz/', timeout=4).status == 200 else 1)",
+        ]
+      interval: 3s
+      timeout: 5s
+      retries: 20
+      start_period: 5s
 
   caddy:
     container_name: "turva-caddy"
