@@ -23,7 +23,7 @@ repos:
   # a prettier 4 alpha. rbubley/mirrors-prettier is the maintained mirror and
   # tracks stable prettier releases.
   - repo: https://github.com/rbubley/mirrors-prettier
-    rev: v3.9.9
+    rev: v3.9.10
     hooks:
       # HTML is deliberately excluded - Prettier mangles Django and Jinja2
       # `{% %}` and `{{ }}` syntax. Do not add `html` to types_or.
