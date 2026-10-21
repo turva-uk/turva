@@ -143,7 +143,9 @@ class TestProfessionalRegistration:
 
     def test_whitespace_is_trimmed(self, client, user):
         client.force_login(user)
-        client.post(reverse("accounts:profile"), {**REGISTERED, "registration_number": "  7654321 "})
+        client.post(
+            reverse("accounts:profile"), {**REGISTERED, "registration_number": "  7654321 "}
+        )
         user.refresh_from_db()
         assert user.registration_number == "7654321"
 
@@ -308,7 +310,9 @@ class TestRegistrationReachesTheSafetyFile:
 
 
 class TestAdminSupport:
-    def test_staff_can_record_that_a_registration_was_checked(self, client, django_user_model, user):
+    def test_staff_can_record_that_a_registration_was_checked(
+        self, client, django_user_model, user
+    ):
         """The only route to `registration_verified`, since Turva cannot check
         automatically and a user must not set it for themselves."""
         admin = django_user_model.objects.create_superuser(
