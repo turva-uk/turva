@@ -122,13 +122,29 @@ jobs:
 
       - name: Fail if the committed locks differ
         run: |
-          if ! git diff --quiet -- '*requirements*.txt'; then
-            echo "::error::Committed dependency locks do not match the .in declarations."
-            echo "Run ./s/lock and commit the result."
-            git diff -- '*requirements*.txt'
-            exit 1
+          if git diff --quiet -- '*requirements*.txt'; then
+            echo "Locks match their declarations."
+            exit 0
           fi
-          echo "Locks match their declarations."
+
+          echo "::error::Committed dependency locks do not match the .in declarations."
+          echo
+          echo "If this is a Dependabot pip pull request, the failure is expected"
+          echo "and the pull request is not meant to be merged. Dependabot"
+          echo "regenerates the lock with its own resolver, which formats extras"
+          echo "differently from ours - 'mkdocstrings[python]==x' rather than"
+          echo "'mkdocstrings==x'. The resolved versions agree; the file does not."
+          echo
+          echo "Treat such a pull request as a notification that a release exists:"
+          echo
+          echo "    ./s/lock --upgrade     # on main"
+          echo "    # review the diff, commit, then close the pull request"
+          echo
+          echo "Otherwise a .in file was changed without regenerating, or a lock"
+          echo "was hand-edited. Either way: ./s/lock and commit the result."
+          echo
+          git diff -- '*requirements*.txt'
+          exit 1
 
   tests:
     name: Django tests

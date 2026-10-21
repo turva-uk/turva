@@ -42,6 +42,18 @@ updates:
           - "minor"
           - "patch"
 
+  # Note on pip: these pull requests are **notifications, not merges**.
+  #
+  # Dependabot regenerates the lock with its own resolver, which formats extras
+  # differently from ours, so the `locks` CI job will fail on them by design -
+  # the repository keeps one canonical lock format, produced by `s/lock`. When
+  # one of these appears, run `./s/lock --upgrade` on main, review the resolved
+  # diff, commit, and close the pull request.
+  #
+  # The alternative - relaxing the CI check to ignore formatting - was
+  # considered and rejected: it would let the lock oscillate between two tools'
+  # formats, and the check exists precisely because `s/lock` was once broken for
+  # six days without anyone noticing.
   - package-ecosystem: "pip"
     directories:
       - "/app"
