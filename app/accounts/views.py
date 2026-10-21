@@ -16,7 +16,7 @@ from django.urls import reverse
 from django.views.decorators.http import require_http_methods
 
 from app.accounts.emails import send_verification_email
-from app.accounts.forms import RegistrationForm
+from app.accounts.forms import ProfileForm, RegistrationForm
 from app.accounts.models import AlreadyVerified, TokenCooldownActive, User
 
 
@@ -81,6 +81,34 @@ def verify_resend(request: HttpRequest) -> HttpResponse:
     """Send another verification email to the signed-in user."""
     _try_send_verification(request, request.user)
     return redirect("accounts:verify_notice")
+
+
+@login_required
+def profile(request: HttpRequest) -> HttpResponse:
+    """View and edit your own details.
+
+    `login_required` rather than `verified_required`: someone who has not yet
+    confirmed their email still needs to be able to correct the name that will
+    be attributed to their commits, and blocking them here would be a dead end
+    rather than a safeguard.
+    """
+    if request.method == "POST":
+        form = ProfileForm(request.POST, instance=request.user)
+        if form.is_valid():
+            newly_declared = form.cso_newly_declared
+            form.save()
+            messages.success(request, "Your profile has been updated.")
+            if newly_declared:
+                messages.info(
+                    request,
+                    "Recorded that you act as a Clinical Safety Officer. Turva "
+                    "has not verified your registration with your regulator.",
+                )
+            return redirect("accounts:profile")
+    else:
+        form = ProfileForm(instance=request.user)
+
+    return render(request, "accounts/profile.html", {"form": form})
 
 
 # ----------------------------------------------------------------- internals

@@ -88,7 +88,13 @@ def template_values(details: SafetyFileDetails, owner: User) -> dict[str, str]:
         "intended_use": details.intended_use,
         "cso_name": owner.get_full_name() or owner.email,
         "cso_email": owner.email,
-        "cso_registration": TO_BE_COMPLETED,
+        # From the creator's profile when they have recorded one. Turva has not
+        # checked it against the regulator's register, and the generated
+        # documents say so - see the note in the clinical risk management plan
+        # template. A safety file that printed an unverified registration as
+        # though it were confirmed would be making a claim on someone's behalf
+        # that nobody had checked (TH-009 in SAFETY.md).
+        "cso_registration": owner.professional_registration or TO_BE_COMPLETED,
         "clinical_context": TO_BE_COMPLETED,
         "risk_acceptability_criteria": TO_BE_COMPLETED,
         "governance": TO_BE_COMPLETED,

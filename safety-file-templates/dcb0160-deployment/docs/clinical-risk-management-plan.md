@@ -14,6 +14,8 @@ This plan applies to the deployment of **{{ name }}** by {{ organisation }}. It 
 
 The Clinical Safety Officer is accountable for the clinical safety of this deployment and has the authority to halt or delay it.
 
+These details are as supplied by the person named above. They have not been verified against the regulator's public register by the system that produced this document. Anyone relying on this safety case should confirm the registration independently.
+
 ## 3. Hazard identification
 
 Hazards are identified through:

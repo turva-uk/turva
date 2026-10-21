@@ -15,7 +15,9 @@
       <a class="site-title" href="{% url 'home' %}">Turva</a>
       {% if user.is_authenticated %}
         <nav aria-label="Account">
-          <span class="site-user">{{ user.get_full_name|default:user.email }}</span>
+          <a class="site-user" href="{% url 'accounts:profile' %}">
+            {{ user.get_full_name|default:user.email }}
+          </a>
           <form method="post" action="{% url 'accounts:logout' %}" class="inline-form">
             {% csrf_token %}
             <button type="submit" class="button-link">Sign out</button>

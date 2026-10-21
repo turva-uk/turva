@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block title %}Your profile - Turva{% endblock %}
+
+{% block content %}
+  <h1>Your profile</h1>
+
+  <p class="lede">
+    These details appear in the safety files you create and in the commits
+    attributed to you.
+  </p>
+
+  <form method="post" novalidate>
+    {% csrf_token %}
+
+    {% if form.non_field_errors %}{{ form.non_field_errors }}{% endif %}
+
+    <fieldset class="fieldset">
+      <legend>Your details</legend>
+      <p class="fieldset-note">
+        Your name is recorded as the author of every change you make to a safety
+        file. Your email address is the account identifier and cannot be changed
+        here.
+      </p>
+      {{ form.first_name.as_field_group }}
+      {{ form.last_name.as_field_group }}
+      {{ form.organisation.as_field_group }}
+      {{ form.job_role.as_field_group }}
+    </fieldset>
+
+    <fieldset class="fieldset">
+      <legend>Professional registration</legend>
+      <p class="fieldset-note">
+        If you are a registered healthcare professional, record your
+        registration here. It appears alongside your name in safety files, which
+        is how a reader knows who took a safety decision.
+      </p>
+      {{ form.professional_regulator.as_field_group }}
+      {{ form.registration_number.as_field_group }}
+
+      {% if user.has_professional_registration %}
+        <p>
+          Recorded as <strong>{{ user.professional_registration }}</strong>
+          {% if user.registration_verified %}
+            &middot; checked against the register
+          {% else %}
+            <span class="unverified">Not verified by Turva</span>
+          {% endif %}
+        </p>
+        {% if not user.registration_verified %}
+          <p class="fieldset-note">
+            Turva has no connection to the regulators' registers, so it records
+            what you enter without checking it. Anyone relying on a safety file
+            should confirm a registration against the public register
+            themselves.
+          </p>
+        {% endif %}
+      {% endif %}
+    </fieldset>
+
+    <fieldset class="fieldset">
+      <legend>Clinical Safety Officer</legend>
+      <p class="fieldset-note">
+        A Clinical Safety Officer is a registered healthcare professional,
+        trained in clinical risk management, who is organisationally independent
+        of delivery pressures and has the authority to influence or halt a
+        deployment. The role is an appointment your organisation makes. Turva
+        records that you have declared it; it cannot confer it.
+      </p>
+      {% include "forms/checkbox-field.html" with field=form.is_cso %}
+      {% include "forms/checkbox-field.html" with field=form.confirm_cso_criteria %}
+
+      {% if user.is_cso and user.cso_declared_at %}
+        <p class="fieldset-note">
+          Declared on
+          <time datetime="{{ user.cso_declared_at|date:'c' }}">
+            {{ user.cso_declared_at|date:"j F Y" }}</time>.
+        </p>
+      {% endif %}
+    </fieldset>
+
+    <div class="form-actions">
+      <button type="submit">Save profile</button>
+      <a href="{% url 'safetyfiles:list' %}">Cancel</a>
+    </div>
+  </form>
+{% endblock %}

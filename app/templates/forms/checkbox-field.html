@@ -1,0 +1,21 @@
+{% comment %}
+  Django's field template renders the label, then the help text, then the
+  widget. That reads correctly for a text input, but it strands a checkbox on a
+  line of its own below its own description, so the box no longer looks like it
+  belongs to the statement it confirms.
+
+  The help text keeps the id that Django's BoundField points `aria-describedby`
+  at, so the association survives the reordering. Rendering `field.label`
+  directly also drops the label suffix: a colon after a statement a user is
+  agreeing to reads as a prompt for an answer they have already given.
+{% endcomment %}
+<div class="checkbox-field">
+  {{ field.errors }}
+  <div class="checkbox-row">
+    {{ field }}
+    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+  </div>
+  {% if field.help_text %}
+    <p class="helptext" id="{{ field.auto_id }}_helptext">{{ field.help_text }}</p>
+  {% endif %}
+</div>
