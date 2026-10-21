@@ -41,6 +41,29 @@ class TokenCooldownActive(VerificationError):
     """A token was issued too recently to issue another."""
 
 
+class Regulator(models.TextChoices):
+    """UK healthcare professional regulators.
+
+    A Clinical Safety Officer must be a registered healthcare professional -
+    see `specifications/core-specification.md` - so this list exists to make a
+    registration recordable in a checkable form rather than as free text.
+
+    `OTHER` is present because the list is not exhaustive (Northern Ireland and
+    some specialist registers are absent) and refusing to record a real
+    registration would be worse than recording it loosely.
+    """
+
+    GMC = "GMC", _("General Medical Council (GMC)")
+    NMC = "NMC", _("Nursing and Midwifery Council (NMC)")
+    HCPC = "HCPC", _("Health and Care Professions Council (HCPC)")
+    GPHC = "GPhC", _("General Pharmaceutical Council (GPhC)")
+    GDC = "GDC", _("General Dental Council (GDC)")
+    GOC = "GOC", _("General Optical Council (GOC)")
+    GOSC = "GOsC", _("General Osteopathic Council (GOsC)")
+    GCC = "GCC", _("General Chiropractic Council (GCC)")
+    OTHER = "OTHER", _("Another regulator")
+
+
 class UserManager(BaseUserManager):
     """Manager for a user model keyed on email rather than a username."""
 
@@ -96,14 +119,50 @@ class User(AbstractBaseUser, PermissionsMixin):
     organisation = models.CharField(_("organisation"), max_length=100, blank=True)
     job_role = models.CharField(_("job role"), max_length=100, blank=True)
 
+    # ------------------------------------------------- professional registration
+
+    professional_regulator = models.CharField(
+        _("professional regulator"),
+        max_length=10,
+        choices=Regulator.choices,
+        blank=True,
+    )
+    registration_number = models.CharField(
+        _("registration number"),
+        max_length=40,
+        blank=True,
+        help_text=_("As it appears on the public register."),
+    )
+
+    registration_verified = models.BooleanField(
+        _("registration verified"),
+        default=False,
+        help_text=_(
+            "Whether someone has checked this registration against the "
+            "regulator's public register. Turva has no automated check, so this "
+            "is set by hand or not at all - and a safety file must never imply "
+            "a registration was verified when it was not."
+        ),
+    )
+
+    # ------------------------------------------------------- CSO designation
+
     is_cso = models.BooleanField(
         _("Clinical Safety Officer"),
         default=False,
         help_text=_(
-            "Whether this person acts as a Clinical Safety Officer. A claim to "
-            "be a CSO is not self-certifying: professional registration is "
-            "recorded and checked separately."
+            "Whether this person acts as a Clinical Safety Officer. "
+            "**Self-declared.** Turva records the declaration and the date it "
+            "was made; it does not and cannot confer the role, which is an "
+            "appointment made by an organisation."
         ),
+    )
+    cso_declared_at = models.DateTimeField(
+        _("CSO role declared on"),
+        null=True,
+        blank=True,
+        editable=False,
+        help_text=_("When this person declared that they act as a CSO."),
     )
 
     is_active = models.BooleanField(_("active"), default=True)
@@ -139,6 +198,43 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def get_short_name(self) -> str:
         return self.first_name
+
+    @property
+    def has_professional_registration(self) -> bool:
+        return bool(self.professional_regulator and self.registration_number.strip())
+
+    @property
+    def professional_registration(self) -> str:
+        """The registration as it should appear in a document, or an empty string.
+
+        Format is "GMC 7654321": the regulator's abbreviation then the number,
+        which is how registrations are conventionally cited in UK clinical
+        safety documentation.
+        """
+        if not self.has_professional_registration:
+            return ""
+        return f"{self.professional_regulator} {self.registration_number.strip()}"
+
+    def declare_cso(self, *, declared: bool, was_declared: bool | None = None) -> None:
+        """Record or withdraw a self-declaration of the CSO role.
+
+        Stamps the date when the role is newly declared and clears it on
+        withdrawal, so the record never shows a date for a role that is not
+        held, and never moves the original date when an unrelated field is
+        edited.
+
+        `was_declared` lets a caller state the previous value, which a form must
+        do: by the time it saves, it has already applied the submission to this
+        instance, so `self.is_cso` no longer describes the stored state.
+        """
+        previously = self.is_cso if was_declared is None else was_declared
+
+        if declared and not previously:
+            self.cso_declared_at = timezone.now()
+        elif not declared:
+            self.cso_declared_at = None
+
+        self.is_cso = declared
 
     # ------------------------------------------------------ email verification
 
