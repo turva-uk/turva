@@ -38,7 +38,7 @@ repos:
         args: ["--config", ".markdownlint.json"]
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.16.10
+    rev: v0.17.0
     hooks:
       # No `files:` filter: ruff.toml owns the include/exclude rules, so the
       # hook and a bare `ruff check .` agree. The previous `^api/` filter meant
