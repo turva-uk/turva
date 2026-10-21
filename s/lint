@@ -41,6 +41,56 @@ fi
 echo "==> pre-commit"
 "$PRE_COMMIT" run --all-files --show-diff-on-failure "$@"
 
+# `--all-files` means every file *git knows about*: pre-commit asks git for the
+# list, so an untracked file is invisible to it. CI never hits this, because a
+# checkout has everything tracked - which makes it precisely the case where a
+# green local gate stops predicting a green CI run. It has already cost one red
+# build: a new test module and a new migration were formatted by CI's ruff and
+# not by ours, because at the time they had never been added.
+#
+# So check them explicitly. `--files` rather than `git add -N`, because a lint
+# script should not reach into the index.
+untracked=()
+while IFS= read -r -d '' path; do
+	untracked+=("$path")
+done < <(git ls-files --others --exclude-standard -z)
+
+if [ ${#untracked[@]} -gt 0 ]; then
+	echo "==> pre-commit (untracked files, which --all-files does not see)"
+	printf '    %s\n' "${untracked[@]}"
+
+	# pre-commit decides a hook "modified files" by diffing against git, which
+	# has nothing to say about a file it is not tracking: a formatter rewrites
+	# an untracked file and the run still reports Passed. Hash each one either
+	# side, so a rewrite is reported and fails the gate the same way it would
+	# for a tracked file - and so nobody commits a file they have not seen in
+	# the state it was rewritten into.
+	before=()
+	for path in "${untracked[@]}"; do
+		before+=("$(git hash-object -- "$path")")
+	done
+
+	status=0
+	"$PRE_COMMIT" run --show-diff-on-failure --files "${untracked[@]}" "$@" || status=$?
+
+	rewritten=()
+	for i in "${!untracked[@]}"; do
+		if [ "$(git hash-object -- "${untracked[$i]}")" != "${before[$i]}" ]; then
+			rewritten+=("${untracked[$i]}")
+		fi
+	done
+
+	if [ ${#rewritten[@]} -gt 0 ]; then
+		echo >&2
+		echo "A hook rewrote these untracked files:" >&2
+		printf '    %s\n' "${rewritten[@]}" >&2
+		echo "Review the changes, then run this again." >&2
+		status=1
+	fi
+
+	[ "$status" -eq 0 ] || exit "$status"
+fi
+
 PINNED=$(zizmor_version)
 echo "==> zizmor $PINNED (GitHub Actions audit)"
 
