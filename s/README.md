@@ -4,7 +4,7 @@ One script per repeated process. Each one `cd`s to the repository root first, so
 
 ```bash
 ./s/up --build         # rebuild images before starting
-./s/logs api           # follow logs for one service
+./s/logs web           # follow logs for one service
 ./s/test -k login      # run matching tests
 ```
 
@@ -12,14 +12,19 @@ One script per repeated process. Each one `cd`s to the repository root first, so
 
 ### `./s/up`
 
-**The primary way to run Turva locally.** Starts all services with Docker Compose, attached, so you see the logs; Ctrl-C stops it.
+**The primary way to run Turva locally.** Starts all services with Docker Compose, waits for the health checks to pass, opens the application in your browser, then attaches so you see the logs; Ctrl-C stops it.
 
 ```bash
-./s/up                 # start everything
+./s/up                 # start everything and open the browser
 ./s/up --build         # rebuild images first
 ./s/up -d              # detached
-./s/up api             # one service and its dependencies
+./s/up --no-browser    # leave the browser alone
+./s/up web             # one service and its dependencies
 ```
+
+The browser opens on <http://localhost:8000>, Django directly. Caddy serves the same application at <https://localhost>, but with a certificate from its own internal CA, so unless you have told your browser to trust that CA it greets you with a security warning rather than the page. Set `TURVA_URL` to open somewhere else, or `TURVA_NO_BROWSER` to never open one.
+
+Opening is skipped when there is no display, when `CI` is set, and when the services you named do not include `web`.
 
 ### `./s/down`
 

@@ -1,16 +1,26 @@
 #!/usr/bin/env bash
-# Start the development stack. This is the primary way to run Turva locally.
+# Start the development stack and open the application. This is the primary way
+# to run Turva locally.
 #
 # Runs attached so you see the logs; Ctrl-C stops it. Add --build to rebuild
 # images first, or -d to detach.
 #
-#   ./s/up              start everything
+#   ./s/up              start everything and open the browser
 #   ./s/up --build      rebuild images first
 #   ./s/up -d           detached
+#   ./s/up --no-browser leave the browser alone
 #   ./s/up web          just one service and its dependencies
+#
+# The URL is http://localhost:8000, Django directly. Caddy serves the same
+# application at https://localhost, but with a certificate from its own
+# internal CA, so a browser that has not been told to trust that CA greets you
+# with a security warning instead of the page you asked for. Set TURVA_URL to
+# override.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
+
+URL=${TURVA_URL:-http://localhost:8000}
 
 # The safety file repositories are bind-mounted from here. Create the directory
 # first: Docker creates a missing bind-mount source as root, which the container
@@ -18,4 +28,99 @@ cd "$(dirname "$0")/.."
 # confusing permission error when creating a safety file rather than now.
 mkdir -p .turva-data/safety-files
 
-exec docker compose up "$@"
+# Open $URL in the user's browser, or explain why not. Never fatal: failing to
+# open a browser is no reason to refuse to run the stack.
+open_browser() {
+	if [ -n "${TURVA_NO_BROWSER:-}" ] || [ -n "${CI:-}" ]; then
+		return 0
+	fi
+
+	# A Linux box with no display is usually an SSH session, where xdg-open
+	# exists but has nowhere to put a window.
+	if [ "$(uname -s)" = "Linux" ] &&
+		[ -z "${DISPLAY:-}" ] && [ -z "${WAYLAND_DISPLAY:-}" ]; then
+		echo "No display, so not opening a browser. Turva is at $URL"
+		return 0
+	fi
+
+	local opener
+	for opener in "${BROWSER:-}" xdg-open open; do
+		if [ -n "$opener" ] && command -v "$opener" >/dev/null 2>&1; then
+			# Detached and silenced: xdg-open hands off to a browser that
+			# outlives this script, and some desktops print warnings on the way.
+			"$opener" "$URL" >/dev/null 2>&1 &
+			return 0
+		fi
+	done
+
+	echo "No browser opener found. Turva is at $URL"
+}
+
+# `${arr[@]+"${arr[@]}"}` below rather than plain `"${arr[@]}"`: expanding an
+# empty array is an unbound variable error under `set -u` in bash before 4.4,
+# which is the bash macOS ships. `./s/up` with no arguments is the common case,
+# so that would break the script for exactly the way it is normally run.
+detach=false
+compose_args=()
+services=()
+
+for arg in "$@"; do
+	case "$arg" in
+		-d | --detach)
+			detach=true
+			compose_args+=("$arg")
+			;;
+		--no-browser)
+			# Ours, not Docker's, so it must not reach compose.
+			TURVA_NO_BROWSER=1
+			;;
+		-*)
+			compose_args+=("$arg")
+			;;
+		*)
+			services+=("$arg")
+			compose_args+=("$arg")
+			;;
+	esac
+done
+
+# Start detached and wait for the health checks to pass before going any
+# further. `web` has one that touches the database, so this is the difference
+# between opening the browser on the application and opening it on a connection
+# error a second before the server binds its port.
+docker compose up --detach --wait ${compose_args[@]+"${compose_args[@]}"}
+
+# Only offer a browser if the thing it would point at is actually running. With
+# no service named, everything starts; with services named, `web` has to be one
+# of them.
+serving=true
+if [ ${#services[@]} -gt 0 ]; then
+	serving=false
+	for service in "${services[@]}"; do
+		if [ "$service" = "web" ]; then
+			serving=true
+		fi
+	done
+fi
+
+if [ "$serving" = true ]; then
+	open_browser
+fi
+
+if [ "$detach" = true ]; then
+	exit 0
+fi
+
+# Attach to the running containers, so Ctrl-C still stops the stack rather than
+# merely detaching from it. Everything is up by now, so drop the flags that
+# were about getting it there - repeating --build would rebuild images that
+# were just built.
+attach_args=()
+for arg in ${compose_args[@]+"${compose_args[@]}"}; do
+	case "$arg" in
+		--build | --force-recreate | --no-deps | --pull=*) ;;
+		*) attach_args+=("$arg") ;;
+	esac
+done
+
+exec docker compose up ${attach_args[@]+"${attach_args[@]}"}

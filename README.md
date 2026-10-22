@@ -45,12 +45,12 @@ cp app/.env.example app/.env    # then edit as needed
 ./s/up
 ```
 
-The application is served at <http://localhost> through Caddy, and directly at <http://localhost:8000>.
+`./s/up` opens the application for you. It is served directly by Django at <http://localhost:8000>, and through Caddy at <https://localhost> - the latter with a certificate from Caddy's internal CA, so expect a browser warning unless you have trusted that CA.
 
 ## Testing and contributing
 
 ```bash
-./s/test      # run the test suite in the api container
+./s/test      # both suites: safety_file on the host, app in the container
 ./s/lint      # everything CI enforces: pre-commit, then the Zizmor Actions audit
 ./s/docs      # serve the documentation site at http://localhost:8001
 ```
