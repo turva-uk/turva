@@ -288,6 +288,16 @@ Each Clinical Safety Management File is a Git repository on disk holding a Zensi
 - [ ] Contextual help system
 - [ ] Tooltips and guides
 
+### Dictation / Voice-to-Text
+
+Speech-to-text for long free-text fields (hazard description, mitigation rationale, safety case narrative, meeting notes) where typing is the bottleneck. Run entirely in the browser so no audio or transcript leaves the device, following the pattern behind Discourse's bundled Live plugin's live captions: a quantized NVIDIA Parakeet ASR model via `onnxruntime-web` on WebGPU. See the writeup queued in [`pacharanero/house-style`'s roadmap](https://github.com/pacharanero/house-style/blob/main/roadmap.md) once it lands, and the local-inference principle already stated in [llm-strategy.md](llm-strategy.md#privacy-and-confidentiality).
+
+- [ ] Evaluate `parakeet.js` (MIT, ONNX Runtime Web/WebGPU) or an equivalent library against Turva's no-build-pipeline constraint (HTMX plus vendored JS, no bundler today)
+- [ ] Dictation control on long-text fields (hazard description, mitigation rationale, safety case narrative)
+- [ ] Clear recording/listening state with a visible stop control; no silent background listening
+- [ ] Graceful fallback when WebGPU is unavailable - typing remains the baseline, dictation is additive
+- [ ] Confirm the one-time per-user model download (~200-400MB) and WebGPU browser support are acceptable on the target NHS devices before shipping
+
 ### Collaboration
 
 - [ ] Commenting on hazards
