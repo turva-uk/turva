@@ -37,9 +37,15 @@ jobs:
           persist-credentials: false
 
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        id: python
         with:
           python-version: "3.14"
 
+      # Keyed on the resolved patch version, not the "3.14" we asked for. A venv
+      # hard-codes the path to the interpreter that built it, so when the runner
+      # image moved 3.14.8 -> 3.14.9 the restored venv pointed at an interpreter
+      # that no longer existed and every script in it died with "cannot execute:
+      # required file not found".
       - name: Cache pre-commit and venv
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
@@ -47,20 +53,28 @@ jobs:
             .venv
             ${{ env.PRE_COMMIT_HOME }}
             ${{ env.PIP_CACHE_DIR }}
-          key: pc-styling-${{ runner.os }}-py3.14-${{ hashFiles('.pre-commit-config.yaml') }}
+          key: pc-styling-${{ runner.os }}-py${{ steps.python.outputs.python-version }}-${{ hashFiles('.pre-commit-config.yaml') }}
           restore-keys: |
-            pc-styling-${{ runner.os }}-py3.14-
-            pc-styling-${{ runner.os }}-
+            pc-styling-${{ runner.os }}-py${{ steps.python.outputs.python-version }}-
 
+      # Tests that the cached pre-commit *runs*, not that the file is present
+      # and carries an execute bit. The previous `-x` check was true of exactly
+      # the venv that could not execute, so the job reported "Using cached
+      # .venv" and then failed in the next step with 127.
+      #
+      # Rebuilding rather than failing means a stale venv heals itself,
+      # whatever made it stale.
       - name: Ensure venv and pre-commit
         run: |
-          if [ ! -x .venv/bin/pre-commit ]; then
+          if .venv/bin/pre-commit --version >/dev/null 2>&1; then
+            echo "Using cached .venv with pre-commit."
+          else
+            echo "No usable cached .venv; building one."
+            rm -rf .venv
             python -m venv .venv
             . .venv/bin/activate
             python -m pip install -U pip
             python -m pip install "pre-commit>=3,<5"
-          else
-            echo "Using cached .venv with pre-commit."
           fi
 
       - name: Warm pre-commit hooks
