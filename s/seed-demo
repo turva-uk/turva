@@ -1,8 +1,19 @@
 #!/usr/bin/env bash
-# Build the demo safety file into .turva-data/safety-files/demo-bp-at-home
+# Build the demo safety file into .turva-data/safety-files/demo-bp-at-home, then
+# make it reachable through the interface.
 #
-# Goes through the production storage layer, so this doubles as an end-to-end
-# check of it. Pass --force to replace an existing demo.
+# Two steps, because they belong to different layers. The build goes through the
+# production storage layer and imports no framework, so it doubles as an
+# end-to-end check of that layer. Wiring the result to an account and an index
+# row needs Django, and so needs the container.
+#
+#   ./s/seed-demo                 build, then create the account and index it
+#   ./s/seed-demo --force         replace an existing demo, destroying its history
+#   ./s/seed-demo --build-only    just the repository, no account, no database
+#
+# The account's password comes from TURVA_DEMO_PASSWORD, falling back to a
+# default the seeding step prints. Both are development-only: the Django command
+# refuses to run with DEBUG off.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -13,4 +24,22 @@ else
 	PYTHON=python3
 fi
 
-exec "$PYTHON" demo/build.py "$@"
+build_only=false
+build_args=()
+
+for arg in "$@"; do
+	case "$arg" in
+		--build-only) build_only=true ;;
+		*) build_args+=("$arg") ;;
+	esac
+done
+
+"$PYTHON" demo/build.py ${build_args[@]+"${build_args[@]}"}
+
+if [ "$build_only" = true ]; then
+	exit 0
+fi
+
+echo
+echo "==> Creating the demo account and indexing the safety file"
+exec ./s/manage seed_demo

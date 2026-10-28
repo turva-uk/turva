@@ -102,6 +102,16 @@ Serves the documentation site with hot reload at <http://localhost:8001>.
 
 ### `./s/seed-demo`
 
-Builds the demo safety file into `.turva-data/safety-files/demo-bp-at-home`. Pass `--force` to replace an existing one, which destroys its Git history.
+Builds the demo safety file into `.turva-data/safety-files/demo-bp-at-home`, then creates an account to sign in as and indexes the file so it appears in the interface.
 
-It goes through the production storage layer, so this doubles as an end-to-end check of it.
+```bash
+./s/seed-demo                 # build, create the account, index the file
+./s/seed-demo --force         # replace an existing demo, destroying its history
+./s/seed-demo --build-only    # just the repository, no account, no database
+```
+
+The build goes through the production storage layer and imports no framework, so it doubles as an end-to-end check of that layer. The second step needs Django, and runs in the container.
+
+The account is the demo's Clinical Safety Officer, `a.patel@riverbank.example.nhs.uk`, with the same name its commits are attributed to. Its password comes from `TURVA_DEMO_PASSWORD`, defaulting to `turva-demo-local`, and the command prints whichever it used. It is not a staff account unless you pass `--staff`: the admin is the only place a professional registration can be marked as verified, and a known-password account should not reach that without being asked for.
+
+The seeding step refuses to run with `DEBUG` off. It creates an account whose password is written down here and gives it ownership of a safety file, which is right for a laptop and wrong everywhere else.

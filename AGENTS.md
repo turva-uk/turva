@@ -55,7 +55,7 @@ This file is the entry point for AI coding agents. Read it before changing anyth
 ./s/psql       # a psql session against the development database
 ./s/lock       # regenerate dependency locks after editing a .in file
 ./s/docs       # serve the docs site locally
-./s/seed-demo  # build the demo safety file (also an end-to-end storage test)
+./s/seed-demo  # build the demo safety file, with an account to sign in as
 ```
 
 ## Before Every Commit
