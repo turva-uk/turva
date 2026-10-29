@@ -2,7 +2,7 @@
 
 This roadmap tracks the implementation status of Turva features. Items are organised by domain area and marked with checkboxes.
 
-**It is much wider than the funded build.** [phase-one-scope.md](phase-one-scope.md) is the authoritative list of what ships by Christmas; everything else here is direction. See also [core-specification.md](core-specification.md) for the domain model and [architecture-principles.md](architecture-principles.md) for the design constraints.
+**It is much wider than the funded build.** [phase-one-scope.md](phase-one-scope.md) is the authoritative list of what ships in the funded phase; everything else here is direction. See also [core-specification.md](core-specification.md) for the domain model and [architecture-principles.md](architecture-principles.md) for the design constraints.
 
 ## Foundation & Infrastructure
 
@@ -15,9 +15,9 @@ This roadmap tracks the implementation status of Turva features. Items are organ
 - [x] Session management (Django sessions in PostgreSQL)
 - [x] Password reset
 - [x] Admin interface for support
-- [ ] User profile management
-- [ ] Professional registration tracking
-- [ ] Clinical Safety Officer designation
+- [x] User profile management
+- [x] Professional registration tracking, recorded but never verified by Turva
+- [x] Clinical Safety Officer designation, self-declared and dated
 
 ### Database & Data Layer
 
@@ -76,6 +76,50 @@ The React/Mantine/Vite frontend was removed to avoid building every screen twice
 - [ ] Project ownership transfer
 - [ ] Project team member management
 - [ ] Project permissions system
+
+### Supplier Safety Case Onboarding
+
+Phase one, capability 3. The deploying organisation's DCB0160 starts from the
+manufacturer's DCB0129, so the first real task in a new safety file is getting
+the supplier's hazards into it without retyping them.
+
+The constraint that shapes all of this: an extraction that silently drops or
+garbles a hazard produces a safety case that is incomplete and looks complete.
+See TH-010 in [SAFETY.md](../SAFETY.md).
+
+- [ ] Upload a supplier DCB0129 safety case to a safety file
+- [ ] Extract text and structure from `.docx`
+- [ ] Extract text and structure from `.pdf`
+- [ ] Propose hazards from the extracted document, as candidates requiring
+      explicit CSO acceptance - never written straight into the hazard log
+- [ ] Keep the correspondence between each accepted hazard and its location in
+      the source document, so a reviewer can check the transcription
+- [ ] Retain the original uploaded document in the repository as evidence
+- [ ] Report what could not be extracted, rather than returning silently
+- [ ] OCR for scanned documents - **stretch goal**, deferred until a real
+      scanned safety case demands it
+
+### Guided Clinical Safety Process
+
+Phase one, capability 4, and the centre of the product: guidance derived from
+published clinical safety guidance that leads an operator through the process
+rather than presenting them with empty forms.
+
+Guidance that walks someone through clinical safety can be mistaken for
+performing it. See TH-011 in [SAFETY.md](../SAFETY.md).
+
+- [ ] Identify and licence-check the published guidance this is derived from
+- [ ] Model the process as explicit steps with a recorded position, so a CSO
+      can leave and return
+- [ ] Guided hazard log construction
+- [ ] Clinical safety workshop support - **scope undecided**: facilitating a
+      live multi-user session and recording the output of a meeting held in a
+      room are different products
+- [ ] Delegated hazard mitigation: assign a mitigation to someone who is not
+      the CSO, who completes it and returns it
+- [ ] Show each party whose turn it is
+- [ ] Guidance must be distinguishable from the CSO's own judgement in the
+      generated document
 
 ### Organizations
 
@@ -206,7 +250,9 @@ format available - it is a `git clone` away and is plain Markdown - so the work
 here is about the formats people ask for on top of that.
 
 - [ ] Export hazard log (CSV/Excel)
-- [ ] Export safety case (PDF) - phase one
+- [ ] Single-document download of the whole safety file - phase one, capability 6. One button. Reuses the Zensical PDF export already working on another
+      project; verify that reuse against a real safety file early, because it is
+      the artefact the customer judges the work by
 - [ ] Export safety case (Markdown) - already true: the repository _is_ Markdown
 - [ ] Import hazard log
 - [ ] Webhook support
@@ -307,6 +353,28 @@ Speech-to-text for long free-text fields (hazard description, mitigation rationa
 - [ ] Collaborative editing
 
 ## Advanced Features
+
+### AI Access
+
+NHS organisations have well-founded sensitivities about where their data goes
+during an LLM round trip, and a deployment safety case is a named
+organisation's assessment of its own clinical risk. That constraint, not
+capability, decides the order here.
+
+See [llm-strategy.md](llm-strategy.md) for what AI is meant to do once the
+access path exists.
+
+- [ ] Bring Your Own API Key, held at profile level - phase one, and the only
+      AI path in it
+- [ ] Make the data path visible to the user: which provider, which model, what
+      was sent
+- [ ] MCP server or equivalent, so a customer can drive Turva from an AI client
+      they already trust rather than Turva calling out to a model. Inverts the
+      data flow, which is the attractive part. Not yet specified; see
+      [house-style's MCP standard](https://github.com/pacharanero/house-style/blob/main/mcp.md)
+- [ ] Record which content in a safety file was AI-assisted, and never let it
+      be mistaken for the CSO's own judgement
+- [ ] Turva-hosted inference for paid subscriptions - **not phase one**
 
 ### Analytics & Intelligence
 
