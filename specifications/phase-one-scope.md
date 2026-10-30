@@ -6,12 +6,13 @@ Rewritten after the October 2026 reboot meeting. The previous version, written a
 
 ## Provenance and governance
 
-|              |                                                                                                                                   |
-| ------------ | --------------------------------------------------------------------------------------------------------------------------------- |
-| **Customer** | Morecambe Bay GP Federation, incorporated as a Community Interest Company. Exact registered name to confirm - see open questions. |
-| **Funder**   | A small grant, amount not yet recorded here.                                                                                      |
-| **Deadline** | Not yet set.                                                                                                                      |
-| **Status**   | Scope agreed at the reboot meeting. Commercial terms not yet settled.                                                             |
+|                   |                                                                                                                                                      |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Customer**      | MBPCC Federation, a GP Federation incorporated as a Community Interest Company. The same Federation as the original arrangement, not a new customer. |
+| **Funder**        | The Federation, £10,000.                                                                                                                             |
+| **Consideration** | Lifetime unlimited use for the Federation and its member practices as at the date of agreement.                                                      |
+| **Deadline**      | Not yet set. The original brief said Christmas 2026; whether that still stands is open.                                                              |
+| **Status**        | Scope agreed at the October 2026 reboot meeting.                                                                                                     |
 
 Requirements below are taken from the reboot brief. Anything marked _proposed_ is an engineering decision made to satisfy that brief, not something the customer specified, and can be changed without renegotiating scope.
 
@@ -51,12 +52,14 @@ This capability carries a hazard of its own. Extraction that silently drops or g
 
 Step-by-step guidance, derived from published clinical safety guidance, that leads the operator through hazard log construction, safety workshops, and delegated hazard mitigation.
 
+The guidance is derived from **NHS England's published clinical safety guidance, which is Open Government Licence**. Turva always references the NHSE source rather than paraphrasing it as though it were Turva's own: the operator needs to be able to follow the citation upstream, and OGL requires attribution in any case.
+
 The brief's phrase is "leads the operator by the nose through the process of clinical safety". This is the heart of the product and the hardest thing in the scope to specify, because its quality bar is "a CSO who is not an expert can follow it and arrive somewhere defensible".
 
 Three named activities:
 
 - **Hazard log** - building and maintaining the log, with risk level derived from severity and likelihood, never entered. See [core-specification.md](core-specification.md).
-- **Workshops** - the clinical safety workshop is where hazards are actually identified, by people in a room. Whether Turva facilitates a live multi-user session or records the output of one held offline is an open question, and the difference is large.
+- **Workshops** - the clinical safety workshop is where hazards are actually identified, by people in a room. **Turva does not host or record workshops.** Users already have MS Teams for video, their own premises for meeting in person, and OBS or Loom if they want a recording; building any of that would be duplicating tools the customer already has. Turva's part is to know when a workshop is due and to email the CSO telling them to arrange one. The workshop's output arrives back as hazards in the log.
 - **Delegated hazard mitigation** - a hazard's mitigation is assigned to someone who is not the CSO, who completes it and returns it. This is the reboot's version of the original brief's "hand the portal to the customer", narrowed from a whole-file hand-off to a per-hazard assignment, which is both more useful and a smaller permission problem.
 
 Guidance that walks someone through clinical safety can be mistaken for performing it. Automation bias is a real hazard in a guided tool and is recorded as TH-011.
@@ -73,7 +76,18 @@ One button produces the whole safety file as a single downloadable document.
 
 The information continues to live in the Zensical site in the repository; the download is a build artefact generated from it, and can be regenerated from the commit it came from.
 
-_Proposed mechanism:_ reuse the Zensical PDF export already working on another project, following the pattern at <https://growth.rcpch.ac.uk>. The brief describes this as solved elsewhere and therefore a single button here. That should be verified early rather than assumed: it is the deliverable the customer will judge the work by.
+The mechanism is proven, not proposed. It is working in `rcpch/digital-growth-charts-documentation`, which publishes <https://growth.rcpch.ac.uk>, and was read rather than assumed:
+
+- Zensical has **no native PDF export** - tracked at [zensical/backlog#25](https://github.com/zensical/backlog/issues/25).
+- A ~240-line exporter runs _after_ `zensical build`, reads the rendered HTML in `site/`, extracts each page's article element, applies one shared print stylesheet and renders through WeasyPrint.
+- Dependencies are small: `weasyprint`, `beautifulsoup4`, `PyYAML`, plus the native libraries `libpango-1.0-0` and `libpangoft2-1.0-0`. Turva's web image will need those two packages added.
+- It builds **two** documents from one site: the complete site, and a **controlled subset defined by an explicit page list**.
+
+That last point is the one worth copying, and it is a safety property rather than a convenience. The RCPCH exporter keeps the safety document's contents as a hard-coded list so that adding a page to the site cannot silently change the reviewed scope of the safety PDF. Turva's DCB0160 download needs the same discipline: the document is an explicit, reviewed set of pages, not "whatever the site currently contains". Without it, editing a template would quietly alter what every safety case says.
+
+_Proposed, and the one real difference from RCPCH:_ that project builds one site in CI on every push and serves a static file. Turva has many repositories and generates per safety file, so the build happens on commit or on first request and the result is cached against the commit SHA it was built from. A download must never be served from a different state than the commit it cites - see TH-007.
+
+Later, and out of scope here: other formats such as `.docx` from the same pipeline, and eventually packaging the exporter as a Zensical plugin offered to the community. Given Zensical has no native export, that is a real contribution rather than a courtesy.
 
 ## AI features
 
@@ -110,7 +124,7 @@ Five of the six capabilities moved. The differences are worth stating because an
 | PDF export proposed, unproven           | Treated as solved, reused from another project                                                  | Changes it from a schedule risk to an integration task - if the reuse holds.                                                                                                                                                              |
 | AI: BYOK **or** Turva-hosted            | BYOK first, MCP under consideration                                                             | Hosted inference is out of phase one. Data residency is the driver.                                                                                                                                                                       |
 
-The customer changed too, from the original sponsor's Federation to Morecambe Bay GP Federation. Whether the original arrangement stands alongside this one is an open question.
+The customer did not change. MBPCC Federation is the same Federation as the original brief's, with the same £10,000 and the same lifetime-use consideration; the reboot restarted the work rather than replacing who it is for.
 
 ## Explicitly out of scope for phase one
 
@@ -118,16 +132,22 @@ Federation between organisations, upstream and downstream safety case inheritanc
 
 Deferred items are not cancelled. They are what the funded phase is meant to make possible.
 
+## Settled at the reboot
+
+Recorded because the answers shape the build, and because several were open long enough to be worth closing explicitly.
+
+- **The customer is the same Federation as before**, MBPCC Federation, with the same £10,000 and the same lifetime-use consideration. This is a reboot of one arrangement, not a second customer alongside the first.
+- **Turva does not host or record workshops.** See capability 4. The largest single scope reduction in the reboot.
+- **The guidance source is NHS England, under Open Government Licence.** Turva references upstream rather than paraphrasing, and attributes as OGL requires.
+- **The single-document download is a solved problem**, verified in `rcpch/digital-growth-charts-documentation` rather than taken on trust. See capability 6.
+
 ## Open questions for the customer
 
-1. **Grant amount and deadline.** Neither is recorded. Both determine how much of capability 4 is achievable, since it is the one with no natural stopping point.
-2. **Exact registered name of the customer.** "Morecambe Bay GP Federation" needs confirming against the CIC's registration before it appears in a contract or on a generated document. The spelling of Morecambe is a common trap.
-3. **Does the previous arrangement still stand?** The earlier brief granted lifetime unlimited use to another Federation for £10,000. Whether that is superseded, parallel, or lapsed affects both obligations and roadmap.
-4. **Workshops: live or recorded?** A facilitated multi-user session in the application and a form for recording the output of a meeting held in a room are different products. The second is a fraction of the cost and may be all that is wanted.
-5. **Which published guidance, and under what licence?** "Derived from known clinical safety guidance" needs a specific source. NHS England's DCB0129 and DCB0160 specifications and their implementation guidance are the obvious candidates, but their licensing must be checked before any of their text is embedded in the product.
-6. **Who are the delegates?** Federation staff, member practice staff, or the supplier? It determines the identity assurance required and whether external accounts are needed at all in phase one.
-7. **Is a real DCB0129 available now?** One supplier safety case the customer actually holds is worth more than any amount of specification for shaping the extraction. Without one, capability 3 is being built against an imagined input.
-8. **Which clinical system is the first deployment?** It makes the demo concrete and determines whose DCB0129 is being onboarded.
+1. **Deadline.** The original brief said Christmas 2026. With capability 4 having no natural stopping point, the date is what decides how much of it gets built.
+2. **Is a real DCB0129 available?** Being sought. One supplier safety case the customer actually holds is worth more than any amount of specification: capability 3's whole advantage is that its output can be checked against its input, and without a real input it is being built against an imagined one.
+3. **Which clinical system is the first deployment?** It makes the demo concrete and determines whose DCB0129 is being onboarded.
+4. **Who are the delegates?** Federation staff, member practice staff, or the supplier? It determines the identity assurance required and whether external accounts are needed at all in phase one.
+5. **Does the safety case need to evidence that a workshop happened?** Turva is not running the workshop, but a DCB0160 submission is usually expected to show how hazards were identified. If a date and an attendee list belong in the document, Turva needs somewhere to record them - a small feature, but one nobody has asked for yet.
 
 ## Honest assessment
 

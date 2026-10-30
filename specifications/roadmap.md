@@ -108,13 +108,15 @@ rather than presenting them with empty forms.
 Guidance that walks someone through clinical safety can be mistaken for
 performing it. See TH-011 in [SAFETY.md](../SAFETY.md).
 
-- [ ] Identify and licence-check the published guidance this is derived from
 - [ ] Model the process as explicit steps with a recorded position, so a CSO
       can leave and return
 - [ ] Guided hazard log construction
-- [ ] Clinical safety workshop support - **scope undecided**: facilitating a
-      live multi-user session and recording the output of a meeting held in a
-      room are different products
+- [ ] Cite NHS England guidance upstream at each step, attributed as the Open
+      Government Licence requires, rather than paraphrasing it as Turva's own
+- [ ] Email the CSO when a hazard workshop is due. **Turva does not host or
+      record workshops** - the customer already has Teams, meeting rooms, and
+      OBS or Loom, and duplicating those would be building the wrong thing.
+      The workshop's output arrives back as hazards in the log
 - [ ] Delegated hazard mitigation: assign a mitigation to someone who is not
       the CSO, who completes it and returns it
 - [ ] Show each party whose turn it is
@@ -250,9 +252,23 @@ format available - it is a `git clone` away and is plain Markdown - so the work
 here is about the formats people ask for on top of that.
 
 - [ ] Export hazard log (CSV/Excel)
-- [ ] Single-document download of the whole safety file - phase one, capability 6. One button. Reuses the Zensical PDF export already working on another
-      project; verify that reuse against a real safety file early, because it is
-      the artefact the customer judges the work by
+- [ ] Single-document download of the whole safety file - phase one, capability 6. One button, serving a document built from the repository. Ports the
+      exporter proven in `rcpch/digital-growth-charts-documentation`: Zensical
+      build, then WeasyPrint over the rendered HTML
+- [ ] Add `libpango-1.0-0` and `libpangoft2-1.0-0` to the web image, which
+      WeasyPrint needs
+- [ ] Define the safety document's contents as an explicit page list, so adding
+      a page to a template cannot silently change what every safety case
+      contains. A safety property, not a convenience - the RCPCH exporter keeps
+      its controlled subset hard-coded for exactly this reason
+- [ ] Cache the built document against the commit it was built from, so a
+      download is never served from a different state than the evidence it
+      cites. See TH-007
+- [ ] Other formats from the same pipeline, `.docx` first
+- [ ] Offer the exporter to the community as a Zensical plugin. Zensical has no
+      native PDF export
+      ([zensical/backlog#25](https://github.com/zensical/backlog/issues/25)), so
+      this is a real contribution rather than a courtesy
 - [ ] Export safety case (Markdown) - already true: the repository _is_ Markdown
 - [ ] Import hazard log
 - [ ] Webhook support
