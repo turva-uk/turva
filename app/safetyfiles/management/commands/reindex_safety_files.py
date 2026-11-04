@@ -74,6 +74,27 @@ class Command(BaseCommand):
                 if fallback_owner is None:
                     skipped.append((path.name, "no index row and no --owner given to assign one"))
                     continue
+                # The slug is the directory name and is unique, so a row for a
+                # *different* project already holding it blocks adoption. This
+                # happens when a repository is rebuilt in place: the new
+                # manifest carries a new project id while the old row still
+                # claims the directory.
+                #
+                # Reported rather than resolved. This command recovers an index
+                # from the repositories; deciding that an existing row is
+                # obsolete and deleting it is a different and more destructive
+                # act than recovery, and not one to perform silently.
+                clash = SafetyFile.objects.filter(slug=path.name).first()
+                if clash is not None:
+                    skipped.append(
+                        (
+                            path.name,
+                            f"the directory is already indexed as project {clash.id}, but the "
+                            f"manifest says {manifest.project_id}. The repository was probably "
+                            f"rebuilt in place. Remove the old row if it is obsolete.",
+                        )
+                    )
+                    continue
                 adopted.append((path.name, manifest.name))
                 if not options["dry_run"]:
                     with transaction.atomic():

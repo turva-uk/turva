@@ -7,14 +7,23 @@ that was an assertion rather than a property. These tests are the evidence.
 
 from __future__ import annotations
 
+import shutil
 from io import StringIO
+from pathlib import Path
 
 import pytest
+from django.conf import settings
 from django.core.management import CommandError, call_command
 
 from app.accounts.models import User
 from app.safetyfiles.models import SafetyFile
-from app.safetyfiles.services import SafetyFileDetails, create_safety_file
+from app.safetyfiles.services import (
+    SafetyFileDetails,
+    author_for,
+    create_safety_file,
+    template_values,
+)
+from safety_file import SafetyFileRepository
 
 pytestmark = pytest.mark.django_db
 
@@ -142,6 +151,39 @@ class TestSafety:
         (settings.SAFETY_FILE_ROOT / "not-a-safety-file").mkdir()
         output = reindex(owner=cso.email)
         assert "Skipped not-a-safety-file" in output
+
+    def test_a_repository_rebuilt_in_place_is_reported_not_crashed_on(self, cso):
+        """A new repository at an old directory has a new project id.
+
+        The slug is unique, so the old row blocks adoption of the new project.
+        This used to surface as an IntegrityError traceback out of a recovery
+        command, which is the worst place for one: the tool you reach for when
+        the index is already damaged should explain the problem, not add to it.
+
+        Reported rather than resolved. Deciding an existing row is obsolete and
+        deleting it is a destructive act, and not recovery.
+        """
+        safety_file = create_safety_file(DETAILS, cso)
+        slug, original_id = safety_file.slug, safety_file.id
+
+        # Rebuild in place: same directory, new identity.
+        shutil.rmtree(safety_file.repository_path)
+        SafetyFileRepository.create(
+            safety_file.repository_path,
+            name=DETAILS.name,
+            standard=DETAILS.standard,
+            template_dir=Path(settings.BASE_DIR) / "safety-file-templates" / "dcb0160-deployment",
+            values=template_values(DETAILS, cso),
+            author=author_for(cso),
+        )
+
+        output = reindex(owner=cso.email)
+
+        assert f"Skipped {slug}" in output
+        assert "rebuilt in place" in output
+        assert SafetyFile.objects.filter(id=original_id).exists(), (
+            "the existing row must survive: removing it is the operator's decision"
+        )
 
     def test_a_renamed_system_updates_the_index(self, cso):
         """The manifest is authoritative; the row follows it."""

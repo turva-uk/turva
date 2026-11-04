@@ -27,6 +27,8 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
 from app.accounts.models import Regulator, User
+from app.safetyfiles.models import SafetyFile
+from safety_file import SafetyFileRepository
 
 DEFINITION = Path("demo") / "riverbank-bp-at-home.yaml"
 DEMO_SLUG = "demo-bp-at-home"
@@ -91,6 +93,25 @@ class Command(BaseCommand):
         )
 
         self.stdout.write(self.style.SUCCESS(f"{'Created' if created else 'Updated'} {user.email}"))
+
+        # `./s/seed-demo --force` rebuilds the repository from scratch, and a
+        # new repository gets a new project id. The old row still claims the
+        # directory under the same slug, so adoption of the rebuilt demo would
+        # be blocked by a row describing a project that no longer exists
+        # anywhere. Clear it out.
+        #
+        # Safe here in a way it would not be in `reindex_safety_files`: this
+        # command runs only with DEBUG on, and only ever touches the demo.
+        manifest_id = SafetyFileRepository(repository).manifest.project_id
+        stale = SafetyFile.objects.filter(slug=DEMO_SLUG).exclude(id=manifest_id)
+        for row in stale:
+            self.stdout.write(
+                self.style.WARNING(
+                    f"Removing the index row for the previous demo ({row.id}); the repository "
+                    f"on disk is now project {manifest_id}."
+                )
+            )
+        stale.delete()
 
         # Reuse the adoption path rather than reimplementing it. It reads the
         # project id from the manifest, so running this twice updates the row

@@ -7,6 +7,7 @@ and that it will not do any of that on a machine where DEBUG is off.
 
 from __future__ import annotations
 
+import shutil
 from io import StringIO
 from pathlib import Path
 
@@ -33,13 +34,15 @@ def debug(settings):
     return settings
 
 
-@pytest.fixture
-def demo_repository(settings) -> Path:
-    """A demo safety file on disk with no index row, as `demo/build.py` leaves it.
+def _build_demo_repository(settings) -> Path:
+    """Scaffold a demo safety file on disk, as `demo/build.py` leaves it.
 
     Only the scaffold, not the hazards: what is being tested here is the wiring
     to an account and an index row, and `demo/build.py` already covers the rest
     end to end.
+
+    A function as well as a fixture because rebuilding in place - which is what
+    `--force` does - has to be exercised within a single test.
     """
     definition = yaml.safe_load(DEFINITION.read_text(encoding="utf-8"))
     target = Path(settings.SAFETY_FILE_ROOT) / "demo-bp-at-home"
@@ -55,6 +58,11 @@ def demo_repository(settings) -> Path:
         created=definition["created"],
     )
     return target
+
+
+@pytest.fixture
+def demo_repository(settings) -> Path:
+    return _build_demo_repository(settings)
 
 
 def seed(**kwargs) -> str:
@@ -173,6 +181,38 @@ class TestTheIndex:
         client.login(username=CSO_EMAIL, password="turva-demo-local")
         response = client.get("/safety-files/")
         assert b"BP@Home remote blood pressure monitoring" in response.content
+
+
+class TestReseeding:
+    """`./s/seed-demo --force` is how the demo gets rebuilt before showing it.
+
+    It rebuilds the repository from scratch, which gives it a new project id,
+    while the old index row still claims the directory. That used to fail with
+    an IntegrityError on the unique slug - on the second run, which is to say
+    the first time anyone used it in anger.
+    """
+
+    def _rebuild_in_place(self, settings) -> None:
+        shutil.rmtree(Path(settings.SAFETY_FILE_ROOT) / "demo-bp-at-home")
+
+    def test_the_demo_can_be_rebuilt_and_reseeded(self, debug, demo_repository, settings):
+        seed()
+        first = SafetyFile.objects.get(slug="demo-bp-at-home").id
+
+        self._rebuild_in_place(settings)
+        rebuilt = _build_demo_repository(settings)
+        seed()
+
+        row = SafetyFile.objects.get(slug="demo-bp-at-home")
+        assert row.id != first, "the rebuilt repository has a new identity"
+        assert str(row.id) == SafetyFileRepository(rebuilt).manifest.project_id
+        assert SafetyFile.objects.filter(slug="demo-bp-at-home").count() == 1
+
+    def test_it_says_which_row_it_removed(self, debug, demo_repository, settings):
+        seed()
+        self._rebuild_in_place(settings)
+        _build_demo_repository(settings)
+        assert "Removing the index row for the previous demo" in seed()
 
 
 class TestRunningItAgain:
