@@ -4,6 +4,17 @@ This roadmap tracks the implementation status of Turva features. Items are organ
 
 **It is much wider than the funded build.** [phase-one-scope.md](phase-one-scope.md) is the authoritative list of what ships in the funded phase; everything else here is direction. See also [core-specification.md](core-specification.md) for the domain model and [architecture-principles.md](architecture-principles.md) for the design constraints.
 
+Legend: [x] done, [~] partially done, [ ] not started. Stable identifiers are being adopted for the active delivery queue; the older domain backlog below is not yet numbered.
+
+## Active delivery queue
+
+- [x] **R1 - React profile and CSO declaration.** Share validation with Django, preserve omitted PATCH fields and clear stale manual registration checks.
+- [x] **R2 - React safety file creation.** Deliberate form save, profile defaults, private draft, attributable first version, and visible failure states.
+- [x] **R3 - Repeatable demo testing instructions.** See [demo/README.md](../demo/README.md); extend this walkthrough with every new delivered workflow.
+- [ ] **R4 - Responsive hazard log and hazard detail.** Keep both risk assessments visible on phones and expose cause, effect, harm, mitigations and history.
+- [ ] **R5 - React registration, confirmation and password reset parity.** Keep the Django flows working until replacements are verified.
+- [ ] **R6 - Hazard creation and editing.** Settle concurrency at the shared repository boundary before exposing writes; retain the committed generated log contract.
+
 ## Foundation & Infrastructure
 
 ### User Management & Authentication
@@ -50,20 +61,20 @@ This roadmap tracks the implementation status of Turva features. Items are organ
 React and Mantine, over a Django REST Framework API ([ADR 0003](adr/0003-react-frontend-over-drf.md)). The interface was briefly server-rendered with HTMX; that work is in Git history and the Django templates stay until React reaches parity with them, so there is never a window with no working interface.
 
 - [x] Django template layer, authentication pages and safety file screens - **interim**, retained until React replaces them screen by screen
-- [ ] Django REST Framework installed and configured with session authentication
-- [ ] CORS for the split-origin development setup
-- [ ] Versioned API namespace, from the first release rather than retrofitted
-- [ ] Serializers and viewsets that **call the service functions** rather than writing to models. The one rule that makes the split safe - see [ADR 0003](adr/0003-react-frontend-over-drf.md)
-- [ ] `frontend/` scaffolded: React 19, Mantine, Vite, TypeScript, at current versions
-- [ ] CSRF on the client: `X-CSRFToken` on every unsafe request. The removed frontend had none, because FastAPI did not need it, and it will not fail until the first POST
-- [ ] Turva theme ported from the removed frontend's `theme.ts` - brand purple scale, square corners
+- [x] Django REST Framework installed and configured with session authentication
+- [x] CORS for the split-origin development setup; Vite uses a same-origin proxy for normal development
+- [x] Versioned API namespace, from the first release rather than retrofitted
+- [x] Serializers and views that **call the service functions** rather than writing safety-file models directly. See [ADR 0003](adr/0003-react-frontend-over-drf.md)
+- [x] `frontend/` scaffolded: React 19, Mantine, Vite, TypeScript
+- [x] CSRF on the client: `X-CSRFToken` on every unsafe request, including anonymous login and registration
+- [x] Turva theme ported from the removed frontend's `theme.ts` - brand purple scale, square corners
 - [ ] Authentication pages (register, login, verify, password reset)
-- [ ] Profile page, including professional registration and the CSO declaration
-- [ ] Safety file list, create and detail
-- [ ] Dashboard showing the user's safety files
-- [ ] Error and empty states
+- [x] Profile page, including professional registration and the CSO declaration (R1)
+- [x] Safety file list, create and detail (R2)
+- [x] Dashboard showing the user's safety files
+- [x] Error and empty states for the delivered pages; failed saves retain drafts
 - [ ] Remove the Django templates once React covers every screen, and not before
-- [ ] Frontend lint, typecheck and test in CI
+- [x] Frontend lint, typecheck and test in CI
 - [ ] Accessibility audit against WCAG 2.2 AA with a screen reader and keyboard only
 
 ## Core Domain Features

@@ -24,6 +24,7 @@ from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
 
+from app.accounts.forms import ProfileForm
 from app.accounts.models import Regulator, User
 from app.safetyfiles.models import STANDARD_CHOICES, SafetyFile
 
@@ -65,9 +66,9 @@ class UserSerializer(serializers.ModelSerializer):
 class ProfileUpdateSerializer(serializers.Serializer):
     """Edit your own profile.
 
-    Mirrors `app.accounts.forms.ProfileForm`, including its two rules about the
-    CSO declaration, because those rules are about what a safety case may
-    claim rather than about HTML forms.
+    Adapts `ProfileForm` rather than maintaining a second implementation of
+    the declaration rules. A PATCH is merged with stored fields before that
+    full-form validation; omitted fields must not withdraw a declaration.
 
     Email is absent deliberately: it is the account identifier that ties
     historic commits to a person, so changing it needs a re-confirmation flow
@@ -79,73 +80,28 @@ class ProfileUpdateSerializer(serializers.Serializer):
     only through the admin. See TH-009 in SAFETY.md.
     """
 
-    first_name = serializers.CharField(max_length=150)
-    last_name = serializers.CharField(max_length=150)
+    first_name = serializers.CharField(max_length=50)
+    last_name = serializers.CharField(max_length=50)
     organisation = serializers.CharField(max_length=100, allow_blank=True, required=False)
     job_role = serializers.CharField(max_length=100, allow_blank=True, required=False)
     professional_regulator = serializers.ChoiceField(
         choices=Regulator.choices, allow_blank=True, required=False
     )
     registration_number = serializers.CharField(max_length=40, allow_blank=True, required=False)
-    is_cso = serializers.BooleanField(required=False, default=False)
-    confirm_cso_criteria = serializers.BooleanField(required=False, default=False)
-
-    def validate_registration_number(self, value: str) -> str:
-        """Trim, but do not impose a format.
-
-        Registration number formats differ by regulator and change over time -
-        the GMC uses seven digits, the NMC a mixed alphanumeric form - so a
-        strict pattern would reject valid registrations.
-        """
-        return value.strip()
+    is_cso = serializers.BooleanField(required=False)
+    confirm_cso_criteria = serializers.BooleanField(required=False)
 
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
-        if not attrs.get("is_cso"):
-            return attrs
-
-        # core-specification.md: a CSO is "a registered healthcare
-        # professional". Declaring the role without a registration is a
-        # contradiction, and a safety case naming an unregistered CSO would not
-        # withstand review.
-        if not (attrs.get("professional_regulator") and attrs.get("registration_number")):
-            raise serializers.ValidationError(
-                {
-                    "is_cso": (
-                        "Record your professional regulator and registration number "
-                        "before declaring that you act as a Clinical Safety Officer. "
-                        "A CSO must be a registered healthcare professional."
-                    )
-                }
-            )
-
-        # The declaration is an attestation, not an idle checkbox: it is
-        # recorded against every safety file the person creates.
-        if not attrs.get("confirm_cso_criteria"):
-            raise serializers.ValidationError(
-                {
-                    "confirm_cso_criteria": (
-                        "Confirm that you meet the criteria before declaring the role."
-                    )
-                }
-            )
-
+        data = {field: getattr(self.instance, field) for field in ProfileForm.Meta.fields}
+        data["confirm_cso_criteria"] = self.instance.is_cso
+        data.update(attrs)
+        self.profile_form = ProfileForm(data=data, instance=self.instance)
+        if not self.profile_form.is_valid():
+            raise serializers.ValidationError(dict(self.profile_form.errors))
         return attrs
 
     def update(self, instance: User, validated_data: dict[str, Any]) -> User:
-        was_cso = instance.is_cso
-        declared = bool(validated_data.pop("is_cso", False))
-        validated_data.pop("confirm_cso_criteria", None)
-
-        for field, value in validated_data.items():
-            setattr(instance, field, value)
-
-        # Through the model, so the declaration date is stamped on the
-        # transition in and cleared on the way out. Setting `is_cso` directly
-        # would leave a date against a role that is not held, or move a date
-        # that records when an assertion was actually made.
-        instance.declare_cso(declared=declared, was_declared=was_cso)
-        instance.save()
-        return instance
+        return self.profile_form.save()
 
 
 # -------------------------------------------------------------- authentication
@@ -183,8 +139,8 @@ class RegistrationSerializer(serializers.Serializer):
     """
 
     email = serializers.EmailField()
-    first_name = serializers.CharField(max_length=150)
-    last_name = serializers.CharField(max_length=150)
+    first_name = serializers.CharField(max_length=50)
+    last_name = serializers.CharField(max_length=50)
     organisation = serializers.CharField(max_length=100, allow_blank=True, required=False)
     job_role = serializers.CharField(max_length=100, allow_blank=True, required=False)
     password = serializers.CharField(write_only=True, style={"input_type": "password"})

@@ -1,4 +1,5 @@
 import { createTheme } from "@mantine/core";
+import type { CSSVariablesResolver } from "@mantine/core";
 
 /**
  * Turva's brand palette, taken from the identity used on turva.org.
@@ -80,6 +81,14 @@ export const BRAND_TEXT = TURVA_PURPLE[8];
 export const ACCENT = TURVA_YELLOW[6];
 export const ACCENT_INK = "#1a1a2e";
 
+// Form descriptions carry important qualifications (including the CSO
+// criteria). Mantine's default light-scheme dimmed grey is below 4.5:1.
+export const cssVariablesResolver: CSSVariablesResolver = (theme) => ({
+  variables: {},
+  light: { "--mantine-color-dimmed": theme.colors.gray[7] },
+  dark: {},
+});
+
 export const theme = createTheme({
   colors: {
     turva: [...TURVA_PURPLE],
@@ -91,6 +100,7 @@ export const theme = createTheme({
   // the default should not silently restyle the interface.
   primaryShade: { light: 6, dark: 7 },
   components: {
+    Anchor: { defaultProps: { c: BRAND_TEXT } },
     Button: { defaultProps: { radius: 0 } },
     TextInput: { defaultProps: { radius: 0 } },
     Select: { defaultProps: { radius: 0 } },

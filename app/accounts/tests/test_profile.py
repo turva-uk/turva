@@ -111,6 +111,26 @@ class TestEditingDetails:
 
 
 class TestProfessionalRegistration:
+    @pytest.mark.parametrize(
+        "change",
+        [
+            {"registration_number": "7654322"},
+            {"professional_regulator": Regulator.NMC},
+            {"first_name": "Anita J"},
+            {"last_name": "Smith"},
+        ],
+    )
+    def test_editing_a_checked_identity_invalidates_the_check(self, client, user, change):
+        """TH-009: applies to both interfaces through the shared ProfileForm."""
+        user.professional_regulator = Regulator.GMC
+        user.registration_number = "7654321"
+        user.registration_verified = True
+        user.save()
+        client.force_login(user)
+        client.post(reverse("accounts:profile"), {**REGISTERED, **change})
+        user.refresh_from_db()
+        assert user.registration_verified is False
+
     def test_records_a_registration(self, client, user):
         client.force_login(user)
         client.post(reverse("accounts:profile"), REGISTERED)

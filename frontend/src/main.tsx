@@ -7,7 +7,7 @@ import { BrowserRouter } from "react-router";
 
 import { App } from "./App";
 import { SessionProvider } from "./auth/SessionProvider";
-import { theme } from "./theme";
+import { cssVariablesResolver, theme } from "./theme";
 
 const root = document.getElementById("root");
 if (!root) {
@@ -16,7 +16,11 @@ if (!root) {
 
 createRoot(root).render(
   <StrictMode>
-    <MantineProvider theme={theme} defaultColorScheme="light">
+    <MantineProvider
+      theme={theme}
+      cssVariablesResolver={cssVariablesResolver}
+      defaultColorScheme="light"
+    >
       <BrowserRouter>
         <SessionProvider>
           <App />

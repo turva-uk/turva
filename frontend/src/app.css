@@ -1,0 +1,26 @@
+.skip-link {
+  position: fixed;
+  top: -100px;
+  left: 1rem;
+  z-index: 1000;
+  padding: 0.75rem;
+  background: white;
+  color: var(--mantine-color-turva-8);
+}
+
+.skip-link:focus {
+  top: 0.5rem;
+}
+
+body {
+  overflow-wrap: anywhere;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

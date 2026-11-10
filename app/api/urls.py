@@ -22,6 +22,7 @@ urlpatterns = [
     path("auth/logout/", views.LogoutView.as_view(), name="logout"),
     path("auth/register/", views.RegistrationView.as_view(), name="register"),
     path("profile/", views.ProfileView.as_view(), name="profile"),
+    path("profile/options/", views.ProfileOptionsView.as_view(), name="profile-options"),
     path("safety-files/", views.SafetyFileListView.as_view(), name="safety-file-list"),
     path(
         "safety-files/<slug:slug>/",

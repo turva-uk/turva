@@ -24,7 +24,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from app.accounts.emails import send_verification_email
-from app.accounts.models import AlreadyVerified, TokenCooldownActive
+from app.accounts.forms import ProfileForm
+from app.accounts.models import AlreadyVerified, Regulator, TokenCooldownActive
 from app.api.permissions import IsVerified
 from app.api.serializers import (
     CommitSerializer,
@@ -202,6 +203,20 @@ class ProfileView(APIView):
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
         return Response(UserSerializer(user).data)
+
+
+class ProfileOptionsView(APIView):
+    """The same regulator choices and declaration wording as the Django form."""
+
+    def get(self, request: Request) -> Response:
+        return Response(
+            {
+                "regulators": [
+                    {"value": value, "label": str(label)} for value, label in Regulator.choices
+                ],
+                "cso_criteria": str(ProfileForm.base_fields["confirm_cso_criteria"].help_text),
+            }
+        )
 
 
 # -------------------------------------------------------------- safety files

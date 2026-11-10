@@ -45,7 +45,7 @@ cp app/.env.example app/.env    # then edit as needed
 ./s/up
 ```
 
-`./s/up` opens the application for you. It is served directly by Django at <http://localhost:8000>, and through Caddy at <https://localhost> - the latter with a certificate from Caddy's internal CA, so expect a browser warning unless you have trusted that CA.
+`./s/up` opens the React interface at <http://localhost:5173>. Django's API and interim screens are at <http://localhost:8000>, and Caddy at <https://localhost> uses an internal CA. If port 8000 is occupied, set `TURVA_WEB_PORT=8010` before starting. See [Try Turva locally](demo/README.md) for demo credentials and a profile-to-safety-file testing walkthrough.
 
 ## Testing and contributing
 

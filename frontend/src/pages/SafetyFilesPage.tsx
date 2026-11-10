@@ -1,4 +1,4 @@
-import { Alert, Anchor, Box, Loader, Table, Text, Title } from "@mantine/core";
+import { Alert, Anchor, Box, Button, Group, Loader, Table, Text, Title } from "@mantine/core";
 import { Link } from "react-router";
 
 import type { SafetyFile } from "../api/types";
@@ -21,9 +21,14 @@ export function SafetyFilesPage() {
 
   return (
     <Box>
-      <Title order={1} size="h2" mb="md">
-        Your safety files
-      </Title>
+      <Group justify="space-between" mb="md">
+        <Title order={1} size="h2">
+          Your safety files
+        </Title>
+        <Button component={Link} to="/safety-files/new">
+          Create safety file
+        </Button>
+      </Group>
 
       {safetyFiles.length === 0 ? (
         <Box>

@@ -25,6 +25,9 @@
 #                           that CA.
 #
 # Set TURVA_URL to open somewhere else.
+# Set TURVA_WEB_PORT when another local service owns port 8000, for example:
+#   TURVA_WEB_PORT=8010 ./s/up -d
+# The React URL and its internal API proxy do not change.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."

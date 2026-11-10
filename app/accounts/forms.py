@@ -144,6 +144,7 @@ class ProfileForm(forms.ModelForm):
         # compared against. Reading it in the view has the same problem, because
         # the view passes `request.user` *as* the instance - they are one object.
         self._was_cso = bool(self.instance.pk) and self.instance.is_cso
+        self._checked_identity = self._registration_identity()
 
         # Someone who has already declared should not have to re-tick the
         # attestation every time they correct a typo in their job title.
@@ -212,6 +213,11 @@ class ProfileForm(forms.ModelForm):
         user = super().save(commit=False)
         declared = bool(self.cleaned_data.get("is_cso"))
 
+        # A manual check applies to the identity and registration that were
+        # checked, not to whatever the account is edited to say later. TH-009.
+        if self._registration_identity() != self._checked_identity:
+            user.registration_verified = False
+
         # `super().save()` has already set `is_cso` on the instance, so
         # `declare_cso` cannot detect the transition itself. Pass the previous
         # state explicitly rather than having it guess.
@@ -220,3 +226,14 @@ class ProfileForm(forms.ModelForm):
         if commit:
             user.save()
         return user
+
+    def _registration_identity(self) -> tuple[str, ...]:
+        return tuple(
+            getattr(self.instance, field)
+            for field in (
+                "first_name",
+                "last_name",
+                "professional_regulator",
+                "registration_number",
+            )
+        )

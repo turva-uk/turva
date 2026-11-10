@@ -61,6 +61,13 @@ class TestAccess:
 
 
 class TestEditing:
+    @pytest.mark.parametrize("field", ["first_name", "last_name"])
+    def test_names_respect_the_database_limit(self, client, user, field):
+        client.force_login(user)
+        assert patch(client, {field: "x" * 51}).status_code == 400
+        user.refresh_from_db()
+        assert getattr(user, field) != "x" * 51
+
     def test_updates_name_and_organisation(self, client, user):
         client.force_login(user)
         assert patch(client, {**BASE, "first_name": "Anita J"}).status_code == 200
@@ -78,6 +85,30 @@ class TestEditing:
 
 
 class TestProfessionalRegistration:
+    @pytest.mark.parametrize(
+        "change",
+        [
+            {"registration_number": "7654322"},
+            {"professional_regulator": Regulator.NMC},
+            {"first_name": "Anita J"},
+            {"last_name": "Smith"},
+        ],
+    )
+    def test_a_check_does_not_survive_a_changed_identity(self, client, user, change):
+        """TH-009: the new registration/person has not been checked."""
+        client.force_login(user)
+        patch(client, REGISTERED)
+        user.refresh_from_db()
+        user.registration_verified = True
+        user.save()
+        assert patch(client, change).json()["registration_verified"] is False
+
+    def test_an_unrelated_edit_preserves_a_manual_check(self, client, user):
+        client.force_login(user)
+        user.registration_verified = True
+        user.save()
+        assert patch(client, {"job_role": "Lead CSO"}).json()["registration_verified"] is True
+
     def test_records_a_registration(self, client, user):
         client.force_login(user)
         body = patch(client, REGISTERED).json()
@@ -104,6 +135,34 @@ class TestProfessionalRegistration:
 
 
 class TestCSODeclaration:
+    def test_a_partial_save_preserves_the_declaration_and_date(self, client, user):
+        client.force_login(user)
+        patch(client, AS_CSO)
+        user.refresh_from_db()
+        declared_at = user.cso_declared_at
+
+        response = patch(client, {"job_role": "Lead CSO"})
+
+        assert response.status_code == 200
+        user.refresh_from_db()
+        assert user.is_cso is True
+        assert user.cso_declared_at == declared_at
+
+    def test_cannot_remove_registration_while_retaining_the_declaration(self, client, user):
+        client.force_login(user)
+        patch(client, AS_CSO)
+        assert patch(client, {"registration_number": ""}).status_code == 400
+        user.refresh_from_db()
+        assert user.registration_number == "7654321"
+        assert user.is_cso is True
+
+    def test_can_withdraw_with_a_partial_save(self, client, user):
+        client.force_login(user)
+        patch(client, AS_CSO)
+        response = patch(client, {"is_cso": False})
+        assert response.status_code == 200
+        assert response.json()["cso_declared_at"] is None
+
     def test_declaring_records_it_with_a_date(self, client, user):
         client.force_login(user)
         assert patch(client, AS_CSO).status_code == 200
@@ -170,3 +229,14 @@ class TestCSODeclaration:
         assert (
             patch(client, {**BASE, "is_cso": True, "confirm_cso_criteria": True}).status_code == 400
         )
+
+
+def test_profile_options_use_the_shared_declaration_and_regulators(client, user):
+    from app.accounts.forms import ProfileForm
+
+    client.force_login(user)
+    body = client.get(reverse("v1:profile-options")).json()
+    assert body["cso_criteria"] == ProfileForm.base_fields["confirm_cso_criteria"].help_text
+    assert body["regulators"] == [
+        {"value": value, "label": str(label)} for value, label in Regulator.choices
+    ]
