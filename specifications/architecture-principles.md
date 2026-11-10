@@ -5,7 +5,7 @@ Turva's architecture is guided by principles, not specific technologies. Impleme
 Two decisions are load-bearing enough that the rest of this document assumes them:
 
 - **Git is the system of record.** Each Clinical Safety Management File is its own Git repository. The database is a rebuildable index over those repositories. See [Git Is the System of Record](#git-is-the-system-of-record).
-- **The application is a monolith.** One Django process renders the pages, enforces the rules, and performs the Git operations. There is no separate frontend and no general-purpose HTTP API. See [ADR 0002](adr/0002-monolith-over-api-first.md).
+- **The safety rules live below the HTTP layer.** A React interface talks to a Django REST Framework API, and that API calls the services that own the invariants rather than reimplementing them. See [ADR 0003](adr/0003-react-frontend-over-drf.md).
 
 ## Core Principles
 
@@ -32,22 +32,22 @@ Interface, business rules, and storage are separate responsibilities inside one 
 
 **Why**: These boundaries are about where a rule lives, not about how many processes run. Keeping the safety rules in a library below the view layer means they cannot be bypassed by a handler that forgets to call something, and it is what let the application move from FastAPI to Django without touching them.
 
-Deployment is deliberately _not_ separated. One process serves everything. Splitting it would add a boundary for safety rules to leak across and audit records to go missing at, in exchange for scaling we do not need. See [ADR 0002](adr/0002-monolith-over-api-first.md).
+Deployment is now split: a React application and a Django API ([ADR 0003](adr/0003-react-frontend-over-drf.md)). That split is a boundary safety rules could leak across, which is why the rules do not live near it - they live in `safety_file/` and in the service functions, beneath whatever serves HTTP. A boundary is only dangerous if something important is balanced on it.
 
-### 3. One Application, Server-Rendered
+### 3. A JSON API Over Services That Own the Rules
 
-The application renders its own HTML. There is no separate frontend and no general-purpose HTTP API:
+The interface is a React single-page application; Django REST Framework serves it:
 
-- Pages are Django templates, progressively enhanced with HTMX
-- HTMX endpoints return HTML fragments coupled to the templates that request them, and may change without notice. They are interface, not API
+- The API is versioned from its first release, and documented
+- **Viewsets and serializers call the service functions.** They do not write to the models directly
+- Authentication is session-based, with CSRF enforced on unsafe methods. Not JWT
 - `/healthz/` returns JSON for monitoring. Nothing is promised about its shape
-- Integration in phase one is by export: the safety case PDF, and the repository itself, which is a `git clone` away
 
-**Why**: This replaces an "API-First Design" principle that was written when a React single-page application was the only consumer. That frontend is gone, and the principle outlived its beneficiary - it would have required building and versioning a JSON API during a twelve-week funded build, for clients nobody asked for.
+**Why**: this reinstates an API withdrawn in [ADR 0002](adr/0002-monolith-over-api-first.md), and the reinstatement comes with the condition that ADR made its central promise - that an HTTP layer over the core "cannot weaken" the safety rules, _because the core holds them_.
 
-The extensibility it was protecting is better protected where it now sits. `safety_file/` is a framework-free library that owns the safety invariants, so if a second client is ever funded, an HTTP layer goes over the same core - and because the core holds the rules, that layer cannot weaken them. An API is a surface a handler can forget to validate; a library that owns its invariants is not.
+That promise only holds if the API respects it. `app/safetyfiles/services.py` owns the ordering that writes a repository before its index row, and the rule that a failed index write leaves the repository intact. A serializer that creates a `SafetyFile` row directly would produce an index entry for a repository that was never written - a safety file that exists in the database and nowhere else, which is the exact inversion of "Git is the system of record".
 
-Federation does not need a JSON API either: its vocabulary is fork, pull request, diff and lineage, which is Git. See [ADR 0002](adr/0002-monolith-over-api-first.md) for the full reasoning and the review trigger.
+An API is a surface a handler can forget to validate. The defence is that the handler is thin and the library beneath it is not.
 
 ### 4. Auditability by Default
 
@@ -171,7 +171,8 @@ Security features are on by default, not opt-in:
 - HTTPS required (HTTP redirects to HTTPS), with HSTS outside development
 - Sessions have reasonable expiration (not infinite), and session and CSRF cookies are secure and HTTP-only
 - Passwords require minimum strength, and are hashed with Argon2
-- CSRF protection on every state-changing request. A same-origin monolith needs this rather than the CORS policy a separate frontend required
+- CSRF protection on every state-changing request. DRF's `SessionAuthentication` enforces it, and the client must send `X-CSRFToken`
+- CORS restricted to known origins, because the interface is served separately in development
 
 **Why**: Users shouldn't have to opt into security.
 
@@ -351,7 +352,7 @@ LLM integration supports multiple providers:
 - Because the library owns the safety invariants, a new interface cannot weaken them
 - It is testable with no database, no server and no container, which is why that suite runs in two seconds
 
-**Why**: This replaces an "API Extensibility" principle about versioned endpoints and deprecation timelines, which had no referent once API-first was withdrawn ([ADR 0002](adr/0002-monolith-over-api-first.md)).
+**Why**: This is what makes a second interface cheap, and it has now been tested twice - the library survived FastAPI to Django, and it survives the return of a React frontend ([ADR 0003](adr/0003-react-frontend-over-drf.md)) untouched. The API versioning that ADR 0002 withdrew returns with it.
 
 It has already earned its keep: the library survived the move from FastAPI to Django untouched. The constraint is worth defending for that reason alone - the next time the framework question is reopened, this is the part that does not need reconsidering.
 
@@ -366,7 +367,7 @@ A safety file records the schema version it was written with, in `.turva/manifes
 
 ---
 
-These principles guide implementation choices. Specific technologies - Django, HTMX, PostgreSQL, Zensical, Caddy - are current implementations, not architectural requirements. The framework has already changed once ([ADR 0001](adr/0001-use-django-for-phase-one.md)), which is the argument for writing principles rather than a stack.
+These principles guide implementation choices. Specific technologies - Django, DRF, React, Mantine, PostgreSQL, Zensical, Caddy - are current implementations, not architectural requirements. The framework has changed once ([ADR 0001](adr/0001-use-django-for-phase-one.md)) and the interface twice ([ADR 0002](adr/0002-monolith-over-api-first.md), [ADR 0003](adr/0003-react-frontend-over-drf.md)), which is the argument for writing principles rather than a stack - and the reason the parts that did not have to change are the parts worth protecting.
 
 Two things are not implementation details:
 

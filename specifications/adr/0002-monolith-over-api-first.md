@@ -1,6 +1,10 @@
 # ADR 0002: A monolith, not an API-first platform
 
-- **Status**: Accepted
+> **Superseded.** The team decided in November 2026 to keep React and Mantine after all, with a Django REST Framework API behind them. See [ADR 0003](0003-react-frontend-over-drf.md).
+>
+> Kept rather than deleted, and worth reading: its reasoning about _where_ the safety rules live still holds, and the review trigger it set out is the one that fired. The sentence that mattered - "if a second client is ever funded, an HTTP layer goes over the same core, and because the core holds the rules, that layer cannot weaken them" - became the central design constraint of its successor.
+
+- **Status**: Superseded by [ADR 0003](0003-react-frontend-over-drf.md) on 2026-11-10
 - **Date**: 2026-10-09
 - **Decision-maker**: Marcus Baw
 - **Supersedes**: the "API-First Design" principle in [architecture-principles.md](../architecture-principles.md)

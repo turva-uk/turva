@@ -10,9 +10,9 @@
 4. Start the dockerised development environment:
    `./s/up`
 
-The application is served through Caddy at <http://localhost>. The API is also directly available at <http://localhost:8000>, where it serves its OpenAPI UI in development only.
+The application is served through Caddy at <http://localhost>, and directly by Django at <http://localhost:8000>. `./s/up` opens it for you.
 
-There is no separate frontend server and no frontend build. Django renders the pages from templates in `app/templates/`, progressively enhanced with HTMX, and the development server reloads on both Python and template changes.
+The interface is moving to React and Mantine over a Django REST Framework API ([ADR 0003](specifications/adr/0003-react-frontend-over-drf.md)). Until React covers every screen, Django keeps rendering the templates in `app/templates/` and the development server reloads on both Python and template changes. The templates are interim, not an alternative interface to maintain in parallel - they come out when React replaces them, screen by screen.
 
 ## Services
 

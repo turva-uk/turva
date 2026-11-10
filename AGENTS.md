@@ -18,27 +18,29 @@ This file is the entry point for AI coding agents. Read it before changing anyth
 
 ## Layout
 
-| Path                     | What it is                                                                                           |
-| ------------------------ | ---------------------------------------------------------------------------------------------------- |
-| `manage.py`              | Django entry point, at the root so `app` and `safety_file` are importable siblings                   |
-| `app/`                   | The Django project: `config/` settings and urls, `accounts/` users and auth, `templates/`, `static/` |
-| `safety_file/`           | The Git storage layer. No framework imports, by design                                               |
-| `safety-file-templates/` | Templates a new safety file is scaffolded from. Not Django templates                                 |
-| `demo/`                  | The fictional demo safety file, built through the production storage layer                           |
-| `docs/`                  | The Zensical documentation site                                                                      |
+| Path                     | What it is                                                                                               |
+| ------------------------ | -------------------------------------------------------------------------------------------------------- |
+| `manage.py`              | Django entry point, at the root so `app` and `safety_file` are importable siblings                       |
+| `app/`                   | The Django project: `config/` settings and urls, `accounts/` users and auth, `safetyfiles/`, the DRF API |
+| `frontend/`              | The React + Mantine single-page interface, built with Vite                                               |
+| `safety_file/`           | The Git storage layer. No framework imports, by design                                                   |
+| `safety-file-templates/` | Templates a new safety file is scaffolded from. Not Django templates                                     |
+| `demo/`                  | The fictional demo safety file, built through the production storage layer                               |
+| `docs/`                  | The Zensical documentation site                                                                          |
 
-[ADR 0001](specifications/adr/0001-use-django-for-phase-one.md) records why this is Django. The FastAPI implementation it replaced is in Git history.
+[ADR 0001](specifications/adr/0001-use-django-for-phase-one.md) records why this is Django. [ADR 0003](specifications/adr/0003-react-frontend-over-drf.md) records the return to a React frontend over a DRF API, reversing [ADR 0002](specifications/adr/0002-monolith-over-api-first.md). The FastAPI implementation and the HTMX one are both in Git history.
 
 ## Core Invariants
 
 - **Git is the system of record.** Each Clinical Safety Management File is its own Git repository on disk holding a Zensical site. PostgreSQL is an index over those repositories and must be rebuildable from them. No safety evidence may exist only in a database table. If you are adding a table as the authoritative home for safety content, stop and re-read the architecture principles.
 - **Risk level is derived, never entered.** Severity and likelihood are captured; risk level is calculated. No code path may let a user set a risk level directly. This logic requires complete test coverage - see TH-008 in `SAFETY.md`.
 - **The audit trail is attributable and append-only.** Changes create new commits attributed to the acting user. Never rewrite the history of a safety file repository.
-- **Session-based auth, not JWT.** `django.contrib.sessions` with the database backend.
+- **The API calls services, never models directly.** A DRF serializer whose `create()` touches `SafetyFile.objects` bypasses the ordering that writes the repository before the index row, and produces a row for a safety file that was never written. Call `create_safety_file()`, `declare_cso()`, and the storage layer. See [ADR 0003](specifications/adr/0003-react-frontend-over-drf.md).
+- **Session-based auth, not JWT.** `django.contrib.sessions` with the database backend, and DRF's `SessionAuthentication`. CSRF is enforced on unsafe methods; the client sends `X-CSRFToken`.
 - **Email config is `MAILERS`, not `EMAIL_*`.** Django 6.1 deprecated the latter; defining both raises.
 - **The container runs as uid 1000, not root.** Do not revert it: as root it wrote root-owned `makemigrations` output into the bind-mounted source tree.
-- **Generated files are not hand-edited.** `api/requirements*.txt` and `docs/requirements.txt` are locks; edit the `.in` files and run `s/lock`. `docs/hazards/index.md` inside a safety file is generated on every save.
-- **`safety_file/` imports no web framework.** That is what makes it testable without a server and what let it survive the FastAPI-to-Django change. Keep it that way.
+- **Generated files are not hand-edited.** `app/requirements*.txt` and `docs/requirements.txt` are locks; edit the `.in` files and run `s/lock`. `docs/hazards/index.md` inside a safety file is generated on every save.
+- **`safety_file/` imports no web framework.** That is what makes it testable without a server, and it has now survived two interface changes and one framework change untouched. Keep it that way.
 - **Commit author is always explicit.** Never let Git fall back to global config, `$USER`, or a service account for a safety file commit.
 - **Prettier must not touch `.html`.** Jinja2 templates live there and Prettier mangles `{% %}` and `{{ }}`. Do not add `html` to `types_or` in `.pre-commit-config.yaml`.
 - **British English.** cspell runs with `en-GB`.

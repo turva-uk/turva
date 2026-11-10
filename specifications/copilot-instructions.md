@@ -29,16 +29,18 @@ This is not a conventional database-backed CRUD application. If you are about to
 
 ### The second thing
 
-**It is a monolith, deliberately.** One Django process renders the HTML, enforces the rules and runs Git. There is no separate frontend and no general-purpose HTTP API - API-first was withdrawn as a principle in [ADR 0002](adr/0002-monolith-over-api-first.md).
+**The API layer goes over the services, never around them.** A React interface talks to Django REST Framework ([ADR 0003](adr/0003-react-frontend-over-drf.md)), and that HTTP layer must call the existing service functions rather than reimplement what they do.
 
-So: do not add a serialisation layer, a JSON representation of a safety artefact, or a versioned endpoint. HTMX views return HTML fragments, not JSON. `/healthz/` is the one JSON response and it is a monitoring probe, not a contract.
+`app/safetyfiles/services.py` owns the ordering that writes the repository before the index row, the rule that a failed index write does **not** delete the repository, and slug allocation that checks the filesystem as well as the database. `User.declare_cso()` owns the declaration date. A `ModelSerializer` with a default `create()` bypasses all of it and produces an index row for a repository that was never written.
 
-If a genuine second consumer appears, the answer is an HTTP layer over `safety_file`, and that is a decision to record in an ADR rather than to start one endpoint at a time.
+So: if you are writing a serializer whose `create()` or `update()` touches `SafetyFile.objects` directly, stop. Call the service.
+
+Authentication is session-based, and DRF's `SessionAuthentication` enforces CSRF on unsafe methods - the client must send `X-CSRFToken`. **Not JWT.**
 
 ### Current Stack
 
-- **Interface**: Django templates, progressively enhanced with HTMX (vendored, not from a CDN). There is no separate frontend build
-- **Backend**: Django 6.1 + PostgreSQL via psycopg 3
+- **Interface**: React 19 + Mantine, built with Vite ([ADR 0003](adr/0003-react-frontend-over-drf.md)). Django templates still serve the screens React has not yet reached, and stay until it does
+- **Backend**: Django 6.1 + Django REST Framework + PostgreSQL via psycopg 3
 - **Safety file storage**: Git repositories on disk, each containing a Zensical site
 - **Document output**: Zensical build, then WeasyPrint over the built HTML for PDF
 - **Infrastructure**: Docker Compose + Caddy reverse proxy

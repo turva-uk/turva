@@ -47,16 +47,23 @@ This roadmap tracks the implementation status of Turva features. Items are organ
 
 ### Interface Infrastructure
 
-The React/Mantine/Vite frontend was removed to avoid building every screen twice. Django templates, progressively enhanced with HTMX, replace it.
+React and Mantine, over a Django REST Framework API ([ADR 0003](adr/0003-react-frontend-over-drf.md)). The interface was briefly server-rendered with HTMX; that work is in Git history and the Django templates stay until React reaches parity with them, so there is never a window with no working interface.
 
-- [x] Removed React, Mantine, Vite, Storybook and the separate frontend build
-- [x] Django template layer and base layout
-- [x] HTMX vendored and served from the application rather than a CDN
-- [x] Authentication pages (register, login, verify, password reset)
-- [x] Hand-written stylesheet, no utility framework
-- [ ] HTMX partial-response conventions, once a view needs them
+- [x] Django template layer, authentication pages and safety file screens - **interim**, retained until React replaces them screen by screen
+- [ ] Django REST Framework installed and configured with session authentication
+- [ ] CORS for the split-origin development setup
+- [ ] Versioned API namespace, from the first release rather than retrofitted
+- [ ] Serializers and viewsets that **call the service functions** rather than writing to models. The one rule that makes the split safe - see [ADR 0003](adr/0003-react-frontend-over-drf.md)
+- [ ] `frontend/` scaffolded: React 19, Mantine, Vite, TypeScript, at current versions
+- [ ] CSRF on the client: `X-CSRFToken` on every unsafe request. The removed frontend had none, because FastAPI did not need it, and it will not fail until the first POST
+- [ ] Turva theme ported from the removed frontend's `theme.ts` - brand purple scale, square corners
+- [ ] Authentication pages (register, login, verify, password reset)
+- [ ] Profile page, including professional registration and the CSO declaration
+- [ ] Safety file list, create and detail
 - [ ] Dashboard showing the user's safety files
 - [ ] Error and empty states
+- [ ] Remove the Django templates once React covers every screen, and not before
+- [ ] Frontend lint, typecheck and test in CI
 - [ ] Accessibility audit against WCAG 2.2 AA with a screen reader and keyboard only
 
 ## Core Domain Features
@@ -272,11 +279,11 @@ here is about the formats people ask for on top of that.
 - [ ] Export safety case (Markdown) - already true: the repository _is_ Markdown
 - [ ] Import hazard log
 - [ ] Webhook support
-- [ ] HTTP API for external integrations. **Deliberately deferred**, not merely
-      unscheduled: API-first was withdrawn as a principle in
-      [ADR 0002](adr/0002-monolith-over-api-first.md). Build it when a named
-      consumer is funded, over `safety_file`, versioned from its first release -
-      and revisit the ADR rather than adding one endpoint at a time
+- [ ] HTTP API for **external** integrations. Distinct from the API serving
+      Turva's own interface ([ADR 0003](adr/0003-react-frontend-over-drf.md)):
+      that one has a single known consumer and may change with it, while a
+      third-party API is a contract with deprecation obligations. Build it when
+      a named external consumer is funded
 
 ## Safety File Storage
 
@@ -354,7 +361,7 @@ Each Clinical Safety Management File is a Git repository on disk holding a Zensi
 
 Speech-to-text for long free-text fields (hazard description, mitigation rationale, safety case narrative, meeting notes) where typing is the bottleneck. Run entirely in the browser so no audio or transcript leaves the device, following the pattern behind Discourse's bundled Live plugin's live captions: a quantized NVIDIA Parakeet ASR model via `onnxruntime-web` on WebGPU. See the writeup queued in [`pacharanero/house-style`'s roadmap](https://github.com/pacharanero/house-style/blob/main/roadmap.md) once it lands, and the local-inference principle already stated in [llm-strategy.md](llm-strategy.md#privacy-and-confidentiality).
 
-- [ ] Evaluate `parakeet.js` (MIT, ONNX Runtime Web/WebGPU) or an equivalent library against Turva's no-build-pipeline constraint (HTMX plus vendored JS, no bundler today)
+- [ ] Evaluate `parakeet.js` (MIT, ONNX Runtime Web/WebGPU) or an equivalent library. The no-bundler constraint that shaped this item is gone now the frontend is built with Vite, which makes it easier rather than harder
 - [ ] Dictation control on long-text fields (hazard description, mitigation rationale, safety case narrative)
 - [ ] Clear recording/listening state with a visible stop control; no silent background listening
 - [ ] Graceful fallback when WebGPU is unavailable - typing remains the baseline, dictation is additive
@@ -475,8 +482,9 @@ access path exists.
 - [x] README
 - [x] Architecture decision records ([adr/](adr/))
 - [x] Generated reference documentation for the storage layer
-- [ ] API documentation (OpenAPI/Swagger) - nothing to document while there is
-      no API; see [ADR 0002](adr/0002-monolith-over-api-first.md)
+- [ ] API documentation (OpenAPI/Swagger). There is an API again
+      ([ADR 0003](adr/0003-react-frontend-over-drf.md)), and DRF generates a
+      schema, so this is closer to free than it looks
 - [ ] User guide
 - [ ] Administrator guide
 - [ ] Developer guide
@@ -568,7 +576,7 @@ access path exists.
 
 ---
 
-**Last Updated:** 10 October 2026
+**Last Updated:** 10 November 2026
 **Current Phase:** Funded phase one - see [Phase One Scope](phase-one-scope.md)
 **Next Milestone:** Hazard creation and editing, then the Zensical/WeasyPrint PDF
 
