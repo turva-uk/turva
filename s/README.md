@@ -38,6 +38,17 @@ Restarts all services, or one named service.
 
 Follows logs for all services, or one named service.
 
+### `./s/mail`
+
+Decodes the latest account email from the local console backend into `.private/mail/latest.html`, without printing its account link. Refuses a non-DEBUG or non-console stack. The preview may contain a bearer link: do not share it.
+
+```bash
+./s/mail --open          # preview the latest development email in a browser
+./s/mail --since 2h      # include older messages
+```
+
+See [the demo testing walkthrough](../demo/README.md) for registration, confirmation and password reset testing without a real mailbox.
+
 ### `./s/clean`
 
 Removes this project's containers and volumes. **Destroys the local database**, so migrations need re-running afterwards.

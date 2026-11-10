@@ -175,6 +175,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     )
     verification_token = models.CharField(max_length=100, blank=True, default="")
     verification_token_created_at = models.DateTimeField(null=True, blank=True)
+    verification_last_sent_at = models.DateTimeField(null=True, blank=True)
 
     date_joined = models.DateTimeField(_("date joined"), default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
@@ -255,7 +256,8 @@ class User(AbstractBaseUser, PermissionsMixin):
         issued_at = self.verification_token_created_at
         now = timezone.now()
 
-        if issued_at is not None and now - issued_at < VERIFICATION_TOKEN_COOLDOWN:
+        last_sent = self.verification_last_sent_at or issued_at
+        if last_sent is not None and now - last_sent < VERIFICATION_TOKEN_COOLDOWN:
             raise TokenCooldownActive(
                 "A verification email was sent recently. Please wait before requesting another."
             )
@@ -263,7 +265,17 @@ class User(AbstractBaseUser, PermissionsMixin):
         if not self.verification_token or issued_at is None or self.is_token_expired:
             self.verification_token = secrets.token_urlsafe(48)
             self.verification_token_created_at = now
-            self.save(update_fields=["verification_token", "verification_token_created_at"])
+        # A reused token keeps its original expiry, but each resend starts a
+        # fresh cooldown. Using its creation time for both let the third and
+        # all subsequent requests bypass the cooldown after ten minutes.
+        self.verification_last_sent_at = now
+        self.save(
+            update_fields=[
+                "verification_token",
+                "verification_token_created_at",
+                "verification_last_sent_at",
+            ]
+        )
 
         return self.verification_token
 
@@ -285,6 +297,8 @@ class User(AbstractBaseUser, PermissionsMixin):
         wrong, empty or expired. Already-verified users return True, because the
         caller's goal - a verified address - is satisfied.
         """
+        if not self.is_active:
+            return False
         if self.is_verified:
             return True
 
@@ -299,7 +313,13 @@ class User(AbstractBaseUser, PermissionsMixin):
         self.is_verified = True
         self.verification_token = ""
         self.verification_token_created_at = None
+        self.verification_last_sent_at = None
         self.save(
-            update_fields=["is_verified", "verification_token", "verification_token_created_at"]
+            update_fields=[
+                "is_verified",
+                "verification_token",
+                "verification_token_created_at",
+                "verification_last_sent_at",
+            ]
         )
         return True

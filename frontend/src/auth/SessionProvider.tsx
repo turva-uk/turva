@@ -17,13 +17,15 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 
 import { ApiError, api } from "../api/client";
-import type { Session, User } from "../api/types";
+import type { RegistrationInput, Session, User } from "../api/types";
 import { SessionContext } from "./sessionContext";
 import type { SessionValue } from "./sessionContext";
 
 export function SessionProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [signOutError, setSignOutError] = useState<string | null>(null);
+  const [signingOut, setSigningOut] = useState(false);
 
   const read = useCallback(async () => {
     try {
@@ -54,23 +56,50 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const signIn = useCallback(async (email: string, password: string) => {
     const session = await api.post<Session>("/auth/login/", { email, password });
     setUser(session.user);
+    setSignOutError(null);
+  }, []);
+
+  const register = useCallback(async (details: RegistrationInput) => {
+    const session = await api.post<Session & { confirmation_email_sent: boolean }>(
+      "/auth/register/",
+      details,
+    );
+    setUser(session.user);
+    setSignOutError(null);
+    return session.confirmation_email_sent;
   }, []);
 
   const signOut = useCallback(async () => {
+    setSigningOut(true);
+    setSignOutError(null);
     try {
       await api.post<Session>("/auth/logout/");
+      setUser(null);
     } catch (error) {
-      // Signing out locally regardless. If the request failed because the
-      // session was already gone, the user's intent is satisfied; if it failed
-      // for another reason, leaving them apparently signed in is worse.
-      if (!(error instanceof ApiError)) throw error;
+      // Never claim a logout succeeded while the server session may still be
+      // usable on a shared workstation. Keep the user visible and offer retry.
+      setSignOutError(
+        error instanceof ApiError
+          ? error.message
+          : "Could not sign out. Please try again before leaving this computer.",
+      );
+    } finally {
+      setSigningOut(false);
     }
-    setUser(null);
   }, []);
 
   const value = useMemo<SessionValue>(
-    () => ({ user, loading, signIn, signOut, refresh: read }),
-    [user, loading, signIn, signOut, read],
+    () => ({
+      user,
+      loading,
+      signIn,
+      register,
+      signOut,
+      signOutError,
+      signingOut,
+      refresh: read,
+    }),
+    [user, loading, signIn, register, signOut, signOutError, signingOut, read],
   );
 
   return <SessionContext value={value}>{children}</SessionContext>;

@@ -366,12 +366,13 @@ class TestResendVerification:
 
         The account exists and the token is issued; they can try again.
         """
-        from app.accounts import views
 
         def explode(*args, **kwargs):
             raise OSError("connection refused")
 
-        monkeypatch.setattr(views, "send_verification_email", explode)
+        from app.accounts import services
+
+        monkeypatch.setattr(services, "send_verification_email", explode)
         client.force_login(unverified_user)
         response = client.post(reverse("accounts:verify_resend"), follow=True)
         assert response.status_code == 200

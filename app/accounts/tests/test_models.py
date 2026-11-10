@@ -102,6 +102,18 @@ def user(db) -> User:
 
 
 class TestIssuingVerificationTokens:
+    def test_each_resend_starts_a_new_cooldown_without_extending_expiry(self, user):
+        with time_machine.travel(timezone.now(), tick=False) as traveller:
+            first = user.issue_verification_token()
+            issued_at = user.verification_token_created_at
+            traveller.shift(VERIFICATION_TOKEN_COOLDOWN + timedelta(seconds=1))
+            assert user.issue_verification_token() == first
+            user.refresh_from_db()
+            assert user.verification_token_created_at == issued_at
+            assert user.verification_last_sent_at > issued_at
+            with pytest.raises(TokenCooldownActive):
+                user.issue_verification_token()
+
     def test_first_call_issues_a_token(self, user):
         token = user.issue_verification_token()
         assert token
@@ -176,6 +188,12 @@ class TestTokenExpiry:
 
 
 class TestVerifyingEmail:
+    def test_inactive_accounts_cannot_be_verified(self, user):
+        token = user.issue_verification_token()
+        user.is_active = False
+        user.save()
+        assert user.verify_email(token) is False
+
     def test_correct_token_verifies(self, user):
         token = user.issue_verification_token()
         assert user.verify_email(token) is True

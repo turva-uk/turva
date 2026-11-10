@@ -20,11 +20,9 @@ from __future__ import annotations
 from typing import Any
 
 from django.contrib.auth import authenticate
-from django.contrib.auth.password_validation import validate_password
-from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
 
-from app.accounts.forms import ProfileForm
+from app.accounts.forms import ProfileForm, RegistrationForm
 from app.accounts.models import Regulator, User
 from app.safetyfiles.models import STANDARD_CHOICES, SafetyFile
 from safety_file.risk import risk_level_label
@@ -112,7 +110,9 @@ class LoginSerializer(serializers.Serializer):
     """Credentials for a session login."""
 
     email = serializers.EmailField()
-    password = serializers.CharField(write_only=True, style={"input_type": "password"})
+    password = serializers.CharField(
+        write_only=True, trim_whitespace=False, style={"input_type": "password"}
+    )
 
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
         user = authenticate(
@@ -134,9 +134,8 @@ class LoginSerializer(serializers.Serializer):
 class RegistrationSerializer(serializers.Serializer):
     """Create an account.
 
-    Mirrors `app.accounts.forms.RegistrationForm`. The password validators are
-    Django's configured set, so the rules the API enforces are the rules the
-    rest of the application enforces rather than a second opinion.
+    Adapts `RegistrationForm`, including password checks against the proposed
+    name and email. Validating the password alone skips those checks.
     """
 
     email = serializers.EmailField()
@@ -144,29 +143,41 @@ class RegistrationSerializer(serializers.Serializer):
     last_name = serializers.CharField(max_length=50)
     organisation = serializers.CharField(max_length=100, allow_blank=True, required=False)
     job_role = serializers.CharField(max_length=100, allow_blank=True, required=False)
-    password = serializers.CharField(write_only=True, style={"input_type": "password"})
+    password = serializers.CharField(
+        write_only=True, trim_whitespace=False, style={"input_type": "password"}
+    )
 
-    def validate_email(self, value: str) -> str:
-        if User.objects.filter(email__iexact=value).exists():
-            raise serializers.ValidationError("An account already exists for that email address.")
-        return value
-
-    def validate_password(self, value: str) -> str:
-        try:
-            validate_password(value)
-        except DjangoValidationError as exc:
-            raise serializers.ValidationError(list(exc.messages)) from exc
-        return value
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        self.registration_form = RegistrationForm(
+            data={**attrs, "password1": attrs["password"], "password2": attrs["password"]}
+        )
+        if not self.registration_form.is_valid():
+            raise serializers.ValidationError(
+                {
+                    "password" if key.startswith("password") else key: list(messages)
+                    for key, messages in self.registration_form.errors.items()
+                }
+            )
+        return attrs
 
     def create(self, validated_data: dict[str, Any]) -> User:
-        return User.objects.create_user(
-            email=validated_data["email"],
-            password=validated_data["password"],
-            first_name=validated_data["first_name"],
-            last_name=validated_data["last_name"],
-            organisation=validated_data.get("organisation", ""),
-            job_role=validated_data.get("job_role", ""),
-        )
+        return self.registration_form.save()
+
+
+class VerificationSerializer(serializers.Serializer):
+    user_id = serializers.UUIDField()
+    token = serializers.CharField(max_length=200, trim_whitespace=False)
+
+
+class PasswordResetRequestSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+
+class PasswordResetConfirmSerializer(serializers.Serializer):
+    uid = serializers.CharField(max_length=200)
+    token = serializers.CharField(max_length=200, trim_whitespace=False)
+    new_password1 = serializers.CharField(write_only=True, trim_whitespace=False)
+    new_password2 = serializers.CharField(write_only=True, trim_whitespace=False)
 
 
 # -------------------------------------------------------------- safety files

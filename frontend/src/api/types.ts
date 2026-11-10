@@ -36,6 +36,14 @@ export interface Session {
   user: User | null;
 }
 
+export interface RegistrationInput {
+  email: string;
+  first_name: string;
+  last_name: string;
+  organisation: string;
+  password: string;
+}
+
 export interface SafetyFile {
   id: string;
   slug: string;

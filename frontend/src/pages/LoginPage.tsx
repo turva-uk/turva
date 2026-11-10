@@ -1,5 +1,6 @@
 import {
   Alert,
+  Anchor,
   Box,
   Button,
   PasswordInput,
@@ -10,7 +11,7 @@ import {
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useState } from "react";
-import { useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router";
 
 import { ApiError } from "../api/client";
 import { useSession } from "../auth/useSession";
@@ -79,6 +80,15 @@ export function LoginPage() {
           </Button>
         </Stack>
       </form>
+
+      <Stack gap="xs" mt="md">
+        <Anchor component={Link} to="/register">
+          Create an account
+        </Anchor>
+        <Anchor component={Link} to="/password-reset">
+          Forgot your password?
+        </Anchor>
+      </Stack>
 
       <Text size="sm" c="dimmed" mt="lg">
         Turva manages clinical safety evidence. It does not make clinical decisions and does not

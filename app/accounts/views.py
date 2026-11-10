@@ -15,9 +15,9 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_http_methods
 
-from app.accounts.emails import send_verification_email
 from app.accounts.forms import ProfileForm, RegistrationForm
 from app.accounts.models import AlreadyVerified, TokenCooldownActive, User
+from app.accounts.services import send_confirmation
 
 
 def register(request: HttpRequest) -> HttpResponse:
@@ -122,7 +122,7 @@ def _try_send_verification(request: HttpRequest, user: User) -> None:
     the registration form loses the submission.
     """
     try:
-        token = user.issue_verification_token()
+        send_confirmation(user)
     except AlreadyVerified:
         messages.info(request, "Your email address is already confirmed.")
         return
@@ -130,8 +130,6 @@ def _try_send_verification(request: HttpRequest, user: User) -> None:
         messages.warning(request, str(exc))
         return
 
-    try:
-        send_verification_email(user, token)
     except OSError:
         # Covers SMTP and socket failures, which all derive from OSError.
         messages.error(

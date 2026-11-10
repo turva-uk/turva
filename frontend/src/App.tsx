@@ -10,6 +10,9 @@ import { SafetyFilesPage } from "./pages/SafetyFilesPage";
 import { ProfilePage } from "./pages/ProfilePage";
 import { SafetyFileCreatePage } from "./pages/SafetyFileCreatePage";
 import { HazardDetailPage } from "./pages/HazardDetailPage";
+import { RegistrationPage } from "./pages/RegistrationPage";
+import { VerificationConfirmPage, VerificationNoticePage } from "./pages/VerificationPage";
+import { PasswordResetConfirmPage, PasswordResetRequestPage } from "./pages/PasswordResetPage";
 import "./app.css";
 
 /**
@@ -19,17 +22,24 @@ import "./app.css";
  * same would redirect a signed-in user to the login screen for the fraction of
  * a second before the session call returns.
  */
-function RequireSession({ children }: { children: ReactNode }) {
+function RequireSession({
+  children,
+  verified = false,
+}: {
+  children: ReactNode;
+  verified?: boolean;
+}) {
   const { user, loading } = useSession();
   const location = useLocation();
 
   if (loading) return <Loader aria-label="Checking your session" />;
   if (!user) return <Navigate to="/login" replace state={{ from: location }} />;
+  if (verified && !user.is_verified) return <Navigate to="/verify-email" replace />;
   return <>{children}</>;
 }
 
 function Header() {
-  const { user, signOut } = useSession();
+  const { user, signOut, signingOut } = useSession();
 
   return (
     <Group
@@ -56,7 +66,7 @@ function Header() {
           <Anchor component={Link} to="/profile" c="white">
             Your profile
           </Anchor>
-          <Button variant="white" onClick={() => void signOut()}>
+          <Button variant="white" loading={signingOut} onClick={() => void signOut()}>
             Sign out
           </Button>
         </Group>
@@ -66,7 +76,7 @@ function Header() {
 }
 
 export function App() {
-  const { user, loading } = useSession();
+  const { user, loading, signOutError } = useSession();
 
   return (
     <AppShell header={{ height: { base: 112, sm: 64 } }} padding="md">
@@ -79,13 +89,56 @@ export function App() {
 
       <AppShell.Main id="main-content" tabIndex={-1}>
         <Container fluid maw={1280} px={0}>
-          {user && !user.is_verified && (
-            <Alert color="yellow" mb="md" title="Confirm your email address">
-              You can edit your profile, but must confirm your email before accessing safety
-              files. The email confirmation screens are still served by Django.
+          {signOutError && (
+            <Alert color="red" mb="md" role="alert" title="You have not been signed out">
+              {signOutError}
             </Alert>
           )}
           <Routes>
+            <Route
+              path="/register"
+              element={
+                loading ? <Loader aria-label="Checking your session" /> : <RegistrationPage />
+              }
+            />
+            <Route
+              path="/verify-email"
+              element={
+                <RequireSession>
+                  <VerificationNoticePage />
+                </RequireSession>
+              }
+            />
+            <Route
+              path="/accounts/verify/:userId/:token"
+              element={
+                loading ? (
+                  <Loader aria-label="Checking your session" />
+                ) : (
+                  <VerificationConfirmPage />
+                )
+              }
+            />
+            <Route
+              path="/password-reset"
+              element={
+                loading ? (
+                  <Loader aria-label="Checking your session" />
+                ) : (
+                  <PasswordResetRequestPage />
+                )
+              }
+            />
+            <Route
+              path="/accounts/password-reset/:uid/:token"
+              element={
+                loading ? (
+                  <Loader aria-label="Checking your session" />
+                ) : (
+                  <PasswordResetConfirmPage />
+                )
+              }
+            />
             <Route
               path="/login"
               element={
@@ -101,7 +154,7 @@ export function App() {
             <Route
               path="/safety-files"
               element={
-                <RequireSession>
+                <RequireSession verified>
                   <SafetyFilesPage />
                 </RequireSession>
               }
@@ -117,7 +170,7 @@ export function App() {
             <Route
               path="/safety-files/new"
               element={
-                <RequireSession>
+                <RequireSession verified>
                   <SafetyFileCreatePage />
                 </RequireSession>
               }
@@ -125,7 +178,7 @@ export function App() {
             <Route
               path="/safety-files/:slug/hazards/:hazardId"
               element={
-                <RequireSession>
+                <RequireSession verified>
                   <HazardDetailPage />
                 </RequireSession>
               }
@@ -133,7 +186,7 @@ export function App() {
             <Route
               path="/safety-files/:slug"
               element={
-                <RequireSession>
+                <RequireSession verified>
                   <SafetyFileDetailPage />
                 </RequireSession>
               }

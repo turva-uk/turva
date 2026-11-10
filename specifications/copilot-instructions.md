@@ -67,10 +67,10 @@ The Django project is `app/`, with `manage.py` at the repository root so that `a
 ./s/clean       # Removes this project's containers and volumes. Destroys the local database
 ```
 
-**Testing**: the whole suite runs in the container.
+**Testing**: storage tests run on the host; Django/API tests run in the container.
 
 ```bash
-./s/test                      # both suites: 110 safety_file + 74 Django
+./s/test                      # both suites: safety_file + Django/API
 ./s/test safety_file          # host suite, no container needed
 ./s/test -k login             # container suite, filtered
 ```

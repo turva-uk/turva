@@ -12,7 +12,7 @@ Legend: [x] done, [~] partially done, [ ] not started. Stable identifiers are be
 - [x] **R2 - React safety file creation.** Deliberate form save, profile defaults, private draft, attributable first version, and visible failure states.
 - [x] **R3 - Repeatable demo testing instructions.** See [demo/README.md](../demo/README.md); extend this walkthrough with every new delivered workflow.
 - [x] **R4 - Responsive hazard log and hazard detail.** Both risk assessments remain visible on phones; cause, effect, harm, linked mitigations and rename-following history are readable. Search and status filters work on the loaded log.
-- [ ] **R5 - React registration, confirmation and password reset parity.** Keep the Django flows working until replacements are verified.
+- [x] **R5 - React registration, confirmation and password reset parity.** Django forms/token generator remain authoritative; include anonymous CSRF checks, a repeatable resend cooldown and local console-mail preview. The older Django routes remain available for compatibility until production React routing lands.
 - [ ] **R6 - Hazard creation and editing.** Settle concurrency at the shared repository boundary before exposing writes; retain the committed generated log contract.
 
 ## Foundation & Infrastructure
@@ -68,7 +68,7 @@ React and Mantine, over a Django REST Framework API ([ADR 0003](adr/0003-react-f
 - [x] `frontend/` scaffolded: React 19, Mantine, Vite, TypeScript
 - [x] CSRF on the client: `X-CSRFToken` on every unsafe request, including anonymous login and registration
 - [x] Turva theme ported from the removed frontend's `theme.ts` - brand purple scale, square corners
-- [ ] Authentication pages (register, login, verify, password reset)
+- [x] Authentication pages (register, login, verify, password reset), including email-failure and invalid-link states (R5)
 - [x] Profile page, including professional registration and the CSO declaration (R1)
 - [x] Safety file list, create and detail (R2)
 - [x] Dashboard showing the user's safety files

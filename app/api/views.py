@@ -13,6 +13,7 @@ import logging
 
 from django.contrib.auth import login as django_login
 from django.contrib.auth import logout as django_logout
+from django.contrib.auth.forms import PasswordResetForm
 from django.http import Http404
 from django.middleware.csrf import get_token
 from django.shortcuts import get_object_or_404
@@ -24,20 +25,29 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from app.accounts.emails import send_verification_email
 from app.accounts.forms import ProfileForm
 from app.accounts.models import AlreadyVerified, Regulator, TokenCooldownActive
+from app.accounts.services import (
+    InvalidAccountLink,
+    confirm_email_address,
+    request_password_reset,
+    reset_password,
+    send_confirmation,
+)
 from app.api.permissions import IsVerified
 from app.api.serializers import (
     CommitSerializer,
     HazardSerializer,
     LoginSerializer,
     MitigationSerializer,
+    PasswordResetConfirmSerializer,
+    PasswordResetRequestSerializer,
     ProfileUpdateSerializer,
     RegistrationSerializer,
     SafetyFileCreateSerializer,
     SafetyFileSerializer,
     UserSerializer,
+    VerificationSerializer,
 )
 from app.safetyfiles.services import SafetyFileDetails, create_safety_file, visible_to
 from safety_file.errors import SafetyFileError
@@ -161,7 +171,7 @@ class RegistrationView(APIView):
 
 
 def _send_confirmation(user) -> bool:
-    """Issue a token and send the confirmation email. Never raises.
+    """Report expected token/delivery failures without losing the new account.
 
     The same rule the template flow follows, and for the same reason: a working
     account whose confirmation email bounced is recoverable through resend,
@@ -170,18 +180,114 @@ def _send_confirmation(user) -> bool:
     resend rather than claim an email is on its way when it is not.
     """
     try:
-        token = user.issue_verification_token()
+        send_confirmation(user)
     except AlreadyVerified, TokenCooldownActive:
         return False
 
-    try:
-        send_verification_email(user, token)
     except OSError:
         # Covers SMTP and socket failures, which all derive from OSError.
         logger.exception("Could not send the confirmation email to %s", user.pk)
         return False
 
     return True
+
+
+@csrf_protected
+class VerificationView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request: Request) -> Response:
+        serializer = VerificationSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            confirm_email_address(**serializer.validated_data)
+        except InvalidAccountLink:
+            return Response(
+                {
+                    "detail": "This confirmation link is invalid or has expired. Sign in to request another."
+                },
+                status=400,
+            )
+        return Response(
+            {"detail": "Email address confirmed. You can now sign in and open your safety files."}
+        )
+
+
+@csrf_protected
+class VerificationResendView(APIView):
+    def post(self, request: Request) -> Response:
+        try:
+            send_confirmation(request.user)
+        except AlreadyVerified:
+            return Response({"detail": "Your email address is already confirmed."})
+        except TokenCooldownActive:
+            return Response(
+                {
+                    "detail": "A confirmation email was requested recently. Wait ten minutes before requesting another."
+                },
+                status=429,
+            )
+        except OSError:
+            logger.exception("Could not resend confirmation email for %s", request.user.pk)
+            return Response(
+                {
+                    "detail": "The confirmation email could not be sent. Please try again in ten minutes."
+                },
+                status=503,
+            )
+        return Response(
+            {
+                "detail": "Confirmation email sent. The link is valid for up to eight hours from its original issue."
+            }
+        )
+
+
+@csrf_protected
+class PasswordResetRequestView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request: Request) -> Response:
+        serializer = PasswordResetRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        form = PasswordResetForm(serializer.validated_data)
+        if not form.is_valid():
+            return Response(dict(form.errors), status=400)
+        try:
+            request_password_reset(form)
+        except OSError:
+            # Same response for known/unknown accounts, including send failure.
+            # Never disclose whether an address is registered through an error.
+            logger.exception("Password reset email delivery failed")
+        return Response(
+            {
+                "detail": "If an active account exists for that address, a password reset email will be sent. If it does not arrive, check your junk folder or contact an administrator."
+            },
+            status=202,
+        )
+
+
+@csrf_protected
+class PasswordResetConfirmView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request: Request) -> Response:
+        serializer = PasswordResetConfirmSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            errors = reset_password(**serializer.validated_data)
+        except InvalidAccountLink:
+            return self.invalid_link()
+        if errors:
+            return Response(errors, status=400)
+        # Do not log in automatically or preserve an old session after reset.
+        return Response({"detail": "Password changed. Sign in with your new password."})
+
+    @staticmethod
+    def invalid_link() -> Response:
+        return Response(
+            {"detail": "This password reset link is invalid or has expired. Request a new one."},
+            status=400,
+        )
 
 
 # ------------------------------------------------------------------- profile

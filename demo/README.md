@@ -74,6 +74,40 @@ New files are private. DCB0129 is offered for compatibility with the interim Dja
 
 These screens are read-only. Looking at a hazard or filtering the log must not add a commit. The API rejects writes to the hazard-detail endpoint.
 
+## Test registration, confirmation and password reset
+
+First apply migrations after pulling, including the resend-attempt timestamp:
+
+```bash
+./s/manage migrate
+```
+
+For local email testing, set these non-secret values in your existing `app/.env` (do not replace the rest of that file):
+
+```bash
+DEBUG="true"
+EMAIL_BACKEND="django.core.mail.backends.console.EmailBackend"
+SITE_BASE_URL="http://localhost:5173"
+```
+
+Run `./s/up -d` to apply changed environment values. The console backend does not send real mail. `SITE_BASE_URL` controls links in the API's account emails; older checkouts defaulted to `http://localhost`, which opens the interim Django screens through Caddy instead of React. Do not use production credentials for this walkthrough.
+
+1. Sign out of the seeded account, choose **Create an account**, and use a new fictional address such as `tester@riverbank.example.nhs.uk`, fictional names and a strong test-only password. If you have already used that address, choose another.
+2. Expect **Confirm your email address**. The account is signed in, but cannot access safety files yet. **Your profile** remains available. Try **Resend confirmation email** immediately: expect a ten-minute cooldown, not another email.
+3. Preview the latest local account email:
+
+   ```bash
+   ./s/mail --open
+   ```
+
+   This decodes MIME wrapping so the complete link is clickable. It writes only to `.private/mail/latest.html` and prints the path, not the bearer token. It refuses to read a non-development/non-console stack. The preview can contain an account link: do not commit, publish or share it. Without `--open`, open the reported local file yourself. Use `./s/mail --since 2h` if the message is older than thirty minutes.
+
+4. Follow the link and press **Confirm email address**. Opening the React page alone does not confirm the account. Return to **Safety files**; a new account starts with an empty list, not the seeded CSO's private demo.
+5. Sign out, choose **Forgot your password?**, and enter the new address. Expect the same generic response that an unknown address gets. Run `./s/mail --open` again and follow the reset link.
+6. Try mismatched passwords: expect validation and no change. Set a new strong password, then sign in with it. The previous password and previous sessions must no longer work. Reusing the reset link must fail.
+
+The mail helper needs host Python 3 and the running stack. It is a local inspection tool, not a mailbox or mail delivery service. The interim Django routes remain available for compatibility; the API and React use the same Django forms and token generator.
+
 ## Automated checks
 
 ```bash
@@ -86,4 +120,4 @@ The Python suite uses a separate test database and temporary safety-file reposit
 
 ## Current limits
 
-Registration, email confirmation and password reset still have Django screens, not React replacements. Hazard creation/editing, supplier document extraction, guided workflow, delegated mitigation and PDF export remain roadmap work. The responsive hazard-review work applies to React, not the interim Django tables. Do not mistake the demo's prepared content for those features being complete. See [the roadmap](../specifications/roadmap.md) and [funded scope](../specifications/phase-one-scope.md).
+Hazard creation/editing, supplier document extraction, guided workflow, delegated mitigation and PDF export remain roadmap work. Production serving/routing for the built React application and general login/reset rate limiting are not complete. The responsive hazard-review work applies to React, not the interim Django tables. Do not mistake the demo's prepared content for those features being complete. See [the roadmap](../specifications/roadmap.md) and [funded scope](../specifications/phase-one-scope.md).

@@ -65,7 +65,7 @@ This file is the entry point for AI coding agents. Read it before changing anyth
 
 ```sh
 ./s/lint      # pre-commit --all-files, then the Zizmor Actions audit
-./s/test      # 184 tests: 110 in safety_file, 74 in app
+./s/test      # storage tests on the host; Django/API tests against container PostgreSQL
 ```
 
 Do not commit red. CI runs the same checks, on pull requests **and on pushes to

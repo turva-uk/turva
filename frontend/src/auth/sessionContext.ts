@@ -1,6 +1,6 @@
 import { createContext } from "react";
 
-import type { User } from "../api/types";
+import type { RegistrationInput, User } from "../api/types";
 
 export interface SessionValue {
   user: User | null;
@@ -8,7 +8,10 @@ export interface SessionValue {
    *  before this settles would flash the login screen at a signed-in user. */
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
+  register: (details: RegistrationInput) => Promise<boolean>;
   signOut: () => Promise<void>;
+  signOutError: string | null;
+  signingOut: boolean;
   /** Re-read the user after a profile change, so the header and the CSO
    *  status do not go stale. */
   refresh: () => Promise<void>;
