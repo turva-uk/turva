@@ -101,6 +101,8 @@ Declarations live in `app/requirements.in`, `app/requirements.dev.in` and `docs/
 
 Commit the `.in` change and the regenerated `.txt` together, and review the resolved dependency diff.
 
+The frontend temporarily overrides the development-only transitive dependency `minimatch` to 11.0.1 for [GHSA-g3hv-75wg-m249](https://github.com/advisories/GHSA-g3hv-75wg-m249). As checked on 2026-11-10, the latest ESLint 10.14.0 and TypeScript ESLint 8.72.2 still require vulnerable 10.x versions. This deliberately crosses their declared major-version range; the full frontend gate validates our usage, not every possible glob pattern. Remove the override when those upstream dependency ranges accept a patched release. The package comes from the existing npm registry and remains a development dependency, not a browser runtime dependency.
+
 ## Database migrations
 
 ```bash
