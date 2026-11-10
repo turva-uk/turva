@@ -270,8 +270,18 @@ class TestDetail:
         ).json()
 
         hazard = body["hazards"][0]
-        assert hazard["initial"] == {"severity": 4, "likelihood": 3, "risk_level": 4}
-        assert hazard["residual"] == {"severity": 4, "likelihood": 1, "risk_level": 2}
+        assert hazard["initial"] == {
+            "severity": 4,
+            "likelihood": 3,
+            "risk_level": 4,
+            "risk_label": "Mandatory elimination",
+        }
+        assert hazard["residual"] == {
+            "severity": 4,
+            "likelihood": 1,
+            "risk_level": 2,
+            "risk_label": "Acceptable if cost of reduction exceeds benefit",
+        }
 
     def test_a_new_file_reports_no_hazards_without_erroring(self, client, cso):
         safety_file = a_safety_file(cso)
@@ -305,3 +315,105 @@ class TestDetail:
         body = response.json()
         assert body["repository_missing"] is True
         assert safety_file.slug in body["repository_path"]
+
+
+class TestHazardDetail:
+    @pytest.fixture
+    def hazard_file(self, cso):
+        from datetime import date
+
+        from app.safetyfiles.services import author_for
+        from safety_file.models import Assessment, Hazard, Mitigation
+
+        file = a_safety_file(cso)
+        repository = file.repository()
+        hazard = Hazard(
+            id="HAZ-001",
+            title="Reading not escalated",
+            status="open",
+            owner=cso.email,
+            created=date(2026, 2, 11),
+            updated=date(2026, 2, 11),
+            initial=Assessment(4, 3),
+            residual=Assessment(4, 1),
+            cause="Batch review",
+            effect="Delayed review",
+            harm="Avoidable stroke",
+            justification="Daily safety-netting",
+            body="A recorded narrative.",
+        )
+        repository.save_hazard(hazard, author_for(cso))
+        repository.save_mitigation(
+            Mitigation(
+                id="MIT-001",
+                title="Daily review",
+                status="implemented",
+                owner=cso.email,
+                created=date(2026, 2, 11),
+                updated=date(2026, 2, 11),
+                control_type="procedural",
+                hazards=[hazard.id],
+                evidence="A fictional pilot report.",
+            ),
+            author_for(cso),
+        )
+        hazard.mitigations = ["MIT-001"]
+        repository.save_hazard(hazard, author_for(cso))
+        return file
+
+    def url(self, file, hazard_id="HAZ-001"):
+        return reverse("v1:hazard-detail", kwargs={"slug": file.slug, "hazard_id": hazard_id})
+
+    def test_reads_the_hazard_evidence_and_its_own_history(self, client, cso, hazard_file):
+        client.force_login(cso)
+        body = client.get(self.url(hazard_file)).json()
+        assert body["hazard"]["cause"] == "Batch review"
+        assert body["hazard"]["harm"] == "Avoidable stroke"
+        assert body["hazard"]["body"].strip() == "A recorded narrative."
+        assert body["hazard"]["residual"]["risk_level"] == 2
+        assert body["mitigations"][0]["evidence"] == "A fictional pilot report."
+        assert len(body["history"]) == 2
+        assert all(commit["author_email"] == cso.email for commit in body["history"])
+        assert body["problems"] == []
+
+    def test_private_hazards_are_not_disclosed(self, client, other_cso, hazard_file):
+        client.force_login(other_cso)
+        assert client.get(self.url(hazard_file)).status_code == 404
+
+    def test_unverified_accounts_cannot_read_hazards(self, client, unverified, hazard_file):
+        client.force_login(unverified)
+        assert client.get(self.url(hazard_file)).status_code == 403
+
+    def test_missing_hazard_is_not_found(self, client, cso, hazard_file):
+        client.force_login(cso)
+        assert client.get(self.url(hazard_file, "HAZ-999")).status_code == 404
+
+    @pytest.mark.parametrize("page", ["hazard", "file"])
+    def test_broken_evidence_is_not_reported_as_empty(self, client, cso, hazard_file, page):
+        """TH-001: failure to read must not look like no hazards exist."""
+        repository = hazard_file.repository()
+        path = repository.root / repository.path_for(repository.hazard("HAZ-001"))
+        path.write_text("not valid frontmatter", encoding="utf-8")
+        client.force_login(cso)
+        url = (
+            self.url(hazard_file)
+            if page == "hazard"
+            else reverse("v1:safety-file-detail", kwargs={"slug": hazard_file.slug})
+        )
+        response = client.get(url)
+        assert response.status_code == 503
+        assert "could not read the safety evidence" in response.json()["detail"]
+        assert "hazards" not in response.json()
+
+    def test_a_missing_repository_is_unavailable_not_a_missing_hazard(
+        self, client, cso, hazard_file
+    ):
+        shutil.rmtree(hazard_file.repository_path)
+        client.force_login(cso)
+        assert client.get(self.url(hazard_file)).status_code == 503
+
+    def test_the_endpoint_is_read_only(self, client, cso, hazard_file):
+        client.force_login(cso)
+        before = hazard_file.repository().head_sha
+        assert client.post(self.url(hazard_file), {"risk_level": 1}).status_code == 405
+        assert hazard_file.repository().head_sha == before

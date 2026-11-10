@@ -11,7 +11,7 @@ Legend: [x] done, [~] partially done, [ ] not started. Stable identifiers are be
 - [x] **R1 - React profile and CSO declaration.** Share validation with Django, preserve omitted PATCH fields and clear stale manual registration checks.
 - [x] **R2 - React safety file creation.** Deliberate form save, profile defaults, private draft, attributable first version, and visible failure states.
 - [x] **R3 - Repeatable demo testing instructions.** See [demo/README.md](../demo/README.md); extend this walkthrough with every new delivered workflow.
-- [ ] **R4 - Responsive hazard log and hazard detail.** Keep both risk assessments visible on phones and expose cause, effect, harm, mitigations and history.
+- [x] **R4 - Responsive hazard log and hazard detail.** Both risk assessments remain visible on phones; cause, effect, harm, linked mitigations and rename-following history are readable. Search and status filters work on the loaded log.
 - [ ] **R5 - React registration, confirmation and password reset parity.** Keep the Django flows working until replacements are verified.
 - [ ] **R6 - Hazard creation and editing.** Settle concurrency at the shared repository boundary before exposing writes; retain the committed generated log contract.
 
@@ -156,14 +156,14 @@ performing it. See TH-011 in [SAFETY.md](../SAFETY.md).
 - [ ] Create hazard through the interface - the next piece of work, and the
       point at which the generated hazard log's write pattern has to be settled
 - [ ] Edit hazard (with version control)
-- [ ] Hazard log view
-- [ ] Hazard detail view
+- [x] Hazard log view (R4, read-only)
+- [x] Hazard detail view (R4, read-only)
 - [ ] Hazard categorization
 - [ ] Hazard status management (open/closed/transferred)
 - [ ] Hazard assignment
 - [ ] Link hazards to causes and effects
 - [ ] Link hazards to potential harms
-- [ ] Hazard search and filtering
+- [x] Hazard search and status filtering within one safety file (R4)
 - [ ] Hazard export
 
 ### Risk Assessment
@@ -387,10 +387,7 @@ clears WCAG 2.2 AA.
 
 ### UI/UX Improvements
 
-- [ ] Responsive design for mobile. The hazard table is the known gap: at
-      390px its content is 438px wide in a 342px frame, so the residual risk
-      column - the one that says whether a hazard is acceptable - is the one
-      that falls off the right edge
+- [~] Responsive design for mobile. R4 fixes the React hazard log, safety-file list and history tables using labelled stacked rows, keeping residual risk in view without horizontal scrolling. The interim Django table layout and future screens still need equivalent review
 - [ ] Accessibility audit against WCAG 2.2 AA with a screen reader and
       keyboard only
 - [ ] Keyboard navigation

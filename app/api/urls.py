@@ -29,4 +29,9 @@ urlpatterns = [
         views.SafetyFileDetailView.as_view(),
         name="safety-file-detail",
     ),
+    path(
+        "safety-files/<slug:slug>/hazards/<str:hazard_id>/",
+        views.HazardDetailView.as_view(),
+        name="hazard-detail",
+    ),
 ]

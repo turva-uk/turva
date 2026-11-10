@@ -57,6 +57,7 @@ export interface Assessment {
   severity: number;
   likelihood: number;
   risk_level: number;
+  risk_label: string;
 }
 
 export interface Hazard {
@@ -74,6 +75,7 @@ export interface Hazard {
   justification: string;
   mitigations: string[];
   requires_elimination: boolean;
+  body: string;
 }
 
 export interface Mitigation {
@@ -86,6 +88,7 @@ export interface Mitigation {
   control_type: string;
   evidence: string;
   hazards: string[];
+  body: string;
 }
 
 /** One entry in the audit trail: the record a regulator or a court would
@@ -110,4 +113,13 @@ export interface SafetyFileDetail {
   history?: Commit[];
   problems?: string[];
   head_sha?: string;
+}
+
+export interface HazardDetail {
+  safety_file: SafetyFile;
+  hazard: Hazard;
+  mitigations: Mitigation[];
+  history: Commit[];
+  problems: string[];
+  head_sha: string;
 }

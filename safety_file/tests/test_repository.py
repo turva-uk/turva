@@ -148,6 +148,15 @@ class TestSavingHazards:
         assert len(written) == 1, "the old file was left behind"
         assert repo.hazard("HAZ-001").title == hazard.title
 
+    def test_hazard_history_follows_a_title_rename(self, repo, hazard, author, other_author):
+        """TH-004: changing a title must not hide its earlier decisions."""
+        first = repo.save_hazard(hazard, author)
+        hazard.title = "Severe reading not escalated within 24 hours"
+        second = repo.save_hazard(hazard, other_author)
+        history = repo.hazard_history(hazard.id)
+        assert [commit.sha for commit in history] == [second, first]
+        assert [commit.author_email for commit in history] == [other_author.email, author.email]
+
     def test_round_trip_preserves_the_body(self, repo, hazard, author):
         repo.save_hazard(hazard, author)
         assert "Identified during the pathway walkthrough." in repo.hazard("HAZ-001").body

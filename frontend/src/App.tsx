@@ -9,6 +9,7 @@ import { SafetyFileDetailPage } from "./pages/SafetyFileDetailPage";
 import { SafetyFilesPage } from "./pages/SafetyFilesPage";
 import { ProfilePage } from "./pages/ProfilePage";
 import { SafetyFileCreatePage } from "./pages/SafetyFileCreatePage";
+import { HazardDetailPage } from "./pages/HazardDetailPage";
 import "./app.css";
 
 /**
@@ -118,6 +119,14 @@ export function App() {
               element={
                 <RequireSession>
                   <SafetyFileCreatePage />
+                </RequireSession>
+              }
+            />
+            <Route
+              path="/safety-files/:slug/hazards/:hazardId"
+              element={
+                <RequireSession>
+                  <HazardDetailPage />
                 </RequireSession>
               }
             />

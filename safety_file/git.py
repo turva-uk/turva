@@ -153,7 +153,7 @@ def history(path: Path, file_path: str | None = None, limit: int = 50) -> list[C
     fmt = "%H\x1f%an\x1f%ae\x1f%cI\x1f%s\x1e"
     args = ["log", f"--max-count={limit}", f"--format={fmt}"]
     if file_path is not None:
-        args += ["--", file_path]
+        args += ["--follow", "--", file_path]
 
     output = run(args, cwd=path)
 

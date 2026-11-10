@@ -40,7 +40,7 @@ export function SafetyFilesPage() {
           </Text>
         </Box>
       ) : (
-        <Table striped highlightOnHover>
+        <Table striped highlightOnHover className="responsive-table">
           <Table.Caption>Safety files you own or that have been published</Table.Caption>
           <Table.Thead>
             <Table.Tr>
@@ -53,14 +53,16 @@ export function SafetyFilesPage() {
           <Table.Tbody>
             {safetyFiles.map((file) => (
               <Table.Tr key={file.id}>
-                <Table.Td>
+                <Table.Td data-label="System">
                   <Anchor component={Link} to={`/safety-files/${file.slug}`}>
                     {file.name}
                   </Anchor>
                 </Table.Td>
-                <Table.Td>{file.standard}</Table.Td>
-                <Table.Td>{file.organisation}</Table.Td>
-                <Table.Td>{file.visibility === "public" ? "Public" : "Private"}</Table.Td>
+                <Table.Td data-label="Standard">{file.standard}</Table.Td>
+                <Table.Td data-label="Organisation">{file.organisation}</Table.Td>
+                <Table.Td data-label="Visibility">
+                  {file.visibility === "public" ? "Public" : "Private"}
+                </Table.Td>
               </Table.Tr>
             ))}
           </Table.Tbody>

@@ -13,6 +13,7 @@ import logging
 
 from django.contrib.auth import login as django_login
 from django.contrib.auth import logout as django_logout
+from django.http import Http404
 from django.middleware.csrf import get_token
 from django.shortcuts import get_object_or_404
 from django.utils.decorators import method_decorator
@@ -262,7 +263,25 @@ class SafetyFileListView(APIView):
         return Response(SafetyFileSerializer(safety_file).data, status=status.HTTP_201_CREATED)
 
 
-class SafetyFileDetailView(APIView):
+class RepositoryReadView(APIView):
+    """A broken repository is unavailable evidence, never an empty log. TH-001."""
+
+    permission_classes = [IsVerified]
+
+    def handle_exception(self, exc):
+        if isinstance(exc, (SafetyFileError, OSError)):
+            logger.exception("Could not read safety evidence")
+            return Response(
+                {
+                    "detail": "Turva could not read the safety evidence. No empty or partial "
+                    "record is being shown. Please ask an administrator to check the repository."
+                },
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+        return super().handle_exception(exc)
+
+
+class SafetyFileDetailView(RepositoryReadView):
     """One safety file, read from its repository rather than from the index.
 
     The hazards, mitigations and history come from Git, not from the database.
@@ -308,3 +327,25 @@ class SafetyFileDetailView(APIView):
             "head_sha": repository.head_sha,
         }
         return Response(payload)
+
+
+class HazardDetailView(RepositoryReadView):
+    """Read one hazard, its linked evidence and its own attributable history."""
+
+    def get(self, request: Request, slug: str, hazard_id: str) -> Response:
+        safety_file = get_object_or_404(visible_to(request.user), slug=slug)
+        repository = safety_file.repository()
+        hazard = next((h for h in repository.hazards() if h.id == hazard_id), None)
+        if hazard is None:
+            raise Http404
+        linked = [m for m in repository.mitigations() if m.id in hazard.mitigations]
+        return Response(
+            {
+                "safety_file": SafetyFileSerializer(safety_file).data,
+                "hazard": HazardSerializer(hazard).data,
+                "mitigations": MitigationSerializer(linked, many=True).data,
+                "history": CommitSerializer(repository.hazard_history(hazard_id), many=True).data,
+                "problems": repository.validate(),
+                "head_sha": repository.head_sha,
+            }
+        )

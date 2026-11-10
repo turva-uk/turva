@@ -22,15 +22,16 @@ import type { Assessment } from "../api/types";
  * that can be wrong. See TH-008.
  */
 export function RiskLevel({ assessment, label }: { assessment: Assessment; label?: string }) {
-  const { severity, likelihood, risk_level } = assessment;
+  const { severity, likelihood, risk_level, risk_label } = assessment;
 
   return (
     <Text
       component="span"
       size="sm"
-      aria-label={`${label ? `${label} ` : ""}severity ${severity}, likelihood ${likelihood}, risk level ${risk_level}`}
+      aria-label={`${label ? `${label} ` : ""}severity ${severity}, likelihood ${likelihood}, risk level ${risk_level}${risk_label ? `, ${risk_label}` : ""}`}
     >
       S{severity} L{likelihood} &rarr; <strong>{risk_level}</strong>
+      {risk_label && <> - {risk_label}</>}
     </Text>
   );
 }

@@ -16,6 +16,54 @@ body {
   overflow-wrap: anywhere;
 }
 
+.evidence-text {
+  white-space: pre-wrap;
+  font-family: inherit;
+  line-height: 1.6;
+}
+
+/* One table, not a horizontally scrolling safety-critical column. At narrow
+   widths each record becomes a labelled block with both assessments visible. */
+@media (max-width: 52em) {
+  .responsive-table,
+  .responsive-table tbody,
+  .responsive-table tr {
+    display: block;
+    width: 100%;
+  }
+
+  .responsive-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+
+  .responsive-table caption {
+    display: block;
+    width: 100%;
+    text-align: left;
+  }
+
+  .responsive-table tr {
+    border-bottom: 1px solid var(--mantine-color-gray-4);
+    padding-block: 0.5rem;
+  }
+
+  .responsive-table td {
+    display: grid;
+    grid-template-columns: 6rem minmax(0, 1fr);
+    gap: 0.5rem;
+    border: 0;
+  }
+
+  .responsive-table td::before {
+    content: attr(data-label);
+    font-weight: 600;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

@@ -1,9 +1,10 @@
-import { Alert, Anchor, Box, Loader, Table, Text, Title } from "@mantine/core";
+import { Alert, Anchor, Box, Loader, Text, Title } from "@mantine/core";
 import { Link, useParams } from "react-router";
 
 import type { SafetyFileDetail } from "../api/types";
 import { useApiResource } from "../api/useApiResource";
-import { RiskLevel } from "../components/RiskLevel";
+import { HazardLog } from "../components/HazardLog";
+import { HistoryTable } from "../components/HistoryTable";
 
 const NOT_FOUND = "That safety file does not exist, or you do not have access to it.";
 
@@ -82,51 +83,7 @@ export function SafetyFileDetailPage() {
             Hazards
           </Title>
 
-          {detail.hazards && detail.hazards.length > 0 ? (
-            <>
-              <Table striped highlightOnHover>
-                <Table.Caption>Hazards recorded in this safety file</Table.Caption>
-                <Table.Thead>
-                  <Table.Tr>
-                    <Table.Th>ID</Table.Th>
-                    <Table.Th>Hazard</Table.Th>
-                    <Table.Th>Status</Table.Th>
-                    <Table.Th>Initial risk</Table.Th>
-                    <Table.Th>Residual risk</Table.Th>
-                  </Table.Tr>
-                </Table.Thead>
-                <Table.Tbody>
-                  {detail.hazards.map((hazard) => (
-                    <Table.Tr key={hazard.id}>
-                      <Table.Td>
-                        <strong>{hazard.id}</strong>
-                      </Table.Td>
-                      <Table.Td>{hazard.title}</Table.Td>
-                      <Table.Td>{hazard.status}</Table.Td>
-                      <Table.Td>
-                        <RiskLevel assessment={hazard.initial} label="initial" />
-                      </Table.Td>
-                      <Table.Td>
-                        <RiskLevel assessment={hazard.residual} label="residual" />
-                      </Table.Td>
-                    </Table.Tr>
-                  ))}
-                </Table.Tbody>
-              </Table>
-              <Text size="sm" c="dimmed" mt="xs">
-                Risk level is derived from severity and likelihood. It is never entered, and
-                cannot be set to disagree with the assessment it summarises.
-              </Text>
-            </>
-          ) : (
-            <Box>
-              <Text mb="xs">No hazards recorded yet.</Text>
-              <Text c="dimmed" size="sm">
-                An empty hazard log is not evidence of a safe system. It means hazard
-                identification has not been done.
-              </Text>
-            </Box>
-          )}
+          <HazardLog hazards={detail.hazards ?? []} slug={file.slug} />
 
           <Title order={2} size="h3" mt="xl" mb="sm">
             Audit trail
@@ -136,36 +93,7 @@ export function SafetyFileDetailPage() {
             regulator or a court would examine.
           </Text>
 
-          <Table>
-            <Table.Caption>The ten most recent changes</Table.Caption>
-            <Table.Thead>
-              <Table.Tr>
-                <Table.Th>Commit</Table.Th>
-                <Table.Th>Change</Table.Th>
-                <Table.Th>By</Table.Th>
-                <Table.Th>When</Table.Th>
-              </Table.Tr>
-            </Table.Thead>
-            <Table.Tbody>
-              {(detail.history ?? []).map((commit) => (
-                <Table.Tr key={commit.short_sha}>
-                  <Table.Td>
-                    <code>{commit.short_sha}</code>
-                  </Table.Td>
-                  <Table.Td>{commit.subject}</Table.Td>
-                  <Table.Td>{commit.author_name}</Table.Td>
-                  <Table.Td>
-                    <time dateTime={commit.committed_at}>
-                      {new Date(commit.committed_at).toLocaleString("en-GB", {
-                        dateStyle: "medium",
-                        timeStyle: "short",
-                      })}
-                    </time>
-                  </Table.Td>
-                </Table.Tr>
-              ))}
-            </Table.Tbody>
-          </Table>
+          <HistoryTable history={detail.history ?? []} caption="The ten most recent changes" />
         </>
       )}
     </Box>

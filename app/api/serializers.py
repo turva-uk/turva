@@ -27,6 +27,7 @@ from rest_framework import serializers
 from app.accounts.forms import ProfileForm
 from app.accounts.models import Regulator, User
 from app.safetyfiles.models import STANDARD_CHOICES, SafetyFile
+from safety_file.risk import risk_level_label
 
 # --------------------------------------------------------------------- users
 
@@ -239,6 +240,10 @@ class AssessmentSerializer(serializers.Serializer):
     # Derived from severity and likelihood by the storage layer. Read-only here
     # and everywhere: no code path may let a client set a risk level.
     risk_level = serializers.IntegerField(read_only=True)
+    risk_label = serializers.SerializerMethodField()
+
+    def get_risk_label(self, assessment) -> str:
+        return risk_level_label(assessment.risk_level)
 
 
 class HazardSerializer(serializers.Serializer):
@@ -256,6 +261,7 @@ class HazardSerializer(serializers.Serializer):
     justification = serializers.CharField(read_only=True)
     mitigations = serializers.ListField(child=serializers.CharField(), read_only=True)
     requires_elimination = serializers.BooleanField(read_only=True)
+    body = serializers.CharField(read_only=True)
 
 
 class MitigationSerializer(serializers.Serializer):
@@ -268,6 +274,7 @@ class MitigationSerializer(serializers.Serializer):
     control_type = serializers.CharField(read_only=True)
     evidence = serializers.CharField(read_only=True)
     hazards = serializers.ListField(child=serializers.CharField(), read_only=True)
+    body = serializers.CharField(read_only=True)
 
 
 class CommitSerializer(serializers.Serializer):
