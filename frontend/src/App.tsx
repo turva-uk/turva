@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { Link, Navigate, Route, Routes, useLocation } from "react-router";
 
 import { useSession } from "./auth/useSession";
+import { ACCENT, BRAND } from "./theme";
 import { LoginPage } from "./pages/LoginPage";
 import { SafetyFileDetailPage } from "./pages/SafetyFileDetailPage";
 import { SafetyFilesPage } from "./pages/SafetyFilesPage";
@@ -27,14 +28,28 @@ function Header() {
   const { user, signOut } = useSession();
 
   return (
-    <Group h="100%" px="md" justify="space-between">
-      <Anchor component={Link} to="/" fw={700} underline="never">
+    <Group
+      h="100%"
+      px="md"
+      justify="space-between"
+      // The brand band, matching the Django templates exactly while both
+      // interfaces are live: the logo purple carrying white text, with the
+      // logo yellow as a rule beneath it. The yellow is decorative - it
+      // echoes the purple-on-yellow of the mark and carries no information,
+      // so nothing is lost if a user's own styles drop it.
+      bg={BRAND}
+      c="white"
+      style={{ borderBottom: `3px solid ${ACCENT}` }}
+    >
+      <Anchor component={Link} to="/" fw={700} underline="never" c="white">
         Turva
       </Anchor>
       {user && (
         <Group gap="md">
-          <Text size="sm">{user.full_name || user.email}</Text>
-          <Button variant="subtle" size="compact-sm" onClick={() => void signOut()}>
+          <Text size="sm" c="white">
+            {user.full_name || user.email}
+          </Text>
+          <Button variant="white" size="compact-sm" onClick={() => void signOut()}>
             Sign out
           </Button>
         </Group>

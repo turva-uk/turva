@@ -346,11 +346,42 @@ Each Clinical Safety Management File is a Git repository on disk holding a Zensi
 - [ ] Quick actions
 - [ ] Search functionality
 
+### Brand and Theming
+
+The palette is taken from the Turva logo used on turva.org - a purple curve on
+a yellow ground - so both hexes are the identity rather than an approximation
+of it. They live in `app/static/css/turva.css` and `frontend/src/theme.ts`, and
+`app/config/tests/test_palette.py` asserts the two agree and that every pairing
+clears WCAG 2.2 AA.
+
+- [x] Brand palette taken from the logo, with tint and shade scales for both
+- [x] Contrast enforced by test rather than promised in a comment
+- [ ] **User-configurable themes for eye comfort.** Wanted, and deliberately
+      not half-built. A theme is not a palette swap here: every pairing has to
+      be re-checked, and the risk table is the screen that matters, because a
+      derived risk level that is hard to read is a safety problem rather than a
+      comfort one. The test above is the mechanism that makes a second theme
+      checkable - extend it to cover each theme rather than adding one
+      unverified
+- [ ] Dark mode, as the first such theme and the most asked for. Mantine's own
+      dark scale is used as-is for now; the hand-rolled override that was
+      carried over from the pre-October frontend has been removed, because it
+      was a greyscale ramp with `#ff0000` at shade 1 and would have rendered a
+      red surface somewhere
+- [ ] Respect `prefers-contrast` and `prefers-reduced-motion`
+- [ ] Decide whether the primary call to action takes the brand yellow with
+      dark text, as turva.org's own does. Measures 12.25:1, so it is the
+      highest-contrast option available - but it changes the button hierarchy,
+      which is a design decision rather than an accessibility one
+
 ### UI/UX Improvements
 
-- [ ] Responsive design for mobile
-- [ ] Dark mode support
-- [ ] Accessibility (WCAG 2.1 AA)
+- [ ] Responsive design for mobile. The hazard table is the known gap: at
+      390px its content is 438px wide in a 342px frame, so the residual risk
+      column - the one that says whether a hazard is acceptable - is the one
+      that falls off the right edge
+- [ ] Accessibility audit against WCAG 2.2 AA with a screen reader and
+      keyboard only
 - [ ] Keyboard navigation
 - [ ] Screen reader support
 - [ ] User onboarding flow

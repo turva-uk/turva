@@ -9,6 +9,11 @@
  * backgrounds. Risk levels in particular must never rely on colour alone,
  * because the information is safety-relevant and some readers cannot
  * distinguish the hues: every risk indicator also carries its number and label.
+ *
+ * That check is enforced, not promised: `app/config/tests/test_palette.py`
+ * reads these values, computes the contrast of every pairing the stylesheet
+ * actually uses, and fails below AA. Editing a hex here without checking it
+ * fails a test rather than quietly degrading the interface.
  */
 
 :root {
@@ -18,11 +23,30 @@
   --paper-sunk: #f2f1ef;
   --rule: #d6d4d0;
 
-  /* Turva's brand purple and yellow, darkened where needed so that text on
-     them clears 4.5:1. */
-  --brand: #4a2d7a;
+  /* ------------------------------------------------------------------ brand
+   *
+   * Both colours come from the Turva logo used on turva.org - a purple curve
+   * on a yellow ground - so these are the identity rather than an
+   * approximation of it. The same two hexes are shade 6 of the two scales in
+   * `frontend/src/theme.ts`, and a test asserts the two interfaces agree.
+   *
+   * There are two purples because one will not do the job. The logo purple
+   * carries white text at 4.84:1, which is AA for a header or a button fill,
+   * but as *link text* on the sunk panel background it measures 4.29:1 and
+   * fails - and the sunk panel is what empty states use, which is exactly
+   * where the "create your first safety file" link lives. Brand-coloured text
+   * therefore uses a darker shade, which reaches 7.33:1 on the page
+   * background: AAA, which is the right aim for a tool people often read
+   * because something has gone wrong. */
+  --brand: #716c9e; /* logo purple: fills carrying white text */
   --brand-ink: #ffffff;
-  --accent: #f2c200;
+  --brand-text: #54507c; /* brand-coloured text on a light background */
+
+  /* The logo yellow. A dark-text colour: it is 9.95:1 against the ink and
+     1.71:1 against white, so `--accent-ink` is the only text permitted on it.
+     turva.org reaches the same conclusion on its own call-to-action button. */
+  --accent: #dec55e;
+  --accent-ink: #1a1a2e;
 
   --danger: #a01b2b;
   --danger-bg: #fdf0f1;
@@ -88,6 +112,10 @@ body {
   padding: 0.75rem 1.5rem;
   background: var(--brand);
   color: var(--brand-ink);
+  /* A yellow rule under the purple band, echoing the logo's purple-on-yellow.
+     Purely decorative - it carries no information, so no contrast minimum
+     applies to it, and nothing is lost if a user's styles drop it. */
+  border-bottom: 3px solid var(--accent);
 }
 
 .site-title {
@@ -190,7 +218,7 @@ ol {
 }
 
 a {
-  color: var(--brand);
+  color: var(--brand-text);
 }
 
 a:focus-visible,
@@ -357,7 +385,7 @@ button:hover,
 
 .button-secondary {
   background: transparent;
-  color: var(--brand);
+  color: var(--brand-text);
 }
 
 .button-secondary:hover {

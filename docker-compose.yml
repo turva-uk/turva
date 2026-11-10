@@ -13,6 +13,13 @@ services:
       - ./demo:/srv/demo
       - ./manage.py:/srv/manage.py
       - ./pyproject.toml:/srv/pyproject.toml
+      # Read-only, and only so the palette test can compare the React theme
+      # against the stylesheet. Django does not use any of this. Both
+      # interfaces are live while React catches up screen by screen, and a
+      # brand colour defined in two places is one that will eventually be two
+      # different colours - so the comparison needs to run somewhere, and this
+      # is where the suite already runs.
+      - ./frontend/src:/srv/frontend/src:ro
       # Safety file repositories - the system of record.
       #
       # A bind mount, not a named volume, so the repositories are visible on the
