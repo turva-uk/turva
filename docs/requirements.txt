@@ -79,5 +79,7 @@ tomli==2.5.0
     # via zensical
 watchdog==6.0.0
     # via mkdocs
-zensical==0.0.71
+zensical==0.0.74
     # via -r docs/requirements.in
+zensical-ui==0.0.41
+    # via zensical

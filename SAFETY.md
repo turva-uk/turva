@@ -65,6 +65,10 @@ TH-010 and TH-011 are anticipated rather than present: they belong to capabiliti
 
 TH-009 was introduced deliberately, with mitigation, when profile and CSO designation were built. The alternative - not recording a registration at all - would have left the safety case saying _To be completed_ where a regulator expects a name and a registration number, which is worse. The controls are that the declaration is explicit rather than a casual checkbox, that it cannot be made without a recorded registration, that the interface marks the registration **Not verified by Turva**, and that the generated clinical risk management plan states the details were supplied by the named person and not checked against the public register. The residual risk is that a reader ignores all of that. Closing it properly needs either a register integration or an organisational counter-signature, and neither is in phase one.
 
+### Dependency maintenance evidence
+
+On 2026-11-10, Django was updated to 6.1.3, which fixes six security issues, including private-data cache isolation and password-hash disclosure in certain custom-user admin configurations. These upstream fixes support the controls for TH-005; they do not close it. The complete application suite, including authentication, CSRF and safety-file permissions, passed against PostgreSQL with Django 6.1.3, Python 3.14.9 and psycopg 3.3.8. See the [upstream release notes](https://docs.djangoproject.com/en/6.1/releases/6.1.3/) for the affected configurations and limits of each fix. No risk calculation, audit attribution or permission policy was changed.
+
 ## Medical-device applicability
 
 Required at inception as a governance record. **This record is incomplete and must be completed and dated by a named person before release.** A draft position is offered to start from; it is not a conclusion.

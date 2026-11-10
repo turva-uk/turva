@@ -1,3 +1,8 @@
+# Match frontend/Dockerfile rather than letting nodeenv select a moving
+# "latest", which can resolve to a prerelease it cannot parse.
+default_language_version:
+  node: 26.13.0
+
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
