@@ -8,6 +8,12 @@ repos:
         exclude: \.(svg|cjs)$
       - id: check-yaml
       - id: check-json
+        # TypeScript configs are JSONC: comments are part of the format
+        # TypeScript documents and accepts, and the comments in ours explain
+        # why individual compiler options are set. This hook parses strict
+        # JSON and rejects them, so the choice is to exclude the files or
+        # delete the reasoning. Prettier still formats them.
+        exclude: ^frontend/tsconfig.*\.json$
       - id: check-added-large-files
       - id: check-merge-conflict
 

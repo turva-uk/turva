@@ -1,0 +1,10 @@
+node_modules/
+dist/
+*.local
+.vite/
+coverage/
+
+# Incremental compiler state, written by `tsc -b`. Machine-specific and
+# regenerated on every build. The frontend removed in October committed its
+# copy, which meant a meaningless diff on anyone's first typecheck.
+*.tsbuildinfo

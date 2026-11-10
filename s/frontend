@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+# Run an npm script in the frontend, from anywhere in the repository.
+#
+#   ./s/frontend install     install dependencies
+#   ./s/frontend dev         Vite dev server, if you want it outside Docker
+#   ./s/frontend typecheck   tsc, the same check CI runs
+#   ./s/frontend lint        eslint
+#   ./s/frontend test:ci     vitest, once
+#   ./s/frontend build       production bundle
+#
+# With no arguments, runs the whole gate CI runs, in CI's order.
+#
+# Runs on the host rather than in the container: a dev server is already
+# running in Docker, and `npm` wants a writable node_modules it owns.
+set -euo pipefail
+
+cd "$(dirname "$0")/../frontend"
+
+if ! command -v npm >/dev/null 2>&1; then
+	echo "npm not found. The frontend needs Node 26 or newer." >&2
+	echo "The dev server also runs in Docker: ./s/up frontend" >&2
+	exit 1
+fi
+
+if [ ! -d node_modules ]; then
+	echo "==> installing dependencies"
+	npm ci --no-fund --no-audit
+fi
+
+if [ "$#" -eq 0 ]; then
+	echo "==> typecheck"
+	npm run typecheck
+	echo "==> lint"
+	npm run lint
+	echo "==> format check"
+	npm run format
+	echo "==> test"
+	npm run test:ci
+	echo "==> build"
+	npm run build
+	exit 0
+fi
+
+case "$1" in
+	install) shift && exec npm ci --no-fund --no-audit "$@" ;;
+	*) exec npm run "$@" ;;
+esac

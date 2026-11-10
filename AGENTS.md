@@ -51,7 +51,8 @@ This file is the entry point for AI coding agents. Read it before changing anyth
 
 ```sh
 ./s/up         # start the stack - the primary way to run Turva locally
-./s/test       # both suites: safety_file (host) and app (container)
+./s/test       # both Python suites: safety_file (host) and app (container)
+./s/frontend   # the frontend gate: types, lint, format, tests, build
 ./s/lint       # everything CI enforces
 ./s/manage     # Django management commands: migrate, makemigrations, createsuperuser
 ./s/psql       # a psql session against the development database

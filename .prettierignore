@@ -1,0 +1,22 @@
+# Generated or vendored files that Prettier must not rewrite.
+#
+# The frontend has its own Prettier config and its own `format` script, with a
+# different print width. Letting the root hook reformat the same files would
+# mean the two fight each other on every commit.
+frontend/node_modules/
+frontend/dist/
+frontend/coverage/
+
+# A lockfile is generated, not written. Reformatting it would produce a diff
+# npm did not make and will undo on the next install.
+frontend/package-lock.json
+
+# Built documentation site.
+docs/site/
+
+# Generated safety file repositories.
+.turva-data/
+
+# Vendored third-party JavaScript, kept byte-for-byte as published so it can be
+# checked against upstream.
+app/static/vendor/

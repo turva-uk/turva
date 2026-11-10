@@ -12,7 +12,31 @@
 
 The application is served through Caddy at <http://localhost>, and directly by Django at <http://localhost:8000>. `./s/up` opens it for you.
 
-The interface is moving to React and Mantine over a Django REST Framework API ([ADR 0003](specifications/adr/0003-react-frontend-over-drf.md)). Until React covers every screen, Django keeps rendering the templates in `app/templates/` and the development server reloads on both Python and template changes. The templates are interim, not an alternative interface to maintain in parallel - they come out when React replaces them, screen by screen.
+`./s/up` opens <http://localhost:5173>, the React interface served by Vite.
+
+Three things are running:
+
+| URL                     | What                                                                |
+| ----------------------- | ------------------------------------------------------------------- |
+| <http://localhost:5173> | React + Mantine, with Vite proxying `/api` to Django                |
+| <http://localhost:8000> | Django: the API, the admin, and the interim server-rendered screens |
+| <https://localhost>     | Caddy, using a certificate from its own internal CA                 |
+
+The interface is React and Mantine over a Django REST Framework API ([ADR 0003](specifications/adr/0003-react-frontend-over-drf.md)). Until React covers every screen, Django keeps rendering the templates in `app/templates/`. They are interim, not an alternative interface to maintain in parallel - they come out when React replaces them, screen by screen, so there is never a window with no working interface.
+
+Vite proxies `/api` rather than calling Django cross-origin, so the browser sees one origin and the session and CSRF cookies behave in development exactly as they will in deployment. Developing against a cross-origin setup would mean cookie behaviour that only ever gets exercised on a laptop.
+
+## Working on the frontend
+
+```bash
+./s/frontend              # the whole gate CI runs: types, lint, format, tests, build
+./s/frontend typecheck    # or one step at a time
+./s/frontend test
+```
+
+The dev server runs in Docker as part of `./s/up`, so `./s/frontend` is for the checks rather than for serving. It needs Node 26 or newer on the host; without it, use the container.
+
+**Every unsafe request must carry `X-CSRFToken`.** `src/api/client.ts` does this for you by reading the `csrftoken` cookie at call time - do not bypass it with a bare `fetch`. The frontend removed in October had no CSRF handling at all, because it talked to a FastAPI backend that did not require one, so this is a real trap rather than a theoretical one. It will not fail until the first POST.
 
 ## Services
 

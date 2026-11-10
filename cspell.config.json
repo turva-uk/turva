@@ -50,6 +50,7 @@
     "conftest",
     "contrib",
     "createsuperuser",
+    "csrftoken",
     "dataclass",
     "dataclasses",
     "datetime",

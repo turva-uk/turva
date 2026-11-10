@@ -22,9 +22,9 @@ One script per repeated process. Each one `cd`s to the repository root first, so
 ./s/up web             # one service and its dependencies
 ```
 
-The browser opens on <http://localhost:8000>, Django directly. Caddy serves the same application at <https://localhost>, but with a certificate from its own internal CA, so unless you have told your browser to trust that CA it greets you with a security warning rather than the page. Set `TURVA_URL` to open somewhere else, or `TURVA_NO_BROWSER` to never open one.
+The browser opens on <http://localhost:5173>, the React interface. Django is at <http://localhost:8000> - the API, the admin, and the interim server-rendered screens - and Caddy at <https://localhost>, with a certificate from its own internal CA, so expect a browser warning there unless you have trusted it. Set `TURVA_URL` to open somewhere else, or `TURVA_NO_BROWSER` to never open one.
 
-Opening is skipped when there is no display, when `CI` is set, and when the services you named do not include `web`.
+Opening is skipped when there is no display, when `CI` is set, and when the services you named include neither `frontend` nor `web`.
 
 ### `./s/down`
 
@@ -69,6 +69,18 @@ An argument naming the `safety_file` package routes to the host; anything else g
 ### `./s/lint`
 
 Runs every check CI enforces: `pre-commit run --all-files`, then the Zizmor GitHub Actions audit. Run before committing.
+
+### `./s/frontend`
+
+Runs an npm script in `frontend/`, from anywhere in the repository. With no arguments it runs the whole gate CI runs, in CI's order.
+
+```bash
+./s/frontend              # typecheck, lint, format check, tests, build
+./s/frontend typecheck    # or one step
+./s/frontend test
+```
+
+Installs dependencies first if `node_modules` is missing. Needs Node 26 or newer on the host; the dev server itself runs in Docker as part of `./s/up`.
 
 ### `./s/lock`
 

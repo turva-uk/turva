@@ -11,16 +11,25 @@
 #   ./s/up --no-browser leave the browser alone
 #   ./s/up web          just one service and its dependencies
 #
-# The URL is http://localhost:8000, Django directly. Caddy serves the same
-# application at https://localhost, but with a certificate from its own
-# internal CA, so a browser that has not been told to trust that CA greets you
-# with a security warning instead of the page you asked for. Set TURVA_URL to
-# override.
+# The URL is http://localhost:5173 - the React interface, served by Vite, which
+# proxies /api to Django. That is where the interface work happens (ADR 0003).
+#
+# Two other things are running and worth knowing about:
+#
+#   http://localhost:8000   Django directly. The server-rendered screens still
+#                           live here and stay until React covers the same
+#                           ground, so there is never a window with no working
+#                           interface. Also the API, and the admin.
+#   https://localhost       Caddy, with a certificate from its own internal CA,
+#                           so expect a browser warning unless you have trusted
+#                           that CA.
+#
+# Set TURVA_URL to open somewhere else.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-URL=${TURVA_URL:-http://localhost:8000}
+URL=${TURVA_URL:-http://localhost:5173}
 
 # The safety file repositories are bind-mounted from here. Create the directory
 # first: Docker creates a missing bind-mount source as root, which the container
@@ -91,13 +100,14 @@ done
 docker compose up --detach --wait ${compose_args[@]+"${compose_args[@]}"}
 
 # Only offer a browser if the thing it would point at is actually running. With
-# no service named, everything starts; with services named, `web` has to be one
-# of them.
+# no service named, everything starts; with services named, one of them has to
+# serve an interface. Both qualify: `frontend` is the default target, and `web`
+# is where TURVA_URL points when someone wants the server-rendered screens.
 serving=true
 if [ ${#services[@]} -gt 0 ]; then
 	serving=false
 	for service in "${services[@]}"; do
-		if [ "$service" = "web" ]; then
+		if [ "$service" = "frontend" ] || [ "$service" = "web" ]; then
 			serving=true
 		fi
 	done

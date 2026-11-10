@@ -59,6 +59,29 @@ services:
       retries: 20
       start_period: 5s
 
+  frontend:
+    container_name: "turva-frontend"
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    volumes:
+      # Source bind-mounted so Vite's hot reload sees edits without a rebuild.
+      - ./frontend:/srv/frontend
+      # An anonymous volume over node_modules, so the container keeps the
+      # modules installed for *its* platform rather than having them masked by
+      # whatever the host installed. Without this, a host `npm install` on a
+      # different architecture breaks the container silently.
+      - /srv/frontend/node_modules
+    ports:
+      - "5173:5173"
+    environment:
+      # Vite proxies /api to Django, so the browser sees one origin and the
+      # session and CSRF cookies behave exactly as they will in deployment.
+      TURVA_API: http://web:8000
+    depends_on:
+      web:
+        condition: service_healthy
+
   caddy:
     container_name: "turva-caddy"
     image: caddy:2.11.7-alpine
