@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block title %}Request could not be verified - Turva{% endblock %}
+
+{% block content %}
+  <div class="form-panel">
+    <h1>That request could not be verified</h1>
+
+    <p>
+      This usually means the page was left open long enough for its security
+      token to expire, or that cookies are blocked in this browser.
+    </p>
+
+    <p>
+      Nothing was saved. Go back, reload the page, and try again.
+    </p>
+
+    <p class="form-actions">
+      <a class="button" href="{% url 'home' %}">Back to Turva</a>
+    </p>
+  </div>
+{% endblock %}

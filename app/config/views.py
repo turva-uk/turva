@@ -13,6 +13,30 @@ def home(request: HttpRequest) -> HttpResponse:
     return render(request, "home.html")
 
 
+def csrf_failure(request: HttpRequest, reason: str = "") -> HttpResponse:
+    """Render a CSRF failure in the format the caller is using.
+
+    Django's default failure view returns an HTML page. That is right for the
+    server-rendered screens and wrong for the API, where a client calling
+    `.json()` on the response gets a parse error instead of the actual problem -
+    which turns a one-line fix, a missing `X-CSRFToken`, into a confusing
+    debugging session.
+
+    `request.path` rather than content negotiation: the `Accept` header is
+    whatever the client happened to send, while the path is what was actually
+    being called.
+    """
+    if request.path.startswith("/api/"):
+        return JsonResponse(
+            {
+                "detail": "CSRF verification failed. Send the X-CSRFToken header.",
+                "reason": reason,
+            },
+            status=403,
+        )
+    return render(request, "403_csrf.html", {"reason": reason}, status=403)
+
+
 def healthz(request: HttpRequest) -> JsonResponse:
     """Liveness and readiness check.
 

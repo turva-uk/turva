@@ -7,6 +7,7 @@ argon2-cffi-bindings==26.1.0
 asgiref==3.12.1
     # via
     #   django
+    #   django-cors-headers
     #   django-htmx
 brotli==1.2.1
     # via whitenoise
@@ -15,8 +16,14 @@ cffi==2.1.1
 django==6.1.2
     # via
     #   -r app/requirements.in
+    #   django-cors-headers
     #   django-htmx
+    #   djangorestframework
+django-cors-headers==4.9.0
+    # via -r app/requirements.in
 django-htmx==1.29.0
+    # via -r app/requirements.in
+djangorestframework==3.18.3
     # via -r app/requirements.in
 gunicorn==26.2.0
     # via -r app/requirements.in

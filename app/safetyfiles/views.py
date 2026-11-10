@@ -5,34 +5,15 @@ from __future__ import annotations
 import logging
 
 from django.contrib import messages
-from django.db.models import QuerySet
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 
 from app.accounts.decorators import verified_required
 from app.safetyfiles.forms import SafetyFileForm
-from app.safetyfiles.models import SafetyFile, Visibility
-from app.safetyfiles.services import SafetyFileDetails, create_safety_file
+from app.safetyfiles.services import SafetyFileDetails, create_safety_file, visible_to
 from safety_file.errors import SafetyFileError
 
 logger = logging.getLogger(__name__)
-
-
-def visible_to(user) -> QuerySet[SafetyFile]:
-    """Safety files this user may see.
-
-    Phase one's permission model in one function: you see your own, and you see
-    anything published. Team membership and the customer hand-off both land
-    here when they are built, which is the reason this is a single named
-    queryset rather than a filter repeated in each view - a permission rule
-    expressed in three places is a permission rule that will eventually
-    disagree with itself.
-    """
-    if not user.is_authenticated:
-        return SafetyFile.objects.filter(visibility=Visibility.PUBLIC)
-    return SafetyFile.objects.filter(owner=user) | SafetyFile.objects.filter(
-        visibility=Visibility.PUBLIC
-    )
 
 
 @verified_required

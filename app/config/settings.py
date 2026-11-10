@@ -86,14 +86,21 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "corsheaders",
+    "rest_framework",
     "django_htmx",
     "app.accounts",
+    "app.api",
     "app.safetyfiles",
 ]
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
+    # Before CommonMiddleware, as django-cors-headers requires: a redirect
+    # issued by CommonMiddleware without CORS headers on it fails the browser's
+    # preflight, and the error names the wrong cause.
+    "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -164,6 +171,18 @@ SESSION_SAVE_EVERY_REQUEST = True
 SESSION_COOKIE_SECURE = env_bool("SESSION_COOKIE_SECURE", not DEBUG)
 CSRF_COOKIE_SECURE = env_bool("CSRF_COOKIE_SECURE", not DEBUG)
 
+# The React client reads the CSRF token from this cookie and echoes it in the
+# `X-CSRFToken` header, so JavaScript has to be able to see it. That is how
+# Django's own documented AJAX pattern works and it does not weaken the
+# protection: the defence is that an attacker's origin cannot *read* the cookie
+# to construct the header, not that the token is secret from the page it was
+# issued to.
+CSRF_COOKIE_HTTPONLY = False
+
+# A CSRF failure under /api/ answers in JSON, so a client calling `.json()` on
+# the response sees the actual problem rather than a parse error.
+CSRF_FAILURE_VIEW = "app.config.views.csrf_failure"
+
 LOGIN_URL = "accounts:login"
 LOGIN_REDIRECT_URL = "safetyfiles:list"
 LOGOUT_REDIRECT_URL = "accounts:login"
@@ -192,6 +211,59 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
+
+# ---------------------------------------------------------------------- API
+
+# The JSON API the React interface talks to - see ADR 0003.
+#
+# Session authentication rather than tokens: a session can be revoked
+# server-side, which matters for a tool holding an organisation's clinical risk
+# assessment, and it means the existing registration, email verification and
+# password reset flows keep working unchanged.
+#
+# SessionAuthentication enforces CSRF on unsafe methods, so the client must send
+# `X-CSRFToken`. That is deliberate and must not be worked around by switching
+# to an authentication class that skips it.
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework.authentication.SessionAuthentication",
+    ],
+    # Authenticated by default. An endpoint that should be public says so
+    # explicitly, so forgetting to think about permissions fails closed - the
+    # "Fail Secure" principle applied to the one layer where it is cheapest to
+    # get wrong.
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.IsAuthenticated",
+    ],
+    "DEFAULT_RENDERER_CLASSES": [
+        "rest_framework.renderers.JSONRenderer",
+    ],
+    "DEFAULT_VERSIONING_CLASS": "rest_framework.versioning.NamespaceVersioning",
+    "DEFAULT_VERSION": "v1",
+    "ALLOWED_VERSIONS": ["v1"],
+    "UNAUTHENTICATED_USER": "django.contrib.auth.models.AnonymousUser",
+}
+
+if DEBUG:
+    # The browsable API is a development convenience only. It renders HTML
+    # forms, which is a different surface from the JSON the client uses, and it
+    # should not exist in a deployment.
+    REST_FRAMEWORK["DEFAULT_RENDERER_CLASSES"] = [
+        "rest_framework.renderers.JSONRenderer",
+        "rest_framework.renderers.BrowsableAPIRenderer",
+    ]
+
+# Vite serves the interface on its own port in development, so the browser
+# treats it as a different origin from Django. `CORS_ALLOW_CREDENTIALS` is
+# required for the session cookie to be sent at all.
+#
+# A list of exact origins, never `CORS_ALLOW_ALL_ORIGINS`: with credentials
+# allowed, a wildcard would let any site make authenticated requests on a
+# signed-in user's behalf. The browser actually refuses that combination, but
+# relying on the browser to catch a server misconfiguration is the wrong way
+# round.
+CORS_ALLOWED_ORIGINS = env_list("CORS_ALLOWED_ORIGINS", "http://localhost:5173")
+CORS_ALLOW_CREDENTIALS = True
 
 # ------------------------------------------------------- internationalisation
 

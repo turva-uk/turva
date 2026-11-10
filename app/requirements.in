@@ -12,8 +12,21 @@ django>=6.1,<6.2
 # maintained line.
 psycopg[binary]
 
+# The JSON API the React interface talks to - ADR 0003. Session authentication,
+# so CSRF applies to unsafe methods and the existing sessions keep working.
+djangorestframework
+
+# Cross-origin headers for development, where Vite serves the interface on a
+# different port from Django. In deployment Caddy fronts both, so this is a
+# development affordance rather than a production dependency - but installing it
+# conditionally would mean settings that differ between environments in a way
+# nobody tests.
+django-cors-headers
+
 # Request middleware so views can tell an HTMX request from a full page load and
-# return a fragment rather than a whole document.
+# return a fragment rather than a whole document. Retained while the Django
+# templates are still serving screens React has not reached yet; it goes when
+# they do.
 django-htmx
 
 # Argon2 password hashing, selected first in PASSWORD_HASHERS.

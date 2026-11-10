@@ -14,10 +14,11 @@ from dataclasses import dataclass
 
 from django.conf import settings
 from django.db import transaction
+from django.db.models import QuerySet
 from django.utils.text import slugify
 
 from app.accounts.models import User
-from app.safetyfiles.models import SafetyFile
+from app.safetyfiles.models import SafetyFile, Visibility
 from safety_file import Author, SafetyFileRepository
 
 logger = logging.getLogger(__name__)
@@ -30,6 +31,27 @@ TO_BE_COMPLETED = "*To be completed.*"
 
 #: Slug length cap, leaving room for the numeric suffix a collision adds.
 MAX_SLUG_LENGTH = 72
+
+
+def visible_to(user) -> QuerySet[SafetyFile]:
+    """Safety files this user may see.
+
+    Phase one's permission model in one function: you see your own, and you see
+    anything published. Team membership and delegated hazard mitigation both
+    land here when they are built, which is the reason this is a single named
+    queryset rather than a filter repeated in each view - a permission rule
+    expressed in three places is a permission rule that will eventually
+    disagree with itself.
+
+    It lives here rather than beside the template views because it now has two
+    callers: those views and the API. That is the same argument the paragraph
+    above makes, applied one level up.
+    """
+    if not user.is_authenticated:
+        return SafetyFile.objects.filter(visibility=Visibility.PUBLIC)
+    return SafetyFile.objects.filter(owner=user) | SafetyFile.objects.filter(
+        visibility=Visibility.PUBLIC
+    )
 
 
 @dataclass(frozen=True)
