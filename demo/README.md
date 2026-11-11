@@ -1,6 +1,6 @@
 # Try Turva locally
 
-<!-- cspell:ignore changepassword -->
+<!-- cspell:ignore changepassword Pango -->
 
 Use fictional systems and identities only. Turva is pre-release and must not be used for a safety case an organisation will rely on. Do not enter patient data, credentials or unpublished real safety evidence.
 
@@ -101,6 +101,25 @@ An unexpected uncommitted change blocks saves rather than attributing someone el
 
 The locks cover participating Turva processes on the local Linux filesystem. They are not distributed locks and do not protect against an administrator bypassing Turva with direct filesystem or Git operations. See [ADR 0004](../specifications/adr/0004-serialised-safety-file-saves.md).
 
+## Download a draft safety file
+
+The PDF feature adds native fonts/Pango and Python rendering dependencies to the web image. Rebuild after pulling this feature (keep your alternative port variable set if using one):
+
+```bash
+./s/up --build -d
+```
+
+1. Sign in as the seeded CSO and open **BP@Home remote blood pressure monitoring** in React. Choose **Download draft safety file (PDF)**. The button shows progress while the first build runs, then reports that the file is prepared; check your browser's downloads.
+2. Open the PDF. The cover must show **DRAFT**, the full source version, the last commit's author/date, and a controlled contents list. Its filename contains the source version's first eight characters. This is not clinical safety approval or a completed DCB0160 safety case.
+3. Check the overview, clinical risk management plan, hazard log and safety case report, then the explicit appendices. The prepared demo has **six hazard narratives** and **seven mitigation-evidence sections**. Both initial and residual assessments must remain readable in the printed tables. Recorded Markdown narratives are shown as text, not interpreted HTML.
+4. Download it again without saving changes. The content should be identical; the cached build avoids rerunning the engines. In browser developer tools the response has `X-Turva-Source-Commit` and `X-Turva-PDF-Cache: hit`. Private PDFs are not exposed as public static files.
+5. In your separate fictional test file, open two detail tabs, edit a hazard from one, then download from the older detail tab. Expect a visible **changed after the page opened** error, not a PDF silently labelled with a different version. Reload the detail page, then download the newer version. A save during a build does not alter the captured PDF: its cover still names the version that was captured.
+6. Another account cannot download a private file, even if the owner already built and cached it. Unverified accounts cannot download safety evidence. DCB0129 output is not supported and is not offered as a DCB0160 download.
+
+The current controlled text scope is the four named documents, every recorded hazard's additional narrative, and every mitigation's fields/evidence/narrative. New arbitrary repository pages are **not** automatically included. Attachments remain source references, not embedded files. Embedded images/media, active HTML or unsupported markup block the export rather than silently disappearing. Resolve unsupported content with an administrator; do not treat a failed export as a blank or complete safety case.
+
+The build uses a committed, clean snapshot and never edits the safety-file repository. Derived PDFs are cached outside it in the web container's `.turva-data/pdf-cache/`; that directory is disposable and is not safety evidence. Cache identity also includes exporter/CSS/scope and dependency versions. Rebuilding the container may discard the cache, not the repositories. The runtime build is bounded (30 seconds for Zensical, 90 seconds overall, 60 CPU seconds and 2 GiB virtual memory per renderer); synchronous rendering and production capacity still need operational review. See [ADR 0005](../specifications/adr/0005-controlled-pdf-exports.md).
+
 ## Test registration, confirmation and password reset
 
 First apply migrations after pulling, including the resend-attempt timestamp:
@@ -147,4 +166,4 @@ The Python suite uses a separate test database and temporary safety-file reposit
 
 ## Current limits
 
-Supplier document extraction, guided workflow, mitigation editing/linking, delegated mitigation and PDF export remain roadmap work. Production serving/routing for the built React application and general login/reset rate limiting are not complete. The responsive hazard-review work applies to React, not the interim Django tables. Do not mistake the demo's prepared content for those features being complete. See [the roadmap](../specifications/roadmap.md) and [funded scope](../specifications/phase-one-scope.md).
+Supplier document extraction, guided workflow, document authoring, mitigation editing/linking and delegated mitigation remain roadmap work. The PDF is a controlled draft text export, not an all-format attachment archive or a completed safety case. Production serving/routing for the built React application and general login/reset rate limiting are not complete. The responsive hazard-review work applies to React, not the interim Django tables. Do not mistake the demo's prepared content for those features being complete. See [the roadmap](../specifications/roadmap.md) and [funded scope](../specifications/phase-one-scope.md).

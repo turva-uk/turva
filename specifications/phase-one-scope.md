@@ -89,6 +89,8 @@ _Proposed, and the one real difference from RCPCH:_ that project builds one site
 
 Later, and out of scope here: other formats such as `.docx` from the same pipeline, and eventually packaging the exporter as a Zensical plugin offered to the community. Given Zensical has no native export, that is a real contribution rather than a courtesy.
 
+**Implementation status (11 November 2026):** R7 proves a single-button **draft text PDF** against the fictional demo, using the four explicitly named documents plus all hazard narratives and mitigation evidence. It captures and cites a committed version, caches privately against that version and the renderer, and tests real PDF text/metadata. Attachments remain references; embedded media/active HTML blocks export. This is not completed safety-case authoring or clinical approval. See [ADR 0005](adr/0005-controlled-pdf-exports.md) and the [demo walkthrough](../demo/README.md#download-a-draft-safety-file) for the boundary and remaining production work.
+
 ## AI features
 
 Any AI feature is **Bring Your Own API Key**, configured at profile level, before anything else.
@@ -151,7 +153,7 @@ Recorded because the answers shape the build, and because several were open long
 
 ## Honest assessment
 
-Capabilities 1 and 2 are built and tested. Capability 6 is claimed to be solved elsewhere and should be proved against a real safety file early, because everything else is judged through it.
+Capabilities 1 and 2 are built and tested. Capability 6 now has a real Zensical/WeasyPrint pipeline exercised against the fictional demo, including version-specific downloads, cache/permission failures and PDF text checks. It still needs review against a real customer's documents and production conditions; it does not make the draft content complete or approved.
 
 The schedule risk is concentrated in capability 4. "Leads the operator by the nose" has no test that declares it done, and unlike the previous brief's AI discovery, it cannot be scaled down to a prompt and a text box without becoming the thing the customer said they did not want. It needs a defined stopping point before work starts.
 

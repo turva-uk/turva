@@ -36,4 +36,5 @@ def _safety_files_in_tmp(settings, tmp_path):
     root = tmp_path / "safety-files"
     root.mkdir()
     settings.SAFETY_FILE_ROOT = root
+    settings.SAFETY_FILE_EXPORT_ROOT = tmp_path / "pdf-cache"
     return root

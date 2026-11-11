@@ -39,3 +39,13 @@ whitenoise[brotli]
 
 # WSGI server for deployment.
 gunicorn
+
+# The framework-free storage layer is used at runtime, not only by tests.
+-r ../safety_file/requirements.in
+
+# Controlled PDF export: build rendered pages, extract articles, then print.
+# Keep Zensical at the currently validated documentation pin for this parcel;
+# adopting its newer minor line is separate upgrade work.
+zensical==0.0.74
+beautifulsoup4
+weasyprint

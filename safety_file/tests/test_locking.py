@@ -165,3 +165,30 @@ def test_commit_failure_is_preserved_and_blocks_a_later_save(repo, hazard, autho
     assert repo.hazard(hazard.id).title == hazard.title
     with pytest.raises(DirtyRepositoryError):
         SafetyFileRepository(repo.root).save_hazard(hazard, author)
+
+
+@pytest.mark.parametrize("kind", ["hazard", "mitigation"])
+def test_ignored_evidence_cannot_be_presented_as_committed_or_captured_by_a_save(
+    repo, hazard, mitigation, author, kind
+):
+    """TH-004: `git status` alone does not see ignored artefact files."""
+    from safety_file import frontmatter
+
+    artefact = hazard if kind == "hazard" else mitigation
+    save = repo.save_hazard if kind == "hazard" else repo.save_mitigation
+    if kind == "mitigation":
+        repo.save_hazard(hazard, author)
+    pattern = "docs/hazards/HAZ-*.md" if kind == "hazard" else "docs/mitigations/MIT-*.md"
+    (repo.root / ".gitignore").write_text(pattern + "\n")
+    git.commit_all(repo.root, "test: ignored evidence policy", author)
+    before = repo.head_sha
+    with pytest.raises(ValidationError, match="Git ignores"):
+        save(artefact, author)
+    assert not (repo.root / repo.path_for(artefact)).exists()
+    frontmatter.write(repo.root / repo.path_for(artefact), artefact.to_frontmatter(), artefact.body)
+    assert repo.is_clean  # Git's definition alone is insufficient.
+    for context in (repo.snapshot(), repo.edit()):
+        with pytest.raises(DirtyRepositoryError), context:
+            pytest.fail("Ignored safety evidence was accepted as committed")
+    assert repo.head_sha == before
+    assert (repo.root / repo.path_for(artefact)).is_file()

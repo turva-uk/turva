@@ -89,7 +89,7 @@ class SafetyFileRepository:
     def snapshot(self, *, timeout: float = 5):
         """A coherent multi-read response while participating writers are excluded."""
         with self._lock.hold(exclusive=False, timeout=timeout):
-            if not self.is_clean:
+            if not self.is_clean or self._ignored_artefacts():
                 raise DirtyRepositoryError(
                     "This safety file has uncommitted changes. They cannot be presented as "
                     "committed evidence; ask an administrator to inspect the repository."
@@ -113,12 +113,30 @@ class SafetyFileRepository:
                     "was saved. Keep your draft, open the latest version in another tab, "
                     "and compare before starting a fresh edit."
                 )
-            if not self.is_clean:
+            if not self.is_clean or self._ignored_artefacts():
                 raise DirtyRepositoryError(
                     "This safety file has uncommitted changes. No new save is allowed: ask "
                     "an administrator to inspect them so they are not attributed to you."
                 )
             yield self
+
+    def _ignored_artefacts(self) -> bool:
+        # `git status` intentionally hides ignored files, but the domain reader
+        # must not present an ignored/untracked hazard as committed evidence.
+        return bool(
+            git.run(
+                [
+                    "ls-files",
+                    "--others",
+                    "--ignored",
+                    "--exclude-standard",
+                    "--",
+                    f"{HAZARDS_DIR}/HAZ-*.md",
+                    f"{MITIGATIONS_DIR}/MIT-*.md",
+                ],
+                cwd=self.root,
+            ).strip()
+        )
 
     # ---------------------------------------------------------------- creation
 
@@ -355,6 +373,10 @@ class SafetyFileRepository:
     ) -> str | None:
         relative = self.path_for(artefact)
         target = self.root / relative
+        if git.run(["check-ignore", "--", relative], cwd=self.root, check=False).strip():
+            raise ValidationError(
+                "Git ignores this safety evidence path. Ask an administrator to inspect the ignore rules before saving; nothing from this save was written."
+            )
 
         # A retitled artefact moves file. Remove the old path through Git so the
         # move is recorded as a rename and `git log --follow` keeps working.

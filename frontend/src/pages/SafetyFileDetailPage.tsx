@@ -5,6 +5,7 @@ import type { SafetyFileDetail } from "../api/types";
 import { useApiResource } from "../api/useApiResource";
 import { HazardLog } from "../components/HazardLog";
 import { HistoryTable } from "../components/HistoryTable";
+import { PDFDownload } from "../components/PDFDownload";
 
 const NOT_FOUND = "That safety file does not exist, or you do not have access to it.";
 
@@ -56,6 +57,9 @@ export function SafetyFileDetailPage() {
         </Alert>
       ) : (
         <>
+          {detail.head_sha && file.standard === "DCB0160" && (
+            <PDFDownload key={detail.head_sha} slug={file.slug} head={detail.head_sha} />
+          )}
           {detail.problems && detail.problems.length > 0 && (
             <Alert color="red" mt="md" role="alert" title="This safety file does not validate">
               <ul>

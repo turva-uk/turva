@@ -14,7 +14,8 @@ Legend: [x] done, [~] partially done, [ ] not started. Stable identifiers are be
 - [x] **R4 - Responsive hazard log and hazard detail.** Both risk assessments remain visible on phones; cause, effect, harm, linked mitigations and rename-following history are readable. Search and status filters work on the loaded log.
 - [x] **R5 - React registration, confirmation and password reset parity.** Django forms/token generator remain authoritative; include anonymous CSRF checks, a repeatable resend cooldown and local console-mail preview. The older Django routes remain available for compatibility until production React routing lands.
 - [x] **R6 - Hazard creation and editing.** Whole-form verified-owner saves, canonical risk previews, retained stale drafts and local repository snapshots/locks; retain the committed generated log contract. See [ADR 0004](adr/0004-serialised-safety-file-saves.md) and the [demo exercises](../demo/README.md#record-and-edit-hazards).
-- [ ] **R7 - Single-document PDF proof.** Build the demo through Zensical and the proven WeasyPrint approach; explicit page scope, commit-specific cache and attributable source version. Exercise permission/failure cases and add a downloadable demo walkthrough before considering supplier extraction.
+- [x] **R7 - Single-document PDF proof.** Zensical/WeasyPrint draft text download with explicit source/appendix scope, commit-specific private cache and visible source version. Real demo render/text checks and permission/failure/conflict tests; see [ADR 0005](adr/0005-controlled-pdf-exports.md) and the [download walkthrough](../demo/README.md#download-a-draft-safety-file).
+- [ ] **R8 - Mitigation editing and linking.** Build owner forms over the same opened-version service boundary; preserve reciprocal hazard links and evidence before delegated access is added. Extend the demo exercises.
 
 ## Foundation & Infrastructure
 
@@ -315,16 +316,16 @@ Each Clinical Safety Management File is a Git repository on disk holding a Zensi
 - [x] Repository storage layout - one directory per safety file, named for the system, bind-mounted so it is browsable on the host
 - [ ] Backup strategy and quotas. The repositories are the only thing that cannot be rebuilt, so this is the one backup that matters
 - [ ] Record the organisation in `.turva/manifest.yaml`. It is currently recovered from the mkdocs copyright line during reindex, which works but means a safety file does not state plainly which organisation it belongs to
-- [ ] Concurrency: two users editing the same safety file at once
+- [~] Concurrency: R6 serialises local saves and rejects stale opened versions. Collaborative roles/merges are not built; only verified owners currently edit hazards
 - [ ] Branch management for major changes
 - [ ] Merge conflict resolution
 - [ ] Tag releases
 
 ### Document Generation
 
-- [ ] Build a project's Zensical site from its repository
-- [ ] PDF export via WeasyPrint over the built HTML (pattern per <https://growth.rcpch.ac.uk>)
-- [ ] PDF cached against the commit it was generated from
+- [x] Build controlled Zensical document pages from a committed safety-file snapshot (R7); repository plugins/hooks are not executed
+- [x] Draft text PDF via WeasyPrint over built HTML, with explicit hazard/mitigation appendices (R7, pattern per <https://growth.rcpch.ac.uk>); embedded media/active HTML is unsupported and blocks export
+- [x] Private PDF cache keyed by source commit and exporter/renderer identity, with visibility checks on every download (R7)
 - [ ] Generate the safety case report's summary figures from the hazard data rather than prose. While writing the demo safety file, a hand-written residual risk statement claimed all hazards were at risk level 2 or below when two derived level 3 - the same class of defect as TH-001
 - [ ] Markdown editor for safety documentation
 - [ ] Markdown preview
@@ -617,6 +618,6 @@ access path exists.
 
 **Last Updated:** 11 November 2026
 **Current Phase:** Funded phase one - see [Phase One Scope](phase-one-scope.md)
-**Next Milestone:** Single-document Zensical/WeasyPrint PDF proof (R7)
+**Next Milestone:** Mitigation editing/linking (R8), then supplier onboarding against a real specimen
 
 Note on reading this roadmap: it tracks everything Turva might eventually do, and is much wider than the funded build. [Phase One Scope](phase-one-scope.md) is the authoritative list of what ships by Christmas.

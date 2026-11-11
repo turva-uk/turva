@@ -102,11 +102,17 @@ interface RequestOptions {
   method?: "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
   body?: unknown;
   signal?: AbortSignal;
+  responseType?: "json" | "blob";
 }
 
 export async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const method = options.method ?? "GET";
-  const headers: Record<string, string> = { Accept: "application/json" };
+  const headers: Record<string, string> = {
+    Accept:
+      options.responseType === "blob"
+        ? "application/pdf, application/json"
+        : "application/json",
+  };
 
   if (options.body !== undefined) {
     headers["Content-Type"] = "application/json";
@@ -147,10 +153,20 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
   if (response.status === 204) {
     return undefined as T;
   }
+  if (options.responseType === "blob") {
+    if (!response.headers.get("Content-Type")?.startsWith("application/pdf")) {
+      throw new ApiError(
+        response.status,
+        "Turva did not return a PDF. No download was prepared.",
+      );
+    }
+    return (await response.blob()) as T;
+  }
   return (await response.json()) as T;
 }
 
 export const api = {
+  download: (path: string) => request<Blob>(path, { responseType: "blob" }),
   get: <T>(path: string, signal?: AbortSignal) => request<T>(path, { method: "GET", signal }),
   post: <T>(path: string, body?: unknown) => request<T>(path, { method: "POST", body }),
   patch: <T>(path: string, body?: unknown) => request<T>(path, { method: "PATCH", body }),

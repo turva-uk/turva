@@ -40,6 +40,11 @@ urlpatterns = [
         name="safety-file-detail",
     ),
     path(
+        "safety-files/<slug:slug>/pdf/",
+        views.SafetyFilePDFView.as_view(),
+        name="safety-file-pdf",
+    ),
+    path(
         "safety-files/<slug:slug>/hazards/",
         views.HazardListView.as_view(),
         name="hazard-list",

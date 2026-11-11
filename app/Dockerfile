@@ -11,9 +11,10 @@ ENV PYTHONUNBUFFERED=1 \
 WORKDIR /srv
 
 # git is a runtime dependency, not a build tool: the safety file storage layer
-# shells out to it for every read and write. python:*-slim does not include it.
+# shells out to it for every read and write. Pango and fonts are required by the
+# WeasyPrint PDF renderer. None of these is present in python:*-slim.
 RUN apt-get update \
-	&& apt-get install --no-install-recommends --yes git \
+	&& apt-get install --no-install-recommends --yes git libpango-1.0-0 libpangoft2-1.0-0 libharfbuzz-subset0 fonts-dejavu-core \
 	&& rm -rf /var/lib/apt/lists/*
 
 # Run as a non-root user. Two reasons, both practical:

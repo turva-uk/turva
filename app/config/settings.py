@@ -336,6 +336,12 @@ SITE_BASE_URL = env_str("SITE_BASE_URL", "http://localhost")
 #: specifications/architecture-principles.md.
 SAFETY_FILE_ROOT = Path(env_str("SAFETY_FILE_ROOT", str(BASE_DIR / ".turva-data" / "safety-files")))
 
+# Derived, private build artefacts, never safety evidence. Keep outside the
+# repositories so an export cannot dirty or commit to the system of record.
+SAFETY_FILE_EXPORT_ROOT = Path(
+    env_str("SAFETY_FILE_EXPORT_ROOT", str(BASE_DIR / ".turva-data" / "pdf-cache"))
+)
+
 #: Templates a new safety file is scaffolded from.
 SAFETY_FILE_TEMPLATE_ROOT = BASE_DIR / "safety-file-templates"
 

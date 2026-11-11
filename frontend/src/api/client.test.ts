@@ -75,6 +75,31 @@ describe("CSRF", () => {
 });
 
 describe("failures are never silent", () => {
+  it("downloads a binary document only after checking the response status", async () => {
+    const fetcher = vi
+      .fn()
+      .mockResolvedValue(
+        new Response("%PDF-example", { headers: { "Content-Type": "application/pdf" } }),
+      );
+    vi.stubGlobal("fetch", fetcher);
+    const document = await api.download("/safety-files/demo/pdf/?expected_head=abc");
+    expect(await document.text()).toBe("%PDF-example");
+    fetcher.mockResolvedValue(
+      new Response(JSON.stringify({ detail: "This safety file changed." }), {
+        status: 409,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+    await expect(api.download("/safety-files/demo/pdf/?expected_head=abc")).rejects.toThrow(
+      "This safety file changed.",
+    );
+    fetcher.mockResolvedValue(
+      new Response("not a PDF", { headers: { "Content-Type": "text/html" } }),
+    );
+    await expect(api.download("/safety-files/demo/pdf/?expected_head=abc")).rejects.toThrow(
+      "No download was prepared",
+    );
+  });
   it("flattens nested assessment errors without losing their field paths", async () => {
     mockFetch({
       ok: false,

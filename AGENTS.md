@@ -43,6 +43,7 @@ This file is the entry point for AI coding agents. Read it before changing anyth
 - **`safety_file/` imports no web framework.** That is what makes it testable without a server, and it has now survived two interface changes and one framework change untouched. Keep it that way.
 - **Commit author is always explicit.** Never let Git fall back to global config, `$USER`, or a service account for a safety file commit.
 - **A save uses the opened version.** Hazard HTTP writes require `expected_head` inside `repository.edit()`; never substitute a fresh HEAD and retry a stale clinical judgement. Use `repository.snapshot()` for multi-read evidence responses. Dirty trees need inspection, not an automatic reset. See [ADR 0004](specifications/adr/0004-serialised-safety-file-saves.md).
+- **PDF builds do not run repository configuration.** Capture committed sources, use the controlled page/appendix scope and trusted build config, and keep generated output outside the repository. Embedded/active content fails visibly; never allow arbitrary local/network fetching to make a failed export appear complete. See [ADR 0005](specifications/adr/0005-controlled-pdf-exports.md).
 - **Prettier must not touch `.html`.** Jinja2 templates live there and Prettier mangles `{% %}` and `{{ }}`. Do not add `html` to `types_or` in `.pre-commit-config.yaml`.
 - **British English.** cspell runs with `en-GB`.
 - **One ruff config**, `ruff.toml` at the repo root. It sets `src = ["."]` and excludes `specifications/archive/`. Do not add `[tool.ruff]` to `pyproject.toml`.

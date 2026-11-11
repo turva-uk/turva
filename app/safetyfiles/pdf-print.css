@@ -1,0 +1,117 @@
+/* Standalone print rules for the controlled Turva PDF.
+   Uses the RCPCH rendered-article approach; see pdf-export-notice.md. */
+@page {
+  size: A4;
+  margin: 18mm 16mm 20mm;
+  @bottom-left {
+    content: "Turva - draft safety evidence";
+    font-size: 8pt;
+    color: #54507c;
+  }
+  @bottom-right {
+    content: "Page " counter(page) " of " counter(pages);
+    font-size: 8pt;
+  }
+}
+html {
+  font-family: "DejaVu Sans", sans-serif;
+  font-size: 10pt;
+  line-height: 1.5;
+  color: #1a1a2e;
+}
+body {
+  margin: 0;
+}
+.cover {
+  padding-top: 12mm;
+}
+.brand {
+  font-size: 24pt;
+  font-weight: bold;
+  color: #54507c;
+  border-bottom: 4pt solid #dec55e;
+}
+.warning {
+  border-left: 3pt solid #dec55e;
+  padding: 6pt;
+  font-weight: bold;
+}
+.commit {
+  font-size: 8pt;
+  font-family: "DejaVu Sans Mono", monospace;
+  overflow-wrap: anywhere;
+}
+.page {
+  break-before: page;
+}
+h1,
+h2,
+h3,
+h4 {
+  color: #54507c;
+  line-height: 1.25;
+  break-after: avoid;
+}
+h1 {
+  font-size: 20pt;
+}
+h2 {
+  font-size: 14pt;
+  margin: 14pt 0 6pt;
+}
+h3 {
+  font-size: 11pt;
+  margin: 10pt 0 5pt;
+}
+p {
+  margin: 0 0 7pt;
+  orphans: 3;
+  widows: 3;
+}
+a {
+  color: #54507c;
+  overflow-wrap: anywhere;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 8pt;
+  margin: 8pt 0;
+  table-layout: fixed;
+}
+th,
+td {
+  border: 0.5pt solid #888888;
+  padding: 3pt;
+  text-align: left;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+th {
+  background: #f1f0f7;
+}
+tr {
+  break-inside: avoid;
+}
+pre,
+code {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.recorded {
+  font-family: inherit;
+  font-size: 10pt;
+  margin: 6pt 0 12pt;
+}
+.admonition {
+  border-left: 3pt solid #dec55e;
+  padding: 6pt 10pt;
+  margin: 8pt 0;
+  background: #faf8ef;
+}
+.admonition-title {
+  font-weight: bold;
+}
+details {
+  display: block;
+}

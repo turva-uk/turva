@@ -11,6 +11,5 @@ pytest-cov
 # at eight hours and ten minutes.
 time-machine
 
-# PyYAML and Jinja2 are declared by safety_file/requirements.in, but the test
-# suite imports safety_file, so they must be present in the image too.
--r ../safety_file/requirements.in
+# Verify the real PDF's page/text/metadata output in the integration suite.
+pypdf

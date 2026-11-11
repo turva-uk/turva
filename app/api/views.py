@@ -14,7 +14,7 @@ import logging
 from django.contrib.auth import login as django_login
 from django.contrib.auth import logout as django_logout
 from django.contrib.auth.forms import PasswordResetForm
-from django.http import Http404
+from django.http import FileResponse, Http404
 from django.middleware.csrf import get_token
 from django.shortcuts import get_object_or_404
 from django.utils.decorators import method_decorator
@@ -44,6 +44,7 @@ from app.api.serializers import (
     MitigationSerializer,
     PasswordResetConfirmSerializer,
     PasswordResetRequestSerializer,
+    PDFRequestSerializer,
     ProfileUpdateSerializer,
     RegistrationSerializer,
     SafetyFileCreateSerializer,
@@ -51,6 +52,8 @@ from app.api.serializers import (
     UserSerializer,
     VerificationSerializer,
 )
+from app.safetyfiles.pdf_contract import PDFExportError
+from app.safetyfiles.pdf_export import safety_file_pdf
 from app.safetyfiles.services import SafetyFileDetails, create_safety_file, save_hazard, visible_to
 from safety_file.errors import (
     DirtyRepositoryError,
@@ -386,6 +389,8 @@ class RepositoryView(APIView):
     permission_classes = [IsVerified]
 
     def handle_exception(self, exc):
+        if isinstance(exc, PDFExportError):
+            return Response({"detail": str(exc)}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
         if isinstance(exc, StaleVersionError) or (
             isinstance(exc, DirtyRepositoryError) and self.request.method not in {"GET", "HEAD"}
         ):
@@ -427,6 +432,26 @@ class HazardListView(RepositoryView):
     def post(self, request: Request, slug: str) -> Response:
         safety_file = get_object_or_404(visible_to(request.user), slug=slug)
         return self.write_hazard(request, safety_file)
+
+
+class SafetyFilePDFView(RepositoryView):
+    """A private download of the explicitly opened version, with no evidence writes."""
+
+    def get(self, request: Request, slug: str) -> FileResponse:
+        safety_file = get_object_or_404(visible_to(request.user), slug=slug)
+        serializer = PDFRequestSerializer(data=request.query_params.dict())
+        serializer.is_valid(raise_exception=True)
+        download = safety_file_pdf(safety_file.repository(), **serializer.validated_data)
+        response = FileResponse(
+            download.path.open("rb"),
+            as_attachment=True,
+            filename=f"{safety_file.slug}-{download.source_commit[:8]}.pdf",
+            content_type="application/pdf",
+        )
+        response["Cache-Control"] = "private, no-store"
+        response["X-Turva-Source-Commit"] = download.source_commit
+        response["X-Turva-PDF-Cache"] = "hit" if download.cached else "miss"
+        return response
 
 
 class HazardOptionsView(APIView):

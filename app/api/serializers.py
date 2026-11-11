@@ -316,6 +316,10 @@ class HazardWriteSerializer(StrictWriteSerializer):
         return attrs
 
 
+class PDFRequestSerializer(StrictWriteSerializer):
+    expected_head = serializers.RegexField(r"^(?:[0-9a-f]{40}|[0-9a-f]{64})$")
+
+
 class AssessmentSerializer(serializers.Serializer):
     severity = serializers.IntegerField(read_only=True)
     likelihood = serializers.IntegerField(read_only=True)
