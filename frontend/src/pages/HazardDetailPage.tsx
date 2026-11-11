@@ -108,11 +108,23 @@ export function HazardDetailPage() {
           <Title order={2} size="h3" mb="sm">
             Linked mitigations
           </Title>
+          {data.can_edit && (
+            <Button
+              component={Link}
+              variant="outline"
+              mb="sm"
+              to={`/safety-files/${slug}/mitigations/new?hazard=${hazard.id}`}
+            >
+              Record a mitigation for this hazard
+            </Button>
+          )}
           {data.mitigations.length === 0 && <Text>No linked mitigations recorded.</Text>}
           {data.mitigations.map((m) => (
             <Box key={m.id} component="section" mb="lg" aria-label={m.id}>
               <Title order={3} size="h4">
-                {m.id}: {m.title}
+                <Anchor component={Link} to={`/safety-files/${slug}/mitigations/${m.id}`}>
+                  {m.id}: {m.title}
+                </Anchor>
               </Title>
               <Text size="sm">
                 {m.status} · {m.control_type} control · Responsible person:{" "}

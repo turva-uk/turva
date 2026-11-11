@@ -23,7 +23,7 @@ from app.accounts.models import User
 from app.safetyfiles.models import SafetyFile, Visibility
 from safety_file import Author, SafetyFileRepository
 from safety_file.errors import ValidationError
-from safety_file.models import Assessment, Hazard
+from safety_file.models import Assessment, Hazard, Mitigation
 
 logger = logging.getLogger(__name__)
 
@@ -185,6 +185,19 @@ def create_safety_file(details: SafetyFileDetails, owner: User) -> SafetyFile:
     return safety_file
 
 
+def _require_owner(safety_file: SafetyFile, actor: User, expected_head: str) -> None:
+    """Shared write boundary until R9 introduces explicit file-team authority."""
+    if (
+        not actor.is_authenticated
+        or not actor.is_active
+        or not actor.is_verified
+        or safety_file.owner_id != actor.pk
+    ):
+        raise PermissionDenied("Only the safety file's verified owner may edit its evidence.")
+    if not isinstance(expected_head, str) or not expected_head:
+        raise ValidationError("The version you opened is required before saving evidence.")
+
+
 def save_hazard(
     safety_file: SafetyFile,
     actor: User,
@@ -199,13 +212,7 @@ def save_hazard(
     attributable commit are inside one shared repository lock. Existing links,
     identifiers and creation dates cannot be changed by this operation.
     """
-    if (
-        not actor.is_authenticated
-        or not actor.is_active
-        or not actor.is_verified
-        or safety_file.owner_id != actor.pk
-    ):
-        raise PermissionDenied("Only the safety file's verified owner may edit its hazards.")
+    _require_owner(safety_file, actor, expected_head)
     allowed = {
         "title",
         "status",
@@ -222,8 +229,6 @@ def save_hazard(
         raise ValidationError(
             "Identifiers, dates, mitigation links and derived risk cannot be set by this save."
         )
-    if not isinstance(expected_head, str) or not expected_head:
-        raise ValidationError("The version you opened is required before saving a hazard.")
     repository = safety_file.repository()
     with repository.edit(expected_head=expected_head):
         data = dict(values)
@@ -253,6 +258,45 @@ def save_hazard(
             message=f"feat({hazard.id}): {'record' if hazard_id is None else 'update'} hazard - {hazard.title}",
         )
         return repository.hazard(hazard.id), repository.head_sha
+
+
+def save_mitigation(
+    safety_file: SafetyFile,
+    actor: User,
+    values: dict,
+    *,
+    expected_head: str,
+    mitigation_id: str | None = None,
+) -> tuple[Mitigation, str]:
+    """Save evidence and both sides of its hazard links as one opened-version edit.
+
+    Linking or changing a mitigation never changes a hazard's risk assessment.
+    Responsibility is recorded text, not an invitation or access grant.
+    """
+    _require_owner(safety_file, actor, expected_head)
+    allowed = {"title", "status", "owner", "control_type", "hazards", "evidence", "body"}
+    if set(values) - allowed:
+        raise ValidationError("Identifiers, dates and risk assessments cannot be set by this save.")
+    repository = safety_file.repository()
+    with repository.edit(expected_head=expected_head):
+        if mitigation_id is None:
+            mitigation = Mitigation(
+                id=repository.next_mitigation_id(),
+                created=timezone.localdate(),
+                updated=timezone.localdate(),
+                **values,
+            )
+        else:
+            current = repository.mitigation(mitigation_id)
+            mitigation = replace(current, **values)
+            if mitigation != current:
+                mitigation.updated = timezone.localdate()
+        repository.save_mitigation(
+            mitigation,
+            author_for(actor),
+            message=f"feat({mitigation.id}): {'record' if mitigation_id is None else 'update'} mitigation - {mitigation.title}",
+        )
+        return repository.mitigation(mitigation.id), repository.head_sha
 
 
 def _template_for(standard: str) -> str:

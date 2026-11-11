@@ -25,7 +25,7 @@ from rest_framework import serializers
 from app.accounts.forms import ProfileForm, RegistrationForm
 from app.accounts.models import Regulator, User
 from app.safetyfiles.models import STANDARD_CHOICES, SafetyFile
-from safety_file.models import HAZARD_STATUSES
+from safety_file.models import CONTROL_TYPES, HAZARD_STATUSES, MITIGATION_STATUSES
 from safety_file.risk import risk_level_label
 
 # --------------------------------------------------------------------- users
@@ -318,6 +318,28 @@ class HazardWriteSerializer(StrictWriteSerializer):
 
 class PDFRequestSerializer(StrictWriteSerializer):
     expected_head = serializers.RegexField(r"^(?:[0-9a-f]{40}|[0-9a-f]{64})$")
+
+
+class MitigationWriteSerializer(StrictWriteSerializer):
+    expected_head = serializers.RegexField(r"^(?:[0-9a-f]{40}|[0-9a-f]{64})$")
+    title = EvidenceText(max_length=200)
+    status = serializers.ChoiceField(choices=MITIGATION_STATUSES, default="proposed")
+    owner = serializers.EmailField()
+    control_type = serializers.ChoiceField(choices=CONTROL_TYPES)
+    hazards = serializers.ListField(
+        child=serializers.RegexField(r"^HAZ-[0-9]{3}$"), max_length=999, default=list
+    )
+    evidence = EvidenceText(allow_blank=True, required=False)
+    body = serializers.CharField(allow_blank=True, required=False, trim_whitespace=False)
+
+    def validate(self, attrs):
+        if "expected_head" not in attrs:
+            raise serializers.ValidationError(
+                {"expected_head": "The version you opened is required."}
+            )
+        if "hazards" in attrs and len(attrs["hazards"]) != len(set(attrs["hazards"])):
+            raise serializers.ValidationError({"hazards": "Select each hazard only once."})
+        return attrs
 
 
 class AssessmentSerializer(serializers.Serializer):

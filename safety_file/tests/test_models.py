@@ -232,7 +232,7 @@ class TestMitigation:
         )
 
     def test_bad_hazard_reference_is_rejected(self, mitigation):
-        with pytest.raises(ValidationError, match="hazard reference"):
+        with pytest.raises(ValidationError, match="invalid reference"):
             Mitigation(
                 id="MIT-001",
                 title=mitigation.title,
@@ -243,6 +243,28 @@ class TestMitigation:
                 control_type="technical",
                 hazards=["HAZARD-1"],
             )
+
+
+@pytest.mark.parametrize("reference", [None, "HAZ-001", [True], ["HAZ-001", "HAZ-001"]])
+def test_malformed_or_duplicate_link_lists_are_not_coerced(mitigation, reference):
+    with pytest.raises(ValidationError):
+        Mitigation.from_frontmatter({**mitigation.to_frontmatter(), "hazards": reference})
+
+
+@pytest.mark.parametrize("field", ["source", "review", "future_content"])
+def test_extended_v1_hazards_fail_instead_of_silently_losing_evidence(hazard, field):
+    """TH-003/TH-010: Quill provenance requires an explicit schema upgrade."""
+    with pytest.raises(ValidationError, match="unsupported fields"):
+        Hazard.from_frontmatter({**hazard.to_frontmatter(), field: "unrecognised evidence"})
+
+
+def test_unknown_mitigation_and_assessment_fields_cannot_be_dropped(mitigation):
+    with pytest.raises(ValidationError, match="unsupported fields"):
+        Mitigation.from_frontmatter({**mitigation.to_frontmatter(), "future_evidence": "keep me"})
+    with pytest.raises(ValidationError, match="unsupported fields"):
+        Assessment.from_dict(
+            {"severity": 4, "likelihood": 1, "future_evidence": "keep me"}, "initial"
+        )
 
 
 class TestManifest:

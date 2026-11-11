@@ -11,6 +11,8 @@ import { ProfilePage } from "./pages/ProfilePage";
 import { SafetyFileCreatePage } from "./pages/SafetyFileCreatePage";
 import { HazardDetailPage } from "./pages/HazardDetailPage";
 import { HazardFormPage } from "./pages/HazardFormPage";
+import { MitigationFormPage } from "./pages/MitigationFormPage";
+import { MitigationDetailPage } from "./pages/MitigationDetailPage";
 import { RegistrationPage } from "./pages/RegistrationPage";
 import { VerificationConfirmPage, VerificationNoticePage } from "./pages/VerificationPage";
 import { PasswordResetConfirmPage, PasswordResetRequestPage } from "./pages/PasswordResetPage";
@@ -173,6 +175,30 @@ export function App() {
               element={
                 <RequireSession verified>
                   <SafetyFileCreatePage />
+                </RequireSession>
+              }
+            />
+            <Route
+              path="/safety-files/:slug/mitigations/new"
+              element={
+                <RequireSession verified>
+                  <MitigationFormPage />
+                </RequireSession>
+              }
+            />
+            <Route
+              path="/safety-files/:slug/mitigations/:mitigationId/edit"
+              element={
+                <RequireSession verified>
+                  <MitigationFormPage editing />
+                </RequireSession>
+              }
+            />
+            <Route
+              path="/safety-files/:slug/mitigations/:mitigationId"
+              element={
+                <RequireSession verified>
+                  <MitigationDetailPage />
                 </RequireSession>
               }
             />

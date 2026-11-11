@@ -30,6 +30,24 @@ def _require(condition: bool, message: str) -> None:
         raise ValidationError(message)
 
 
+def _known_fields(data: dict[str, Any], allowed: set[str], name: str) -> None:
+    unknown = set(data) - allowed
+    _require(
+        not unknown,
+        f"{name} contains unsupported fields: {', '.join(sorted(unknown))}. "
+        "Refusing to read and re-save evidence that this version cannot preserve.",
+    )
+
+
+def _references(values: list[str], pattern: re.Pattern, name: str) -> None:
+    _require(isinstance(values, list), f"{name} must be a list of identifiers")
+    _require(
+        all(isinstance(value, str) and pattern.fullmatch(value) for value in values),
+        f"{name} contains an invalid reference",
+    )
+    _require(len(values) == len(set(values)), f"{name} contains duplicate references")
+
+
 def _coerce_date(value: Any, name: str) -> date:
     """Accept a date or an ISO date string; reject anything else."""
     if isinstance(value, date):
@@ -81,6 +99,7 @@ class Assessment:
                 "severity and likelihood and is never stored; a stored value can "
                 "disagree with the assessment it claims to summarise."
             )
+        _known_fields(data, {"severity", "likelihood"}, name)
         return cls(severity=data["severity"], likelihood=data["likelihood"])
 
 
@@ -143,11 +162,7 @@ class Hazard:
                 "are never deleted, only closed with a reason.",
             )
 
-        for mitigation_id in self.mitigations:
-            _require(
-                bool(MITIGATION_ID_PATTERN.match(mitigation_id)),
-                f"{self.id}: mitigation reference must look like MIT-001, got {mitigation_id!r}",
-            )
+        _references(self.mitigations, MITIGATION_ID_PATTERN, f"{self.id}.mitigations")
 
     @property
     def requires_elimination(self) -> bool:
@@ -185,6 +200,11 @@ class Hazard:
             f"hazard is missing required fields: {', '.join(sorted(missing))}",
         )
         identifier = data["id"]
+        _known_fields(
+            data,
+            required | {"cause", "effect", "harm", "justification", "mitigations"},
+            identifier,
+        )
         return cls(
             id=identifier,
             title=data["title"],
@@ -198,7 +218,7 @@ class Hazard:
             effect=data.get("effect", ""),
             harm=data.get("harm", ""),
             justification=data.get("justification", ""),
-            mitigations=list(data.get("mitigations", []) or []),
+            mitigations=data.get("mitigations", []),
             body=body,
         )
 
@@ -237,11 +257,7 @@ class Mitigation:
             f"{self.id}: control_type must be one of {', '.join(CONTROL_TYPES)}, "
             f"got {self.control_type!r}",
         )
-        for hazard_id in self.hazards:
-            _require(
-                bool(HAZARD_ID_PATTERN.match(hazard_id)),
-                f"{self.id}: hazard reference must look like HAZ-001, got {hazard_id!r}",
-            )
+        _references(self.hazards, HAZARD_ID_PATTERN, f"{self.id}.hazards")
 
     @property
     def control_strength(self) -> int:
@@ -272,6 +288,7 @@ class Mitigation:
             not missing,
             f"mitigation is missing required fields: {', '.join(sorted(missing))}",
         )
+        _known_fields(data, required | {"hazards", "evidence"}, data["id"])
         return cls(
             id=data["id"],
             title=data["title"],
@@ -280,7 +297,7 @@ class Mitigation:
             created=data["created"],
             updated=data["updated"],
             control_type=data["control_type"],
-            hazards=list(data.get("hazards", []) or []),
+            hazards=data.get("hazards", []),
             evidence=data.get("evidence", ""),
             body=body,
         )

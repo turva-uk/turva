@@ -101,6 +101,21 @@ An unexpected uncommitted change blocks saves rather than attributing someone el
 
 The locks cover participating Turva processes on the local Linux filesystem. They are not distributed locks and do not protect against an administrator bypassing Turva with direct filesystem or Git operations. See [ADR 0004](../specifications/adr/0004-serialised-safety-file-saves.md).
 
+## Record mitigations and link hazards
+
+Use your separate fictional test file, not the prepared BP@Home repository, if you want to keep the demonstration unchanged. No database migration or new dependency is needed for mitigation authoring; the running `./s/up` stack reloads source changes.
+
+1. Open a hazard and choose **Record a mitigation for this hazard**, or choose **Record mitigation** from the file's mitigation list. A hazard-specific entry preselects that hazard, but saves nothing yet.
+2. Enter **Fictional daily safety-netting**, a fictional responsible email address and a control type. The email records responsibility, not an invitation. Leave status **Proposed**, select one or more hazards and record a fictional narrative. Save once.
+3. Expect the next `MIT-nnn` identifier and its detail page. Follow a linked hazard: the mitigation must appear there too. Both sides and the generated log were written in one commit attributed to you. The hazard's severity, likelihood and derived risks must be unchanged.
+4. Edit the mitigation title. Its ID, creation date, evidence and links remain, and its history follows the rename. Save an unchanged form: no new audit entry should appear.
+5. Choose **Implemented** or **Verified** without evidence and save. Expect rejection with the draft retained. Add a fictional test/report reference and save. This records your judgement, not Turva verifying a control or approving deployment.
+6. Remove one hazard from **Linked hazards** and save. Check that the mitigation is also removed from that hazard's links, while the hazard, assessment, other controls and mitigation evidence remain. Withdrawing a mitigation retains its evidence and links; reassess any affected risk separately.
+7. Open the same mitigation edit form in two tabs. Save from one, then try saving the other. The stale draft and its original version must stay in place, with a separate-tab comparison link. Do not refresh and silently retry a clinical judgement against a newer version.
+8. At phone/tablet/desktop widths, inspect the mitigation list, long selected hazard labels and evidence paragraphs. Keyboard users can search/select hazards, save and follow links. Another verified account may read a public file but cannot create/edit its mitigations; private evidence is not disclosed.
+
+New mitigation saves with implemented/verified status require evidence. Older version-1 records without evidence remain readable; supply an evidence statement before saving their mitigation form. Supplier provenance not yet understood by this version is refused, never silently removed. See [the port decisions](../specifications/quill-port.md) for the organisational/team/delegation work still to come.
+
 ## Download a draft safety file
 
 The PDF feature adds native fonts/Pango and Python rendering dependencies to the web image. Rebuild after pulling this feature (keep your alternative port variable set if using one):
@@ -166,4 +181,4 @@ The Python suite uses a separate test database and temporary safety-file reposit
 
 ## Current limits
 
-Supplier document extraction, guided workflow, document authoring, mitigation editing/linking and delegated mitigation remain roadmap work. The PDF is a controlled draft text export, not an all-format attachment archive or a completed safety case. Production serving/routing for the built React application and general login/reset rate limiting are not complete. The responsive hazard-review work applies to React, not the interim Django tables. Do not mistake the demo's prepared content for those features being complete. See [the roadmap](../specifications/roadmap.md) and [funded scope](../specifications/phase-one-scope.md).
+Supplier document extraction, guided workflow, document authoring, organisational roles and delegated mitigation remain roadmap work. Owner-only mitigation authoring/linking is available in React. The PDF is a controlled draft text export, not an all-format attachment archive or a completed safety case. Production serving/routing for the built React application and general login/reset rate limiting are not complete. The responsive hazard/mitigation work applies to React, not the interim Django tables. Do not mistake the demo's prepared content for those features being complete. See [the roadmap](../specifications/roadmap.md) and [funded scope](../specifications/phase-one-scope.md).

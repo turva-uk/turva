@@ -18,7 +18,7 @@ import re
 import unicodedata
 import uuid
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date
 from pathlib import Path
 from typing import Any
@@ -342,7 +342,6 @@ class SafetyFileRepository:
                 hazard,
                 author=author,
                 message=message or f"feat({hazard.id}): {hazard.title}",
-                regenerate_log=True,
             )
 
     def save_mitigation(
@@ -355,12 +354,17 @@ class SafetyFileRepository:
         """Validate, write, regenerate the hazard log, and commit."""
         with self.edit():
             mitigation.__post_init__()
+            # Legacy version-1 files may lack evidence: keep them readable, but
+            # never save an evidenced status without an evidence statement.
+            if mitigation.status in {"implemented", "verified"} and not mitigation.evidence.strip():
+                raise ValidationError(
+                    f"{mitigation.id}: an implemented or verified mitigation must record evidence"
+                )
             self._validate_cross_references(mitigation=mitigation)
             return self._save(
                 mitigation,
                 author=author,
                 message=message or f"feat({mitigation.id}): {mitigation.title}",
-                regenerate_log=True,
             )
 
     def _save(
@@ -369,28 +373,58 @@ class SafetyFileRepository:
         *,
         author: Author,
         message: str,
-        regenerate_log: bool,
     ) -> str | None:
-        relative = self.path_for(artefact)
-        target = self.root / relative
-        if git.run(["check-ignore", "--", relative], cwd=self.root, check=False).strip():
+        # A link is one decision, not two independent saves. Prepare both sides
+        # before touching disk, then publish them and the generated log in one
+        # attributable commit under the outer edit lock (TH-003/TH-004).
+        if problems := self.validate():
             raise ValidationError(
-                "Git ignores this safety evidence path. Ask an administrator to inspect the ignore rules before saving; nothing from this save was written."
+                "This safety file does not validate. Ask an administrator to inspect it "
+                "before saving: " + "; ".join(problems)
             )
-
-        # A retitled artefact moves file. Remove the old path through Git so the
-        # move is recorded as a rename and `git log --follow` keeps working.
-        for existing in self._artefact_paths(Path(relative).parent, artefact.id.split("-")[0]):
-            if existing.name.startswith(f"{artefact.id}-") and existing != target:
-                git.run(
-                    ["rm", "--quiet", "--", str(existing.relative_to(self.root))], cwd=self.root
+        pending: list[Hazard | Mitigation] = [artefact]
+        if isinstance(artefact, Hazard):
+            related = self.mitigations()
+            selected = artefact.mitigations
+            reverse_field = "hazards"
+        else:
+            related = self.hazards()
+            selected = artefact.hazards
+            reverse_field = "mitigations"
+        for other in related:
+            references = getattr(other, reverse_field)
+            wanted = other.id in selected
+            if (artefact.id in references) != wanted:
+                references = [identifier for identifier in references if identifier != artefact.id]
+                if wanted:
+                    references.append(artefact.id)
+                pending.append(
+                    replace(
+                        other,
+                        **{reverse_field: sorted(references)},
+                        updated=max(other.updated, artefact.updated),
+                    )
                 )
 
-        frontmatter.write(target, artefact.to_frontmatter(), artefact.body)
-
-        if regenerate_log:
-            self._write_hazard_log()
-
+        # Check every destination before the first write, including counterparts
+        # and the log. Otherwise an ignored reverse link can leave half an edit.
+        paths = [self.path_for(item) for item in pending] + [str(HAZARD_LOG_PATH)]
+        for relative in paths:
+            if git.run(["check-ignore", "--", relative], cwd=self.root, check=False).strip():
+                raise ValidationError(
+                    "Git ignores this safety evidence path. Ask an administrator to inspect the ignore rules before saving; nothing from this save was written."
+                )
+        for item in pending:
+            relative = self.path_for(item)
+            target = self.root / relative
+            # A retitle moves the file without changing its permanent identity.
+            for existing in self._artefact_paths(Path(relative).parent, item.id.split("-")[0]):
+                if existing.name.startswith(f"{item.id}-") and existing != target:
+                    git.run(
+                        ["rm", "--quiet", "--", str(existing.relative_to(self.root))], cwd=self.root
+                    )
+            frontmatter.write(target, item.to_frontmatter(), item.body)
+        self._write_hazard_log()
         return git.commit_all(self.root, message, author=author)
 
     def close_hazard(
@@ -513,6 +547,10 @@ class SafetyFileRepository:
     def hazard_history(self, hazard_id: str, limit: int = 50) -> list[Commit]:
         """Every recorded decision about one hazard."""
         return self.history(self.path_for(self.hazard(hazard_id)), limit=limit)
+
+    def mitigation_history(self, mitigation_id: str, limit: int = 50) -> list[Commit]:
+        """Every recorded decision about one mitigation, including link changes."""
+        return self.history(self.path_for(self.mitigation(mitigation_id)), limit=limit)
 
     def version_at(self, revision: str, file_path: str) -> str:
         """An artefact as it stood at a past commit."""

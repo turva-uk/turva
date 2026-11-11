@@ -286,8 +286,8 @@ function HazardForm({
           {source && (
             <Text size="sm">
               Linked mitigations are unchanged by this form:{" "}
-              {source.mitigations.join(", ") || "none"}. Mitigation linking and delegated work
-              are not yet available here.
+              {source.mitigations.join(", ") || "none"}. Use the mitigation form to change
+              links; this hazard form preserves them.
             </Text>
           )}
           <Text size="sm">

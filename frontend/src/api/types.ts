@@ -139,3 +139,18 @@ export interface HazardOptions {
   likelihood: { value: string; label: string }[];
   statuses: string[];
 }
+
+export interface MitigationDetail {
+  safety_file: SafetyFile;
+  can_edit: boolean;
+  mitigation: Mitigation;
+  hazards: Hazard[];
+  history: Commit[];
+  problems: string[];
+  head_sha: string;
+}
+
+export interface MitigationOptions {
+  statuses: string[];
+  control_types: string[];
+}

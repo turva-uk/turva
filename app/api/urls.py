@@ -32,6 +32,7 @@ urlpatterns = [
     path("profile/", views.ProfileView.as_view(), name="profile"),
     path("profile/options/", views.ProfileOptionsView.as_view(), name="profile-options"),
     path("hazard-options/", views.HazardOptionsView.as_view(), name="hazard-options"),
+    path("mitigation-options/", views.MitigationOptionsView.as_view(), name="mitigation-options"),
     path("assessment-preview/", views.AssessmentPreviewView.as_view(), name="assessment-preview"),
     path("safety-files/", views.SafetyFileListView.as_view(), name="safety-file-list"),
     path(
@@ -43,6 +44,16 @@ urlpatterns = [
         "safety-files/<slug:slug>/pdf/",
         views.SafetyFilePDFView.as_view(),
         name="safety-file-pdf",
+    ),
+    path(
+        "safety-files/<slug:slug>/mitigations/",
+        views.MitigationListView.as_view(),
+        name="mitigation-list",
+    ),
+    path(
+        "safety-files/<slug:slug>/mitigations/<str:mitigation_id>/",
+        views.MitigationDetailView.as_view(),
+        name="mitigation-detail",
     ),
     path(
         "safety-files/<slug:slug>/hazards/",

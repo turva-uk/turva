@@ -100,6 +100,10 @@ evidence: >
 
 The hazard-to-mitigation relationship is recorded on both sides. That is deliberate redundancy: either file read alone is complete, which matters when a reviewer is reading a single hazard in a Git diff. The storage layer keeps the two in step and treats disagreement as a validation error.
 
+Saving either artefact updates any changed reverse references and the generated log in the same attributable commit. An existing inconsistent relationship is reported for inspection, not silently repaired by a later save. Mitigation editing may link/unlink hazards; the hazard-entry API continues to preserve its links. Neither linking nor mitigation status changes severity/likelihood automatically. Saving an implemented or verified mitigation requires an evidence statement; older version-1 records without one remain readable, but need evidence before a mitigation save. The statement is recorded judgement, not machine verification of a control's effectiveness.
+
+Unrecognised hazard, mitigation and assessment frontmatter fields are refused rather than silently dropped on re-save. In particular, Quill's extended version-1 `source` and `review` fields require the explicit provenance/schema work described in [the port decisions](quill-port.md); this stricter reader does not migrate or discard those fields.
+
 ## `.turva/manifest.yaml`
 
 ```yaml
