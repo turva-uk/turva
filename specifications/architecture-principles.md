@@ -111,6 +111,8 @@ This was previously documented in `archive/architecture/vmpt.md` and was lost in
 
 ### Immutable Audit Records
 
+For the phase-one local-filesystem implementation, whole-file writes are serialised through the storage layer and hazard API saves require the HEAD read when the form opened. Multi-read HTTP responses hold a shared clean-tree snapshot. This preserves the committed generated log without interleaved Git staging or silent stale-form overwrites. Locks are advisory and failed writes require inspection, not automatic rollback. See [ADR 0004](adr/0004-serialised-safety-file-saves.md) for the boundary and limits.
+
 Once a safety decision is recorded, the historical record is permanent:
 
 - Corrections create new versions, don't overwrite

@@ -88,14 +88,20 @@ def safety_file_detail(request: HttpRequest, slug: str) -> HttpResponse:
         context["repository_missing"] = True
         return render(request, "safetyfiles/detail.html", context, status=200)
 
-    repository = safety_file.repository()
-    hazards = repository.hazards()
-    context |= {
-        "hazards": hazards,
-        "mitigations": repository.mitigations(),
-        "blocking": [h for h in hazards if h.status == "open" and h.requires_elimination],
-        "history": repository.history(limit=10),
-        "problems": repository.validate(),
-        "head_sha": repository.head_sha,
-    }
+    try:
+        repository = safety_file.repository()
+        with repository.snapshot():
+            hazards = repository.hazards()
+            context |= {
+                "hazards": hazards,
+                "mitigations": repository.mitigations(),
+                "blocking": [h for h in hazards if h.status == "open" and h.requires_elimination],
+                "history": repository.history(limit=10),
+                "problems": repository.validate(),
+                "head_sha": repository.head_sha,
+            }
+    except SafetyFileError, OSError:
+        logger.exception("Could not read safety file %s", safety_file.pk)
+        context["repository_problem"] = True
+        return render(request, "safetyfiles/detail.html", context, status=503)
     return render(request, "safetyfiles/detail.html", context)

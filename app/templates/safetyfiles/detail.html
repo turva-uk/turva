@@ -26,6 +26,11 @@
         entry - it is the evidence that the safety file existed.
       </p>
     </div>
+  {% elif repository_problem %}
+    <div class="banner banner-danger" role="alert">
+      <h2>The safety evidence could not be read</h2>
+      <p>No empty or partial record is being shown. Ask an administrator to inspect the repository before continuing.</p>
+    </div>
   {% else %}
 
     {% if problems %}

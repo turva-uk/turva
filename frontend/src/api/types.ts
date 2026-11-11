@@ -111,6 +111,7 @@ export interface Commit {
 
 export interface SafetyFileDetail {
   safety_file: SafetyFile;
+  can_edit: boolean;
   repository_missing: boolean;
   /** Present only when the repository is missing from disk. */
   repository_path?: string;
@@ -125,9 +126,16 @@ export interface SafetyFileDetail {
 
 export interface HazardDetail {
   safety_file: SafetyFile;
+  can_edit: boolean;
   hazard: Hazard;
   mitigations: Mitigation[];
   history: Commit[];
   problems: string[];
   head_sha: string;
+}
+
+export interface HazardOptions {
+  severity: { value: string; label: string }[];
+  likelihood: { value: string; label: string }[];
+  statuses: string[];
 }

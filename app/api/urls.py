@@ -31,11 +31,18 @@ urlpatterns = [
     ),
     path("profile/", views.ProfileView.as_view(), name="profile"),
     path("profile/options/", views.ProfileOptionsView.as_view(), name="profile-options"),
+    path("hazard-options/", views.HazardOptionsView.as_view(), name="hazard-options"),
+    path("assessment-preview/", views.AssessmentPreviewView.as_view(), name="assessment-preview"),
     path("safety-files/", views.SafetyFileListView.as_view(), name="safety-file-list"),
     path(
         "safety-files/<slug:slug>/",
         views.SafetyFileDetailView.as_view(),
         name="safety-file-detail",
+    ),
+    path(
+        "safety-files/<slug:slug>/hazards/",
+        views.HazardListView.as_view(),
+        name="hazard-list",
     ),
     path(
         "safety-files/<slug:slug>/hazards/<str:hazard_id>/",

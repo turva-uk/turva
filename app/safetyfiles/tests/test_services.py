@@ -120,6 +120,29 @@ class TestTemplateRendering:
 
 
 class TestSlugAllocation:
+    def test_a_directory_claimed_after_allocation_is_not_reused(self, cso, monkeypatch):
+        """TH-003/004: another request can win the gap before Git init."""
+        from app.safetyfiles import services
+
+        original = services.allocate_slug
+        claimed = []
+
+        def allocate(name):
+            candidate = original(name)
+            if not claimed:
+                path = settings.SAFETY_FILE_ROOT / candidate
+                path.mkdir()
+                (path / "another-request.txt").write_text("Reserved by another request.")
+                claimed.append(path)
+            return candidate
+
+        monkeypatch.setattr(services, "allocate_slug", allocate)
+        file = create_safety_file(DETAILS, cso)
+        assert file.slug.endswith("-2")
+        assert (claimed[0] / "another-request.txt").read_text() == "Reserved by another request."
+        assert not (claimed[0] / ".git").exists()
+        assert file.repository().is_clean
+
     def test_collisions_are_resolved(self, cso):
         first = create_safety_file(DETAILS, cso)
         second = create_safety_file(DETAILS, cso)

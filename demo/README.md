@@ -72,7 +72,34 @@ New files are private. DCB0129 is offered for compatibility with the interim Dja
 4. Open a hazard by its title. Check its cause, effect, potential harm, risk justification, linked mitigation evidence and hazard-specific history. The narrative is shown as recorded Markdown text, not interpreted HTML.
 5. Try a missing hazard at <http://localhost:5173/safety-files/demo-bp-at-home/hazards/HAZ-999>. Expect a clear not-found/access message. Viewing another account's private hazard returns the same message without disclosing whether it exists.
 
-These screens are read-only. Looking at a hazard or filtering the log must not add a commit. The API rejects writes to the hazard-detail endpoint.
+Looking at a hazard or filtering the log must not add a commit. Owners can now use the separate **Record hazard** and **Edit hazard** forms below. Readers of a published file cannot edit it; the API enforces that rule as well as the interface.
+
+## Record and edit hazards
+
+Use the new fictional safety file you created in the earlier walkthrough if you want to keep the prepared six-hazard BP@Home example unchanged. Sign in as that file's owner, not the new account from the registration walkthrough.
+
+1. Open the file and choose **Record hazard**. Give it a fictional title, responsible email address, cause, effect on the care pathway and potential harm. The email records responsibility only: it sends no invitation and grants no access.
+2. Leave the four assessment scores unselected and press **Save hazard**. Expect validation, no saved hazard, and your draft still present. No severity or likelihood defaults to a low score.
+3. Choose initial severity **4 - Major**, likelihood **3 - Medium**, residual severity **4 - Major**, likelihood **1 - Very low**. The server-derived previews should show levels **4** and **2**, clearly marked **not saved**. Enter a fictional justification explaining the change; the interface does not validate whether a control works in reality.
+4. Save the form. Expect **HAZ-001** (or the next unused identifier), a detail page with both assessments, and one attributable history entry. The repository's generated `docs/hazards/index.md` is updated in the same save. Editing fields or previewing risk alone must not create versions.
+5. Choose **Edit hazard**, correct the title and save. The ID and creation date stay the same; the history includes the original version despite the filename changing. Linked mitigations remain unchanged by this form. Saving an unchanged form creates no extra version.
+6. Try residual severity **5** while initial severity is **4**. Expect rejection without a version being added. Restore the original scores.
+7. Change status to **Closed**, clear the justification and save. Expect rejection. Record **Fictional test pathway withdrawn - development testing only**, then save. Closure retains the hazard, scores and history; it is not approval to deploy. **Transferred** also retains the record and is not proof that someone else accepted responsibility.
+
+### Check two open tabs
+
+1. Open **Edit hazard** in two tabs before saving either one.
+2. In the first tab change the cause and save.
+3. In the second tab enter a different cause and save. Expect **This safety file changed after you opened it**, with the second draft retained. The recorded cause must remain the first tab's value.
+4. Use **Open the latest recorded version in another tab** to compare without clearing the stale draft. Copy any wording you want to retain, then start a fresh edit from the latest version. Turva does not automatically merge clinical judgements or silently refresh the stale form's version. Any save elsewhere in the same file, including a new hazard, makes an older form stale.
+
+Drafts are held in the open page only, not browser storage: closing or reloading discards them. After a connection failure, compare with the latest recorded version before retrying; a response can be lost after a successful save. Version preconditions prevent that retry from creating another hazard or overwriting later evidence.
+
+### Repository failures
+
+An unexpected uncommitted change blocks saves rather than attributing someone else's work to you. Detail screens also refuse to present dirty working-tree content as committed evidence. Ask an administrator to inspect the repository; do not run a reset or clean command to make the warning disappear. Failed writes are deliberately left for inspection. Automated tests cover dirty/staged trees, failed commits, lock contention and concurrent saves in temporary repositories, so you do not need to damage your demo to exercise these paths.
+
+The locks cover participating Turva processes on the local Linux filesystem. They are not distributed locks and do not protect against an administrator bypassing Turva with direct filesystem or Git operations. See [ADR 0004](../specifications/adr/0004-serialised-safety-file-saves.md).
 
 ## Test registration, confirmation and password reset
 
@@ -120,4 +147,4 @@ The Python suite uses a separate test database and temporary safety-file reposit
 
 ## Current limits
 
-Hazard creation/editing, supplier document extraction, guided workflow, delegated mitigation and PDF export remain roadmap work. Production serving/routing for the built React application and general login/reset rate limiting are not complete. The responsive hazard-review work applies to React, not the interim Django tables. Do not mistake the demo's prepared content for those features being complete. See [the roadmap](../specifications/roadmap.md) and [funded scope](../specifications/phase-one-scope.md).
+Supplier document extraction, guided workflow, mitigation editing/linking, delegated mitigation and PDF export remain roadmap work. Production serving/routing for the built React application and general login/reset rate limiting are not complete. The responsive hazard-review work applies to React, not the interim Django tables. Do not mistake the demo's prepared content for those features being complete. See [the roadmap](../specifications/roadmap.md) and [funded scope](../specifications/phase-one-scope.md).

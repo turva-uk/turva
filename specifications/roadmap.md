@@ -13,7 +13,8 @@ Legend: [x] done, [~] partially done, [ ] not started. Stable identifiers are be
 - [x] **R3 - Repeatable demo testing instructions.** See [demo/README.md](../demo/README.md); extend this walkthrough with every new delivered workflow.
 - [x] **R4 - Responsive hazard log and hazard detail.** Both risk assessments remain visible on phones; cause, effect, harm, linked mitigations and rename-following history are readable. Search and status filters work on the loaded log.
 - [x] **R5 - React registration, confirmation and password reset parity.** Django forms/token generator remain authoritative; include anonymous CSRF checks, a repeatable resend cooldown and local console-mail preview. The older Django routes remain available for compatibility until production React routing lands.
-- [ ] **R6 - Hazard creation and editing.** Settle concurrency at the shared repository boundary before exposing writes; retain the committed generated log contract.
+- [x] **R6 - Hazard creation and editing.** Whole-form verified-owner saves, canonical risk previews, retained stale drafts and local repository snapshots/locks; retain the committed generated log contract. See [ADR 0004](adr/0004-serialised-safety-file-saves.md) and the [demo exercises](../demo/README.md#record-and-edit-hazards).
+- [ ] **R7 - Single-document PDF proof.** Build the demo through Zensical and the proven WeasyPrint approach; explicit page scope, commit-specific cache and attributable source version. Exercise permission/failure cases and add a downloadable demo walkthrough before considering supplier extraction.
 
 ## Foundation & Infrastructure
 
@@ -152,31 +153,30 @@ performing it. See TH-011 in [SAFETY.md](../SAFETY.md).
 
 ### Hazards
 
-- [x] Hazard model with versioning (in the storage layer; no interface yet)
-- [ ] Create hazard through the interface - the next piece of work, and the
-      point at which the generated hazard log's write pattern has to be settled
-- [ ] Edit hazard (with version control)
-- [x] Hazard log view (R4, read-only)
-- [x] Hazard detail view (R4, read-only)
+- [x] Hazard model with versioning in Git
+- [x] Create hazard through React and the owner-only service (R6)
+- [x] Edit hazard with attributable version control and stale-form refusal (R6)
+- [x] Hazard log view (R4); separate owner-only entry form (R6)
+- [x] Hazard detail view (R4); separate owner-only edit form (R6)
 - [ ] Hazard categorization
-- [ ] Hazard status management (open/closed/transferred)
-- [ ] Hazard assignment
-- [ ] Link hazards to causes and effects
-- [ ] Link hazards to potential harms
+- [x] Hazard status management (open/closed/transferred), with mandatory closure justification (R6)
+- [~] Hazard assignment: record a responsible email; no invitations, access grant or delegated workflow yet
+- [x] Record cause and effect on the care pathway (R6)
+- [x] Record potential harm (R6)
 - [x] Hazard search and status filtering within one safety file (R4)
 - [ ] Hazard export
 
 ### Risk Assessment
 
-- [ ] Risk assessment model
-- [ ] Initial risk assessment creation
-- [ ] Residual risk assessment creation
-- [ ] Severity scoring (1-5 scale)
-- [ ] Likelihood scoring (1-5 scale)
-- [ ] Automatic risk level calculation
-- [ ] Risk matrix implementation
-- [ ] Risk justification capture
-- [ ] Risk assessment history
+- [x] Risk assessment model in the framework-free storage layer
+- [x] Initial risk assessment creation (R6)
+- [x] Residual risk assessment creation (R6)
+- [x] Severity scoring (1-5 scale), strict integer validation and no assumed default
+- [x] Likelihood scoring (1-5 scale), strict integer validation and no assumed default
+- [x] Automatic risk level calculation, derived only on the server
+- [x] Risk matrix implementation, with all 25 cells tested
+- [x] Risk justification capture (R6)
+- [x] Risk assessment history as part of each attributable hazard version
 - [ ] Risk assessment approval workflow
 
 ### Mitigations
@@ -615,8 +615,8 @@ access path exists.
 
 ---
 
-**Last Updated:** 10 November 2026
+**Last Updated:** 11 November 2026
 **Current Phase:** Funded phase one - see [Phase One Scope](phase-one-scope.md)
-**Next Milestone:** Hazard creation and editing, then the Zensical/WeasyPrint PDF
+**Next Milestone:** Single-document Zensical/WeasyPrint PDF proof (R7)
 
 Note on reading this roadmap: it tracks everything Turva might eventually do, and is much wider than the funded build. [Phase One Scope](phase-one-scope.md) is the authoritative list of what ships by Christmas.

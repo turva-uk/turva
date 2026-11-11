@@ -57,6 +57,22 @@ function csrfToken(): string {
   return match?.[1] ? decodeURIComponent(match[1]) : "";
 }
 
+/** DRF can nest field errors; Mantine uses dotted paths for nested inputs. */
+function flattenErrors(value: unknown, path = "", errors: FieldErrors = {}): FieldErrors {
+  if (typeof value === "string") {
+    (errors[path || "non_field_errors"] ??= []).push(value);
+  } else if (Array.isArray(value)) {
+    value.forEach((entry, index) =>
+      flattenErrors(entry, typeof entry === "string" ? path : `${path}.${index}`, errors),
+    );
+  } else if (value && typeof value === "object") {
+    Object.entries(value).forEach(([key, entry]) =>
+      flattenErrors(entry, path ? `${path}.${key}` : key, errors),
+    );
+  }
+  return errors;
+}
+
 async function describeFailure(response: Response): Promise<ApiError> {
   let detail = `${response.status} ${response.statusText}`;
   let fieldErrors: FieldErrors = {};
@@ -66,9 +82,9 @@ async function describeFailure(response: Response): Promise<ApiError> {
     if (typeof body?.detail === "string") {
       detail = body.detail;
     } else if (body && typeof body === "object") {
-      // DRF returns `{"field": ["message", ...]}` for validation failures, and
-      // `non_field_errors` for the rest.
-      fieldErrors = body as FieldErrors;
+      // Never cast nested objects to string arrays: the save handler would
+      // throw while trying to join them and lose the useful validation error.
+      fieldErrors = flattenErrors(body);
       const first = Object.values(fieldErrors).flat()[0];
       if (typeof first === "string") {
         detail = first;

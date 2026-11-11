@@ -25,6 +25,7 @@ from rest_framework import serializers
 from app.accounts.forms import ProfileForm, RegistrationForm
 from app.accounts.models import Regulator, User
 from app.safetyfiles.models import STANDARD_CHOICES, SafetyFile
+from safety_file.models import HAZARD_STATUSES
 from safety_file.risk import risk_level_label
 
 # --------------------------------------------------------------------- users
@@ -243,6 +244,76 @@ class SafetyFileCreateSerializer(serializers.Serializer):
 # Read models from the repository rather than the database. They are plain
 # serializers over the storage layer's dataclasses, not ModelSerializers, because
 # there is no model: the hazard lives in a file.
+
+
+class StrictWriteSerializer(serializers.Serializer):
+    """Unknown write fields are errors, not silently discarded safety content."""
+
+    def to_internal_value(self, data):
+        if isinstance(data, dict) and (unknown := set(data) - set(self.fields)):
+            raise serializers.ValidationError(
+                {field: ["This field cannot be set."] for field in sorted(unknown)}
+            )
+        return super().to_internal_value(data)
+
+
+class StrictScore(serializers.IntegerField):
+    def to_internal_value(self, data):
+        if type(data) is not int:
+            raise serializers.ValidationError("Select an integer score from 1 to 5.")
+        return super().to_internal_value(data)
+
+
+class EvidenceText(serializers.CharField):
+    """Keep recorded wording/formatting on an unchanged full-form edit.
+
+    A folded YAML paragraph often ends in a newline. DRF's default stripping
+    would otherwise create a version even when no input was changed.
+    """
+
+    def __init__(self, **kwargs):
+        super().__init__(trim_whitespace=False, **kwargs)
+
+    def to_internal_value(self, data):
+        value = super().to_internal_value(data)
+        if not self.allow_blank and not value.strip():
+            self.fail("blank")
+        return value
+
+
+class AssessmentWriteSerializer(StrictWriteSerializer):
+    severity = StrictScore(min_value=1, max_value=5)
+    likelihood = StrictScore(min_value=1, max_value=5)
+
+    def validate(self, attrs):
+        if set(attrs) != {"severity", "likelihood"}:
+            raise serializers.ValidationError(
+                "Supply both severity and likelihood for this assessment."
+            )
+        return attrs
+
+
+class HazardWriteSerializer(StrictWriteSerializer):
+    expected_head = serializers.RegexField(r"^(?:[0-9a-f]{40}|[0-9a-f]{64})$")
+    title = EvidenceText(max_length=200)
+    status = serializers.ChoiceField(choices=HAZARD_STATUSES, default="open")
+    owner = serializers.EmailField()
+    cause = EvidenceText()
+    effect = EvidenceText()
+    harm = EvidenceText()
+    justification = EvidenceText(allow_blank=True, required=False)
+    body = serializers.CharField(allow_blank=True, required=False, trim_whitespace=False)
+    initial = AssessmentWriteSerializer()
+    residual = AssessmentWriteSerializer()
+
+    def validate(self, attrs):
+        # DRF skips required fields under partial=True. The precondition is
+        # mandatory even for a PATCH that changes just one field.
+        if "expected_head" not in attrs:
+            raise serializers.ValidationError(
+                {"expected_head": "The version you opened is required."}
+            )
+        return attrs
 
 
 class AssessmentSerializer(serializers.Serializer):

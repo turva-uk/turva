@@ -75,6 +75,20 @@ describe("CSRF", () => {
 });
 
 describe("failures are never silent", () => {
+  it("flattens nested assessment errors without losing their field paths", async () => {
+    mockFetch({
+      ok: false,
+      status: 400,
+      jsonBody: { initial: { severity: ["Select an integer score from 1 to 5."] } },
+    });
+    const error = (await api
+      .post("/safety-files/demo/hazards/", {})
+      .catch((e: unknown) => e)) as ApiError;
+    expect(error.fieldErrors["initial.severity"]).toEqual([
+      "Select an integer score from 1 to 5.",
+    ]);
+    expect(error.message).toBe("Select an integer score from 1 to 5.");
+  });
   it("throws on a 4xx rather than returning a body", async () => {
     // `fetch` does not reject on an error status, so without this a failed
     // save is indistinguishable from a successful one - which in a safety tool

@@ -17,6 +17,7 @@ from __future__ import annotations
 import re
 import unicodedata
 import uuid
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
@@ -26,11 +27,14 @@ import yaml
 
 from . import frontmatter, git
 from .errors import (
+    DirtyRepositoryError,
     NotASafetyFileError,
     SchemaVersionError,
+    StaleVersionError,
     ValidationError,
 )
 from .git import Author, Commit
+from .locking import RepositoryLock
 from .models import Hazard, Manifest, Mitigation
 from .render import render_hazard_log
 
@@ -71,6 +75,7 @@ class SafetyFileRepository:
 
     def __init__(self, root: Path) -> None:
         self.root = Path(root)
+        self._lock = RepositoryLock(self.root)
         if not git.is_repository(self.root):
             raise NotASafetyFileError(f"{self.root} is not a Git repository")
         if not (self.root / MANIFEST_PATH).is_file():
@@ -79,6 +84,41 @@ class SafetyFileRepository:
                 "not a Turva safety file"
             )
         self._check_schema_version()
+
+    @contextmanager
+    def snapshot(self, *, timeout: float = 5):
+        """A coherent multi-read response while participating writers are excluded."""
+        with self._lock.hold(exclusive=False, timeout=timeout):
+            if not self.is_clean:
+                raise DirtyRepositoryError(
+                    "This safety file has uncommitted changes. They cannot be presented as "
+                    "committed evidence; ask an administrator to inspect the repository."
+                )
+            yield self
+
+    @contextmanager
+    def edit(self, *, expected_head: str | None = None, timeout: float = 5):
+        """Serialise a complete edit, including identifier allocation and the log.
+
+        Callers editing an earlier read must supply its full HEAD. This rejects
+        stale forms, rather than merging safety judgements or losing updates.
+        Nested saves on this instance keep the outer lock. No failed write is
+        discarded: a dirty tree blocks further writes until an administrator
+        inspects it. This is a lock, not a rollback transaction.
+        """
+        with self._lock.hold(exclusive=True, timeout=timeout):
+            if expected_head is not None and self.head_sha != expected_head:
+                raise StaleVersionError(
+                    "This safety file changed after you opened it. Nothing from this request "
+                    "was saved. Keep your draft, open the latest version in another tab, "
+                    "and compare before starting a fresh edit."
+                )
+            if not self.is_clean:
+                raise DirtyRepositoryError(
+                    "This safety file has uncommitted changes. No new save is allowed: ask "
+                    "an administrator to inspect them so they are not attributed to you."
+                )
+            yield self
 
     # ---------------------------------------------------------------- creation
 
@@ -273,13 +313,19 @@ class SafetyFileRepository:
 
         Returns the commit SHA, or None if nothing changed on disk.
         """
-        self._validate_cross_references(hazard=hazard)
-        return self._save(
-            hazard,
-            author=author,
-            message=message or f"feat({hazard.id}): {hazard.title}",
-            regenerate_log=True,
-        )
+        with self.edit():
+            # Dataclasses are mutable. Constructor validation alone does not
+            # protect a caller that edits a loaded object before saving it.
+            hazard.initial.__post_init__()
+            hazard.residual.__post_init__()
+            hazard.__post_init__()
+            self._validate_cross_references(hazard=hazard)
+            return self._save(
+                hazard,
+                author=author,
+                message=message or f"feat({hazard.id}): {hazard.title}",
+                regenerate_log=True,
+            )
 
     def save_mitigation(
         self,
@@ -289,15 +335,15 @@ class SafetyFileRepository:
         message: str | None = None,
     ) -> str | None:
         """Validate, write, regenerate the hazard log, and commit."""
-        self._validate_cross_references(mitigation=mitigation)
-        return self._save(
-            mitigation,
-            author=author,
-            message=message or f"feat({mitigation.id}): {mitigation.title}",
-            # A mitigation's status appears in the hazard log, so it has to be
-            # regenerated here too.
-            regenerate_log=True,
-        )
+        with self.edit():
+            mitigation.__post_init__()
+            self._validate_cross_references(mitigation=mitigation)
+            return self._save(
+                mitigation,
+                author=author,
+                message=message or f"feat({mitigation.id}): {mitigation.title}",
+                regenerate_log=True,
+            )
 
     def _save(
         self,
@@ -337,16 +383,16 @@ class SafetyFileRepository:
         that can disappear is not a safety record - so closing is the only exit,
         and it requires a reason.
         """
-        hazard = self.hazard(hazard_id)
-        hazard.status = "closed"
-        hazard.justification = justification
-        hazard.updated = date.today()
-        hazard.__post_init__()  # re-run validation after mutation
-        return self.save_hazard(
-            hazard,
-            author,
-            message=f"feat({hazard.id}): close hazard",
-        )
+        with self.edit():
+            hazard = self.hazard(hazard_id)
+            hazard.status = "closed"
+            hazard.justification = justification
+            hazard.updated = date.today()
+            return self.save_hazard(
+                hazard,
+                author,
+                message=f"feat({hazard.id}): close hazard",
+            )
 
     def _write_hazard_log(self) -> None:
         (self.root / HAZARD_LOG_PATH).write_text(

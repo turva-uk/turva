@@ -100,6 +100,9 @@ export const theme = createTheme({
   // the default should not silently restyle the interface.
   primaryShade: { light: 6, dark: 7 },
   components: {
+    // Semantic alert fills still distinguish warnings/errors, but their small
+    // headings need normal text contrast (the default yellow heading fails AA).
+    Alert: { styles: { title: { color: "var(--mantine-color-text)" } } },
     Anchor: { defaultProps: { c: BRAND_TEXT } },
     Button: { defaultProps: { radius: 0 } },
     TextInput: { defaultProps: { radius: 0 } },

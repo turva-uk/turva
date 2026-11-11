@@ -1,4 +1,14 @@
-import { Alert, Anchor, Box, Loader, SimpleGrid, Stack, Text, Title } from "@mantine/core";
+import {
+  Alert,
+  Anchor,
+  Box,
+  Button,
+  Loader,
+  SimpleGrid,
+  Stack,
+  Text,
+  Title,
+} from "@mantine/core";
 import { Link, useParams } from "react-router";
 
 import type { HazardDetail } from "../api/types";
@@ -28,6 +38,11 @@ export function HazardDetailPage() {
       <Title order={1} size="h2" mt="md">
         {hazard.id}: {hazard.title}
       </Title>
+      {data.can_edit && (
+        <Button component={Link} to={`/safety-files/${slug}/hazards/${hazard.id}/edit`} mt="sm">
+          Edit hazard
+        </Button>
+      )}
       <Text mt="xs">
         Status: {hazard.status} · Responsible person: {hazard.owner || "Not recorded"}
       </Text>

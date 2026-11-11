@@ -41,3 +41,15 @@ class SchemaVersionError(SafetyFileError):
 
 class NotASafetyFileError(SafetyFileError):
     """The path is not a Turva safety file repository."""
+
+
+class RepositoryBusyError(SafetyFileError):
+    """Another process holds the safety file's advisory lock."""
+
+
+class StaleVersionError(SafetyFileError):
+    """The evidence changed after a caller read it; never overwrite it silently."""
+
+
+class DirtyRepositoryError(SafetyFileError):
+    """Uncommitted changes need inspection before any new attributable save."""

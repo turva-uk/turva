@@ -10,6 +10,7 @@ import { SafetyFilesPage } from "./pages/SafetyFilesPage";
 import { ProfilePage } from "./pages/ProfilePage";
 import { SafetyFileCreatePage } from "./pages/SafetyFileCreatePage";
 import { HazardDetailPage } from "./pages/HazardDetailPage";
+import { HazardFormPage } from "./pages/HazardFormPage";
 import { RegistrationPage } from "./pages/RegistrationPage";
 import { VerificationConfirmPage, VerificationNoticePage } from "./pages/VerificationPage";
 import { PasswordResetConfirmPage, PasswordResetRequestPage } from "./pages/PasswordResetPage";
@@ -172,6 +173,22 @@ export function App() {
               element={
                 <RequireSession verified>
                   <SafetyFileCreatePage />
+                </RequireSession>
+              }
+            />
+            <Route
+              path="/safety-files/:slug/hazards/new"
+              element={
+                <RequireSession verified>
+                  <HazardFormPage />
+                </RequireSession>
+              }
+            />
+            <Route
+              path="/safety-files/:slug/hazards/:hazardId/edit"
+              element={
+                <RequireSession verified>
+                  <HazardFormPage editing />
                 </RequireSession>
               }
             />

@@ -1,4 +1,4 @@
-import { Alert, Anchor, Box, Loader, Text, Title } from "@mantine/core";
+import { Alert, Anchor, Box, Button, Group, Loader, Text, Title } from "@mantine/core";
 import { Link, useParams } from "react-router";
 
 import type { SafetyFileDetail } from "../api/types";
@@ -79,9 +79,16 @@ export function SafetyFileDetailPage() {
             </Alert>
           )}
 
-          <Title order={2} size="h3" mt="xl" mb="sm">
-            Hazards
-          </Title>
+          <Group justify="space-between" mt="xl" mb="sm">
+            <Title order={2} size="h3">
+              Hazards
+            </Title>
+            {detail.can_edit && (
+              <Button component={Link} to={`/safety-files/${file.slug}/hazards/new`}>
+                Record hazard
+              </Button>
+            )}
+          </Group>
 
           <HazardLog hazards={detail.hazards ?? []} slug={file.slug} />
 

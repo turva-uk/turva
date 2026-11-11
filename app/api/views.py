@@ -36,8 +36,10 @@ from app.accounts.services import (
 )
 from app.api.permissions import IsVerified
 from app.api.serializers import (
+    AssessmentSerializer,
     CommitSerializer,
     HazardSerializer,
+    HazardWriteSerializer,
     LoginSerializer,
     MitigationSerializer,
     PasswordResetConfirmSerializer,
@@ -49,8 +51,17 @@ from app.api.serializers import (
     UserSerializer,
     VerificationSerializer,
 )
-from app.safetyfiles.services import SafetyFileDetails, create_safety_file, visible_to
-from safety_file.errors import SafetyFileError
+from app.safetyfiles.services import SafetyFileDetails, create_safety_file, save_hazard, visible_to
+from safety_file.errors import (
+    DirtyRepositoryError,
+    InvalidRiskScore,
+    RepositoryBusyError,
+    SafetyFileError,
+    StaleVersionError,
+    ValidationError,
+)
+from safety_file.models import HAZARD_STATUSES, Assessment
+from safety_file.risk import LIKELIHOOD_LABELS, SEVERITY_LABELS
 
 logger = logging.getLogger(__name__)
 
@@ -369,25 +380,88 @@ class SafetyFileListView(APIView):
         return Response(SafetyFileSerializer(safety_file).data, status=status.HTTP_201_CREATED)
 
 
-class RepositoryReadView(APIView):
-    """A broken repository is unavailable evidence, never an empty log. TH-001."""
+class RepositoryView(APIView):
+    """Known storage failures never become empty logs or apparently saved drafts."""
 
     permission_classes = [IsVerified]
 
     def handle_exception(self, exc):
+        if isinstance(exc, StaleVersionError) or (
+            isinstance(exc, DirtyRepositoryError) and self.request.method not in {"GET", "HEAD"}
+        ):
+            return Response({"detail": str(exc)}, status=status.HTTP_409_CONFLICT)
+        if isinstance(exc, RepositoryBusyError):
+            return Response({"detail": str(exc)}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
         if isinstance(exc, (SafetyFileError, OSError)):
-            logger.exception("Could not read safety evidence")
+            logger.exception("Could not read or write safety evidence")
             return Response(
                 {
-                    "detail": "Turva could not read the safety evidence. No empty or partial "
-                    "record is being shown. Please ask an administrator to check the repository."
+                    "detail": (
+                        "Turva could not read the safety evidence. No empty or partial record is being shown. Please ask an administrator to check the repository."
+                        if self.request.method in {"GET", "HEAD"}
+                        else "Turva could not complete the save. Do not assume the changes were saved. Keep your draft and ask an administrator to inspect the repository before trying again."
+                    )
                 },
                 status=status.HTTP_503_SERVICE_UNAVAILABLE,
             )
         return super().handle_exception(exc)
 
+    def write_hazard(self, request, safety_file, *, hazard_id=None):
+        serializer = HazardWriteSerializer(data=request.data, partial=hazard_id is not None)
+        serializer.is_valid(raise_exception=True)
+        values = dict(serializer.validated_data)
+        expected_head = values.pop("expected_head")
+        try:
+            hazard, head = save_hazard(
+                safety_file, request.user, values, expected_head=expected_head, hazard_id=hazard_id
+            )
+        except (ValidationError, InvalidRiskScore) as exc:
+            return Response({"non_field_errors": [str(exc)]}, status=400)
+        return Response(
+            {"hazard": HazardSerializer(hazard).data, "head_sha": head},
+            status=201 if hazard_id is None else 200,
+        )
 
-class SafetyFileDetailView(RepositoryReadView):
+
+class HazardListView(RepositoryView):
+    def post(self, request: Request, slug: str) -> Response:
+        safety_file = get_object_or_404(visible_to(request.user), slug=slug)
+        return self.write_hazard(request, safety_file)
+
+
+class HazardOptionsView(APIView):
+    permission_classes = [IsVerified]
+
+    def get(self, request: Request) -> Response:
+        return Response(
+            {
+                "severity": [
+                    {"value": str(score), "label": f"{score} - {label}"}
+                    for score, label in SEVERITY_LABELS.items()
+                ],
+                "likelihood": [
+                    {"value": str(score), "label": f"{score} - {label}"}
+                    for score, label in LIKELIHOOD_LABELS.items()
+                ],
+                "statuses": list(HAZARD_STATUSES),
+            }
+        )
+
+
+class AssessmentPreviewView(APIView):
+    permission_classes = [IsVerified]
+
+    def get(self, request: Request) -> Response:
+        scores = {}
+        for field in ("severity", "likelihood"):
+            raw = request.query_params.get(field)
+            if raw not in {"1", "2", "3", "4", "5"}:
+                return Response({field: ["Select an integer score from 1 to 5."]}, status=400)
+            scores[field] = int(raw)
+        return Response(AssessmentSerializer(Assessment(**scores)).data)
+
+
+class SafetyFileDetailView(RepositoryView):
     """One safety file, read from its repository rather than from the index.
 
     The hazards, mitigations and history come from Git, not from the database.
@@ -403,7 +477,10 @@ class SafetyFileDetailView(RepositoryReadView):
         # it exists.
         safety_file = get_object_or_404(visible_to(request.user), slug=slug)
 
-        payload = {"safety_file": SafetyFileSerializer(safety_file).data}
+        payload = {
+            "safety_file": SafetyFileSerializer(safety_file).data,
+            "can_edit": safety_file.owner_id == request.user.pk,
+        }
 
         if not safety_file.exists_on_disk:
             # The index knows about a repository that is not there. Surfaced
@@ -417,41 +494,53 @@ class SafetyFileDetailView(RepositoryReadView):
             return Response(payload)
 
         repository = safety_file.repository()
-        hazards = repository.hazards()
-
-        payload |= {
-            "repository_missing": False,
-            "hazards": HazardSerializer(hazards, many=True).data,
-            "mitigations": MitigationSerializer(repository.mitigations(), many=True).data,
-            "blocking": [
-                hazard.id
-                for hazard in hazards
-                if hazard.status == "open" and hazard.requires_elimination
-            ],
-            "history": CommitSerializer(repository.history(limit=10), many=True).data,
-            "problems": repository.validate(),
-            "head_sha": repository.head_sha,
-        }
+        with repository.snapshot():
+            hazards = repository.hazards()
+            payload |= {
+                "repository_missing": False,
+                "hazards": HazardSerializer(hazards, many=True).data,
+                "mitigations": MitigationSerializer(repository.mitigations(), many=True).data,
+                "blocking": [
+                    hazard.id
+                    for hazard in hazards
+                    if hazard.status == "open" and hazard.requires_elimination
+                ],
+                "history": CommitSerializer(repository.history(limit=10), many=True).data,
+                "problems": repository.validate(),
+                "head_sha": repository.head_sha,
+            }
         return Response(payload)
 
 
-class HazardDetailView(RepositoryReadView):
+class HazardDetailView(RepositoryView):
     """Read one hazard, its linked evidence and its own attributable history."""
 
     def get(self, request: Request, slug: str, hazard_id: str) -> Response:
         safety_file = get_object_or_404(visible_to(request.user), slug=slug)
         repository = safety_file.repository()
-        hazard = next((h for h in repository.hazards() if h.id == hazard_id), None)
-        if hazard is None:
-            raise Http404
-        linked = [m for m in repository.mitigations() if m.id in hazard.mitigations]
-        return Response(
-            {
-                "safety_file": SafetyFileSerializer(safety_file).data,
-                "hazard": HazardSerializer(hazard).data,
-                "mitigations": MitigationSerializer(linked, many=True).data,
-                "history": CommitSerializer(repository.hazard_history(hazard_id), many=True).data,
-                "problems": repository.validate(),
-                "head_sha": repository.head_sha,
-            }
-        )
+        with repository.snapshot():
+            hazard = next((h for h in repository.hazards() if h.id == hazard_id), None)
+            if hazard is None:
+                raise Http404
+            linked = [m for m in repository.mitigations() if m.id in hazard.mitigations]
+            return Response(
+                {
+                    "safety_file": SafetyFileSerializer(safety_file).data,
+                    "can_edit": safety_file.owner_id == request.user.pk,
+                    "hazard": HazardSerializer(hazard).data,
+                    "mitigations": MitigationSerializer(linked, many=True).data,
+                    "history": CommitSerializer(
+                        repository.hazard_history(hazard_id), many=True
+                    ).data,
+                    "problems": repository.validate(),
+                    "head_sha": repository.head_sha,
+                }
+            )
+
+    def patch(self, request: Request, slug: str, hazard_id: str) -> Response:
+        safety_file = get_object_or_404(visible_to(request.user), slug=slug)
+        repository = safety_file.repository()
+        with repository.snapshot():
+            if not any(h.id == hazard_id for h in repository.hazards()):
+                raise Http404
+        return self.write_hazard(request, safety_file, hazard_id=hazard_id)

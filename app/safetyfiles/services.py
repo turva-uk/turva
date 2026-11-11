@@ -10,16 +10,20 @@ allow a row describing a safety file that was never written.
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from django.conf import settings
+from django.core.exceptions import PermissionDenied
 from django.db import transaction
 from django.db.models import QuerySet
+from django.utils import timezone
 from django.utils.text import slugify
 
 from app.accounts.models import User
 from app.safetyfiles.models import SafetyFile, Visibility
 from safety_file import Author, SafetyFileRepository
+from safety_file.errors import ValidationError
+from safety_file.models import Assessment, Hazard
 
 logger = logging.getLogger(__name__)
 
@@ -131,7 +135,16 @@ def create_safety_file(details: SafetyFileDetails, owner: User) -> SafetyFile:
     repository cannot be written - there is nothing useful to do with a failure
     here except show it, since no safety file was created.
     """
-    slug = allocate_slug(details.name)
+    # Reserve the directory atomically. Two requests can choose the same slug
+    # between a filesystem check and Git init; only one may claim that path.
+    settings.SAFETY_FILE_ROOT.mkdir(parents=True, exist_ok=True)
+    while True:
+        slug = allocate_slug(details.name)
+        try:
+            (settings.SAFETY_FILE_ROOT / slug).mkdir()
+            break
+        except FileExistsError:
+            continue
     safety_file = SafetyFile(
         slug=slug,
         name=details.name,
@@ -170,6 +183,76 @@ def create_safety_file(details: SafetyFileDetails, owner: User) -> SafetyFile:
         raise
 
     return safety_file
+
+
+def save_hazard(
+    safety_file: SafetyFile,
+    actor: User,
+    values: dict,
+    *,
+    expected_head: str,
+    hazard_id: str | None = None,
+) -> tuple[Hazard, str]:
+    """One deliberate, owner-only form save to the repository, never a DB row.
+
+    Identifier allocation, stale-version check, validation, generated log and
+    attributable commit are inside one shared repository lock. Existing links,
+    identifiers and creation dates cannot be changed by this operation.
+    """
+    if (
+        not actor.is_authenticated
+        or not actor.is_active
+        or not actor.is_verified
+        or safety_file.owner_id != actor.pk
+    ):
+        raise PermissionDenied("Only the safety file's verified owner may edit its hazards.")
+    allowed = {
+        "title",
+        "status",
+        "owner",
+        "cause",
+        "effect",
+        "harm",
+        "justification",
+        "body",
+        "initial",
+        "residual",
+    }
+    if set(values) - allowed:
+        raise ValidationError(
+            "Identifiers, dates, mitigation links and derived risk cannot be set by this save."
+        )
+    if not isinstance(expected_head, str) or not expected_head:
+        raise ValidationError("The version you opened is required before saving a hazard.")
+    repository = safety_file.repository()
+    with repository.edit(expected_head=expected_head):
+        data = dict(values)
+        for field in ("initial", "residual"):
+            if field in data:
+                if not isinstance(data[field], dict) or set(data[field]) != {
+                    "severity",
+                    "likelihood",
+                }:
+                    raise ValidationError(f"{field} must contain only severity and likelihood.")
+                data[field] = Assessment.from_dict(data[field], field)
+        if hazard_id is None:
+            hazard = Hazard(
+                id=repository.next_hazard_id(),
+                created=timezone.localdate(),
+                updated=timezone.localdate(),
+                **data,
+            )
+        else:
+            current = repository.hazard(hazard_id)
+            hazard = replace(current, **data)
+            if hazard != current:
+                hazard.updated = timezone.localdate()
+        repository.save_hazard(
+            hazard,
+            author_for(actor),
+            message=f"feat({hazard.id}): {'record' if hazard_id is None else 'update'} hazard - {hazard.title}",
+        )
+        return repository.hazard(hazard.id), repository.head_sha
 
 
 def _template_for(standard: str) -> str:

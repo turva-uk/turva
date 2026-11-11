@@ -25,7 +25,8 @@ export interface ApiResource<T> {
  * overwrite the one they are now looking at.
  */
 export function useApiResource<T>(path: string, notFoundMessage?: string): ApiResource<T> {
-  const [state, setState] = useState<ApiResource<T>>({
+  const [state, setState] = useState<ApiResource<T> & { path: string }>({
+    path,
     data: null,
     error: null,
     loading: true,
@@ -40,13 +41,13 @@ export function useApiResource<T>(path: string, notFoundMessage?: string): ApiRe
     // data. On a safety file detail page that would mean one file's hazards
     // under another file's heading.
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setState({ data: null, error: null, loading: true });
+    setState({ path, data: null, error: null, loading: true });
 
     api
       .get<T>(path, controller.signal)
       .then((data) => {
         if (!controller.signal.aborted) {
-          setState({ data, error: null, loading: false });
+          setState({ path, data, error: null, loading: false });
         }
       })
       .catch((cause: unknown) => {
@@ -57,11 +58,13 @@ export function useApiResource<T>(path: string, notFoundMessage?: string): ApiRe
               ? notFoundMessage
               : cause.message
             : "Something went wrong. Please try again.";
-        setState({ data: null, error: message, loading: false });
+        setState({ path, data: null, error: message, loading: false });
       });
 
     return () => controller.abort();
   }, [path, notFoundMessage]);
 
-  return state;
+  // Effects run after paint. Never present old evidence or a risk preview for
+  // even one render under a new path/selection (TH-001/TH-008).
+  return state.path === path ? state : { data: null, error: null, loading: true };
 }
