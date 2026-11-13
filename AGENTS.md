@@ -4,6 +4,8 @@ Turva is a platform for managing clinical safety evidence for healthcare IT syst
 
 This file is the entry point for AI coding agents. Read it before changing anything.
 
+Scheduled overnight runs must also follow [the overnight instructions](specifications/nightly-triage.md). For those runs only, that file defines the issue-only work queue, PR-only workflow and narrowly pre-authorised GitHub actions, replacing the general Git workflow below. All other approval requirements and safety invariants still apply.
+
 ## Read First
 
 - [specifications/phase-one-scope.md](specifications/phase-one-scope.md) - what the funded build delivers by Christmas. Start here; `roadmap.md` is far wider than current scope
