@@ -154,6 +154,7 @@ def safety_file_pdf(repository: SafetyFileRepository, *, expected_head: str) -> 
             "pages": pages,
             "hazards": [{**h.to_frontmatter(), "body": h.body} for h in hazards],
             "mitigations": [{**m.to_frontmatter(), "body": m.body} for m in mitigations],
+            "team": repository.team().to_dict() if repository.team() else None,
         }
     with tempfile.TemporaryDirectory(prefix=".build-", dir=cache) as temporary:
         output = run_pdf_worker(job, Path(temporary))

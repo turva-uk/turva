@@ -13,6 +13,10 @@ import { HazardDetailPage } from "./pages/HazardDetailPage";
 import { HazardFormPage } from "./pages/HazardFormPage";
 import { MitigationFormPage } from "./pages/MitigationFormPage";
 import { MitigationDetailPage } from "./pages/MitigationDetailPage";
+import { OrganisationsPage } from "./pages/OrganisationsPage";
+import { OrganisationPage } from "./pages/OrganisationPage";
+import { InvitationPage } from "./pages/InvitationPage";
+import { FileTeamPage } from "./pages/FileTeamPage";
 import { RegistrationPage } from "./pages/RegistrationPage";
 import { VerificationConfirmPage, VerificationNoticePage } from "./pages/VerificationPage";
 import { PasswordResetConfirmPage, PasswordResetRequestPage } from "./pages/PasswordResetPage";
@@ -47,6 +51,7 @@ function Header() {
   return (
     <Group
       h="100%"
+      className="turva-header-content"
       px="md"
       justify="space-between"
       // The brand band, matching the Django templates exactly while both
@@ -62,17 +67,32 @@ function Header() {
         Turva
       </Anchor>
       {user && (
-        <Group component="nav" aria-label="Main navigation" gap="md">
-          <Anchor component={Link} to="/safety-files" c="white">
-            Safety files
-          </Anchor>
-          <Anchor component={Link} to="/profile" c="white">
-            Your profile
-          </Anchor>
-          <Button variant="white" loading={signingOut} onClick={() => void signOut()}>
+        <>
+          <Group
+            component="nav"
+            aria-label="Main navigation"
+            gap="md"
+            className="main-navigation"
+          >
+            <Anchor component={Link} to="/safety-files" c="white">
+              Safety files
+            </Anchor>
+            <Anchor component={Link} to="/profile" c="white">
+              Your profile
+            </Anchor>
+            <Anchor component={Link} to="/organisations" c="white">
+              Organisations
+            </Anchor>
+          </Group>
+          <Button
+            className="header-sign-out"
+            variant="white"
+            loading={signingOut}
+            onClick={() => void signOut()}
+          >
             Sign out
           </Button>
-        </Group>
+        </>
       )}
     </Group>
   );
@@ -98,6 +118,36 @@ export function App() {
             </Alert>
           )}
           <Routes>
+            <Route
+              path="/organisations"
+              element={
+                <RequireSession verified>
+                  <OrganisationsPage />
+                </RequireSession>
+              }
+            />
+            <Route
+              path="/organisations/invitations/:invitationId"
+              element={
+                loading ? <Loader aria-label="Checking your session" /> : <InvitationPage />
+              }
+            />
+            <Route
+              path="/organisations/:organisationId"
+              element={
+                <RequireSession verified>
+                  <OrganisationPage />
+                </RequireSession>
+              }
+            />
+            <Route
+              path="/safety-files/:slug/team"
+              element={
+                <RequireSession verified>
+                  <FileTeamPage />
+                </RequireSession>
+              }
+            />
             <Route
               path="/register"
               element={

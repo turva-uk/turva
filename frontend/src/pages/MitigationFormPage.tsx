@@ -48,7 +48,8 @@ export function MitigationFormPage({ editing = false }: { editing?: boolean }) {
   if (!data.can_edit)
     return (
       <Alert color="yellow" title="Read-only safety file">
-        Only the safety file's verified owner may record or edit its mitigations.
+        Only a verified legacy owner or a currently appointed, named file CSO may edit
+        mitigations.
       </Alert>
     );
   if (("repository_missing" in data && data.repository_missing) || !data.head_sha)

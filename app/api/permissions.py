@@ -7,6 +7,16 @@ expressed where DRF can enforce it.
 from __future__ import annotations
 
 from rest_framework.permissions import BasePermission
+from rest_framework.views import APIView
+
+
+class PrivateAPIView(APIView):
+    """Never let evidence or organisation metadata outlive its access check in a cache."""
+
+    def finalize_response(self, request, response, *args, **kwargs):
+        response = super().finalize_response(request, response, *args, **kwargs)
+        response["Cache-Control"] = "private, no-store"
+        return response
 
 
 class IsVerified(BasePermission):

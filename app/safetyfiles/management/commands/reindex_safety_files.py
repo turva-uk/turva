@@ -23,6 +23,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
 from app.accounts.models import User
+from app.organisations.models import Organisation
 from app.safetyfiles.models import SafetyFile
 from safety_file import SafetyFileRepository
 from safety_file.errors import SafetyFileError
@@ -63,12 +64,29 @@ class Command(BaseCommand):
         for path in sorted(p for p in root.iterdir() if p.is_dir()):
             try:
                 repository = SafetyFileRepository(path)
+                with repository.snapshot():
+                    manifest = repository.manifest
+                    team = repository.team()
             except SafetyFileError as exc:
                 skipped.append((path.name, str(exc)))
                 continue
 
-            manifest = repository.manifest
-            existing = SafetyFile.objects.filter(id=manifest.project_id).first()
+            existing = (
+                SafetyFile.objects.select_related("organisation_unit")
+                .filter(id=manifest.project_id)
+                .first()
+            )
+            organisation_unit = (
+                Organisation.objects.filter(pk=team.organisation_id).first() if team else None
+            )
+            if existing and existing.team_managed and not team:
+                skipped.append(
+                    (
+                        path.name,
+                        "refusing to turn a team-managed file back into legacy owner access; inspect the restored version",
+                    )
+                )
+                continue
 
             if existing is None:
                 if fallback_owner is None:
@@ -103,20 +121,29 @@ class Command(BaseCommand):
                             slug=path.name,
                             name=manifest.name,
                             standard=manifest.standard,
-                            organisation=_organisation_from(path),
+                            organisation=team.organisation_name
+                            if team
+                            else _organisation_from(path),
                             owner=fallback_owner,
+                            team_managed=team is not None,
+                            organisation_unit=organisation_unit,
                         )
-            elif (existing.name, existing.standard, existing.slug) != (
-                manifest.name,
-                manifest.standard,
-                path.name,
-            ):
-                updated.append((path.name, existing.name, manifest.name))
-                if not options["dry_run"]:
-                    existing.name = manifest.name
-                    existing.standard = manifest.standard
-                    existing.slug = path.name
-                    existing.save(update_fields=["name", "standard", "slug"])
+            else:
+                metadata = {
+                    "name": manifest.name,
+                    "standard": manifest.standard,
+                    "slug": path.name,
+                    "team_managed": team is not None,
+                    "organisation_unit": organisation_unit,
+                    "organisation": team.organisation_name if team else existing.organisation,
+                }
+                if any(getattr(existing, field) != value for field, value in metadata.items()):
+                    updated.append((path.name, existing.name, manifest.name))
+                    if not options["dry_run"]:
+                        for field, value in metadata.items():
+                            setattr(existing, field, value)
+                        # Rebuild indexes only, never memberships/appointments.
+                        existing.save(update_fields=list(metadata))
 
         for row in SafetyFile.objects.all():
             if not row.exists_on_disk:
@@ -130,7 +157,11 @@ class Command(BaseCommand):
             self.stdout.write(self.style.SUCCESS(f"{verb} {name}: {title}"))
         verb = "Would update" if dry_run else "Updated"
         for name, was, now in updated:
-            self.stdout.write(f"{verb} {name}: {was!r} -> {now!r}")
+            self.stdout.write(
+                f"{verb} {name}: {was!r} -> {now!r}"
+                if was != now
+                else f"{verb} {name}: metadata/index binding for {now!r}"
+            )
         for name, reason in skipped:
             self.stdout.write(self.style.WARNING(f"Skipped {name}: {reason}"))
         for slug, path in missing:

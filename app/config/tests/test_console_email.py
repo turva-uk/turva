@@ -25,7 +25,8 @@ def example(subject: str) -> EmailMessage:
 
 def test_decodes_soft_wrapped_links_and_selects_the_latest_email():
     first, second = example("First email"), example("Second email")
-    logs = first.as_string() + "\nHTTP request log\n" + second.as_string()
+    separator = "\n" + "-" * 79 + "\n"
+    logs = first.as_string() + separator + "HTTP request log\n" + second.as_string() + separator
     parsed = latest_message(logs)
     assert parsed["Subject"] == "Second email"
     rendered = preview_html(parsed)
@@ -35,6 +36,32 @@ def test_decodes_soft_wrapped_links_and_selects_the_latest_email():
     assert "&lt;script&gt;" in rendered
     assert "Unused HTML part" not in rendered
     assert "noreferrer" in rendered
+
+
+def test_latest_plain_invitation_is_not_replaced_by_an_older_account_email():
+    account = example("Old account confirmation")
+    invitation = EmailMessage()
+    invitation["Subject"] = "Membership invitation"
+    invitation["To"] = "fictional@example.org"
+    invitation.set_content(
+        "Follow https://turva.example.org/organisations/invitations/fictional#"
+        + "example-token-" * 12,
+        cte="quoted-printable",
+    )
+    separator = "\n" + "-" * 79 + "\n"
+    parsed = latest_message(
+        account.as_string() + separator + "HTTP request log\n" + invitation.as_string() + separator
+    )
+    assert parsed["Subject"] == "Membership invitation"
+    assert "example-token-" * 12 in preview_html(parsed)
+    assert "Old account confirmation" not in preview_html(parsed)
+
+
+def test_an_incomplete_new_console_message_does_not_replace_the_last_complete_email():
+    account = example("Complete email")
+    partial = example("Partial email").as_string()
+    parsed = latest_message(account.as_string() + "\n" + "-" * 79 + "\n" + partial[:150])
+    assert parsed["Subject"] == "Complete email"
 
 
 def test_does_not_present_an_empty_log_as_delivered_email():

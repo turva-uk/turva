@@ -6,10 +6,14 @@ of record; every row here is derivable from a repository's
 from disk to prove it. See `specifications/architecture-principles.md`.
 
 So: nothing may live here that does not also live in the repository, with one
-exception - `owner`, `visibility` and the timestamps are *operational* state
+exception - legacy `owner`, `visibility` and the timestamps are *operational* state
 about who may see a thing in this deployment, not safety evidence. They are
 Turva's, not the safety file's, and a repository handed to another organisation
-should not carry this instance's user table with it.
+should not carry this instance's user table with it. Named CSO accountability
+and file teams are recorded in version-2 Git repositories, not this owner
+column. The organisation binding and team-managed marker are rebuildable
+candidate-list indexes, never an access grant. Current memberships and CSO
+appointments belong to the deployment and must not be recreated from Git.
 """
 
 from __future__ import annotations
@@ -56,13 +60,23 @@ class SafetyFile(models.Model):
     name = models.CharField(_("system name"), max_length=200)
     standard = models.CharField(max_length=10, choices=STANDARD_CHOICES, default="DCB0160")
     organisation = models.CharField(_("organisation"), max_length=200)
+    organisation_unit = models.ForeignKey(
+        "organisations.Organisation",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="safety_files",
+        editable=False,
+        help_text="A rebuildable candidate-list index, never an evidence access grant.",
+    )
+    team_managed = models.BooleanField(default=False, editable=False)
 
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.PROTECT,
         related_name="safety_files",
         help_text=_(
-            "Accountable for this safety file. PROTECT rather than CASCADE: "
+            "Legacy owner / operational custodian, not a managed file's accountable CSO. PROTECT rather than CASCADE: "
             "deleting a user must never delete safety evidence."
         ),
     )

@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import subprocess
 from io import BytesIO
+from uuid import uuid4
 
 import pytest
 from pypdf import PdfReader
@@ -14,6 +15,7 @@ from app.safetyfiles.pdf_export import run_pdf_worker, safety_file_pdf
 from app.safetyfiles.pdf_worker import article_html, built_path, deny_resources, document_html
 from demo.build import build as build_demo
 from safety_file import Author, git
+from safety_file.team import FileTeam, TeamPerson
 
 
 def test_real_demo_build_preserves_all_hazards_mitigation_evidence_and_source_version(settings):
@@ -47,6 +49,38 @@ def test_real_demo_build_preserves_all_hazards_mitigation_evidence_and_source_ve
     assert repository.head_sha == head
     assert repository.is_clean
     assert safety_file_pdf(repository, expected_head=head).cached is True
+
+
+def test_real_managed_file_pdf_includes_the_committed_team_not_live_roles(settings):
+    """TH-004/007/009: personnel and its historical limits survive the export."""
+    repository = build_demo(settings.SAFETY_FILE_ROOT / "managed-demo")
+    person = TeamPerson(
+        user_id=str(uuid4()),
+        membership_id=str(uuid4()),
+        appointment_id=str(uuid4()),
+        name="Fictional replacement CSO",
+        email="replacement@riverbank.example.nhs.uk",
+    )
+    team = FileTeam(
+        organisation_id=str(uuid4()),
+        organisation_name="Fictional replacement organisation",
+        accountable=person,
+        collaborators=(),
+        reason="Fictional appointment change. <script>not active</script>",
+    )
+    repository.save_team(team, Author("Fictional administrator", "admin@example.org"))
+    head = repository.head_sha
+    result = safety_file_pdf(repository, expected_head=head)
+    reader = PdfReader(BytesIO(result.path.read_bytes()))
+    text = "\n".join(page.extract_text() for page in reader.pages)
+    assert "Named file team at this source version" in text
+    assert "Fictional replacement CSO" in text
+    assert "replacement@riverbank.example.nhs.uk" in text
+    assert "not a check of current" in text
+    assert "Narrative pages may retain earlier personnel" in text
+    assert "<script>not active</script>" in text
+    assert repository.head_sha == head
+    assert repository.is_clean
 
 
 @pytest.fixture

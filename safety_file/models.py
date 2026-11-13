@@ -308,7 +308,7 @@ class Manifest:
     """`.turva/manifest.yaml` - the safety file's identity."""
 
     #: Bump when the on-disk layout changes incompatibly, and provide an upgrade.
-    CURRENT_SCHEMA_VERSION = 1
+    CURRENT_SCHEMA_VERSION = 2
 
     schema_version: int
     project_id: str
@@ -338,6 +338,7 @@ class Manifest:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> Manifest:
+        _require(isinstance(data, dict), "manifest must be a mapping")
         required = {
             "schema_version",
             "project_id",

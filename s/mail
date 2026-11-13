@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Preview the latest account email from this local development stack, decoding
+# Preview the latest account/invitation email from this development stack, decoding
 # MIME/quoted-printable wrapping. Requires host Python 3 and Docker Compose.
 # Refuses a non-DEBUG or non-console backend. The message stays in .private/;
 # account links are never printed by this helper. Do not share the preview.

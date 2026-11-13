@@ -37,8 +37,10 @@ from .git import Author, Commit
 from .locking import RepositoryLock
 from .models import Hazard, Manifest, Mitigation
 from .render import render_hazard_log
+from .team import FileTeam
 
 MANIFEST_PATH = Path(".turva") / "manifest.yaml"
+TEAM_PATH = Path(".turva") / "team.yaml"
 DOCS_DIR = Path("docs")
 HAZARDS_DIR = DOCS_DIR / "hazards"
 MITIGATIONS_DIR = DOCS_DIR / "mitigations"
@@ -94,6 +96,8 @@ class SafetyFileRepository:
                     "This safety file has uncommitted changes. They cannot be presented as "
                     "committed evidence; ask an administrator to inspect the repository."
                 )
+            self._check_schema_version()
+            self.team()
             yield self
 
     @contextmanager
@@ -118,6 +122,8 @@ class SafetyFileRepository:
                     "This safety file has uncommitted changes. No new save is allowed: ask "
                     "an administrator to inspect them so they are not attributed to you."
                 )
+            self._check_schema_version()
+            self.team()
             yield self
 
     def _ignored_artefacts(self) -> bool:
@@ -133,6 +139,8 @@ class SafetyFileRepository:
                     "--",
                     f"{HAZARDS_DIR}/HAZ-*.md",
                     f"{MITIGATIONS_DIR}/MIT-*.md",
+                    str(TEAM_PATH),
+                    str(MANIFEST_PATH),
                 ],
                 cwd=self.root,
             ).strip()
@@ -178,7 +186,9 @@ class SafetyFileRepository:
                 "created": created.isoformat(),
             },
             manifest=Manifest(
-                schema_version=Manifest.CURRENT_SCHEMA_VERSION,
+                # Owner-only files stay version 1 until explicitly adopted.
+                # Version 2 requires the named team written by save_team().
+                schema_version=1,
                 project_id=project_id,
                 name=name,
                 standard=standard,
@@ -210,6 +220,8 @@ class SafetyFileRepository:
 
     def _check_schema_version(self) -> None:
         version = self.manifest.schema_version
+        if type(version) is not int or version < 1:
+            raise SchemaVersionError("A safety-file schema version must be a positive integer")
         if version > Manifest.CURRENT_SCHEMA_VERSION:
             raise SchemaVersionError(
                 f"{self.root} uses schema version {version}, but this version of "
@@ -221,7 +233,52 @@ class SafetyFileRepository:
     @property
     def manifest(self) -> Manifest:
         raw = (self.root / MANIFEST_PATH).read_text(encoding="utf-8")
-        return Manifest.from_dict(yaml.safe_load(raw))
+        try:
+            return Manifest.from_dict(yaml.safe_load(raw))
+        except yaml.YAMLError as exc:
+            raise ValidationError("The safety-file manifest YAML could not be read") from exc
+
+    def team(self) -> FileTeam | None:
+        """The recorded team, never an assertion that appointments remain valid."""
+        self._check_schema_version()
+        path = self.root / TEAM_PATH
+        if self.manifest.schema_version == 1:
+            if path.exists():
+                raise ValidationError("A version-1 file cannot contain a version-2 team record")
+            return None
+        if not path.is_file() or path.is_symlink():
+            raise ValidationError("A version-2 safety file requires its own .turva/team.yaml")
+        try:
+            return FileTeam.from_dict(yaml.safe_load(path.read_text(encoding="utf-8")))
+        except yaml.YAMLError as exc:
+            raise ValidationError("The file team YAML could not be read") from exc
+
+    def save_team(self, team: FileTeam, author: Author) -> str | None:
+        """Adopt a legacy file or replace its team in one attributable commit.
+
+        This is the explicit v1-to-v2 upgrade; no evidence pages are rewritten.
+        Organisation transfers require a separate deliberate workflow.
+        """
+        team = FileTeam.from_dict(team.to_dict())
+        with self.edit():
+            previous = self.team()
+            if previous and previous.organisation_id != team.organisation_id:
+                raise ValidationError("A file team cannot transfer a file to another organisation")
+            for path in (TEAM_PATH, MANIFEST_PATH):
+                if git.run(["check-ignore", "--", str(path)], cwd=self.root, check=False).strip():
+                    raise ValidationError("Git ignores the team or manifest; nothing was written")
+            manifest = yaml.safe_load((self.root / MANIFEST_PATH).read_text(encoding="utf-8"))
+            manifest["schema_version"] = 2
+            (self.root / MANIFEST_PATH).write_text(
+                yaml.safe_dump(manifest, sort_keys=False), encoding="utf-8"
+            )
+            (self.root / TEAM_PATH).write_text(
+                yaml.safe_dump(team.to_dict(), sort_keys=False, allow_unicode=True),
+                encoding="utf-8",
+            )
+            return git.commit_all(
+                self.root, "feat(team): record named CSOs and accountability", author=author
+            )
 
     # ----------------------------------------------------------------- reading
 

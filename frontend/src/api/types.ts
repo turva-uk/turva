@@ -110,6 +110,8 @@ export interface Commit {
 }
 
 export interface SafetyFileDetail {
+  can_manage_team?: boolean;
+  team?: FileTeam | null;
   safety_file: SafetyFile;
   can_edit: boolean;
   repository_missing: boolean;
@@ -122,6 +124,67 @@ export interface SafetyFileDetail {
   history?: Commit[];
   problems?: string[];
   head_sha?: string;
+}
+
+export interface OrganisationMember {
+  id: string;
+  user_id: string;
+  name: string;
+  email: string;
+  active: boolean;
+  is_administrator: boolean;
+  is_cso: boolean;
+  eligible_cso: boolean;
+  appointment_id: string | null;
+  profile_declared: boolean;
+  revision: number;
+}
+
+export interface OrganisationSummary {
+  id: string;
+  name: string;
+  membership: OrganisationMember;
+}
+
+export interface OrganisationInvitation {
+  id: string;
+  email: string;
+  created_at: string;
+  expires_at: string;
+  accepted_at: string | null;
+  revoked_at: string | null;
+}
+
+export interface OrganisationDetail extends OrganisationSummary {
+  members: OrganisationMember[];
+  invitations?: OrganisationInvitation[];
+  files?: { slug: string; name: string }[];
+  events?: { action: string; subject: string; created_at: string; actor__email: string }[];
+}
+
+export interface TeamPerson {
+  user_id: string;
+  membership_id: string;
+  appointment_id: string;
+  name: string;
+  email: string;
+}
+
+export interface FileTeam {
+  organisation_id: string;
+  organisation_name: string;
+  accountable: TeamPerson;
+  collaborators: TeamPerson[];
+  reason: string;
+}
+
+export interface FileTeamDetail {
+  file_name: string;
+  slug: string;
+  team: FileTeam | null;
+  head_sha: string;
+  can_manage: boolean;
+  choices: { id: string; name: string; csos: OrganisationMember[] }[];
 }
 
 export interface HazardDetail {

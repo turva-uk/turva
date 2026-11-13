@@ -40,6 +40,24 @@ export function SafetyFileDetailPage() {
       <Text c="dimmed" mb="md">
         {file.standard_display} &middot; {file.organisation}
       </Text>
+      <Box my="md">
+        <Text>
+          {detail.team
+            ? `Recorded accountable CSO: ${detail.team.accountable.name} (${detail.team.accountable.email})`
+            : `Owner-controlled file: ${file.owner_name}`}
+        </Text>
+        {detail.team && (
+          <Text size="sm">
+            {detail.team.organisation_name} · {detail.team.collaborators.length} named CSO
+            collaborators. Appointments are not professional verification.
+          </Text>
+        )}
+        {detail.can_manage_team && (
+          <Anchor component={Link} to={`/safety-files/${file.slug}/team`}>
+            {detail.team ? "Manage file team" : "Adopt into an organisation / name a file team"}
+          </Anchor>
+        )}
+      </Box>
       <Anchor component={Link} to="/safety-files">
         All safety files
       </Anchor>

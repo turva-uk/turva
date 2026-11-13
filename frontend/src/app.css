@@ -22,6 +22,52 @@ body {
   line-height: 1.6;
 }
 
+.turva-header-content {
+  align-content: center;
+}
+
+.main-navigation {
+  margin-left: auto;
+}
+
+@media (max-width: 47.99em) {
+  .main-navigation {
+    order: 3;
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .header-sign-out {
+    margin-left: auto;
+  }
+}
+
+.governance-form .mantine-Checkbox-body {
+  min-height: 44px;
+  align-items: center;
+}
+
+.governance-form .mantine-Checkbox-label {
+  padding-block: 0.6rem;
+}
+
+.governance-form button[type="submit"] {
+  min-height: 44px;
+}
+
+.wrapping-button {
+  max-width: 100%;
+  min-height: 44px;
+  height: auto;
+  padding-block: 0.5rem;
+}
+
+.wrapping-button .mantine-Button-label {
+  height: auto;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
 .responsive-table th {
   white-space: nowrap;
 }

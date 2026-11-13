@@ -18,20 +18,26 @@ from pathlib import Path
 
 
 def latest_message(logs: str) -> EmailMessage:
-    # Both account flows send multipart/alternative messages. Looking for the
-    # outer header, not text/plain parts, avoids parsing an inner MIME part as
-    # if it were the email. The parser decodes quoted-printable soft line breaks.
-    starts = list(re.finditer(r"(?m)^Content-Type: multipart/alternative;", logs))
-    if not starts:
-        raise ValueError("No account email found. Trigger one in the interface, then try again.")
-    start = starts[-1].start()
-    # Header order is not fixed: Subject/To may precede Content-Type.
-    for line in reversed(logs[:start].splitlines(keepends=True)):
-        if re.match(r"^[A-Za-z0-9-]+:", line) or line.startswith((" ", "\t")):
-            start -= len(line)
-        else:
-            break
-    return Parser(policy=policy.default).parsestr(logs[start:])
+    # Django's console backend terminates each message with 79 hyphens. Scope
+    # parsing to complete messages, then find the first MIME header in each:
+    # plain invitations and multipart account emails must both work without
+    # mistaking a multipart message's inner text/plain part for a later email.
+    chunks = re.split(r"(?m)^-{79}\r?$", logs)
+    for chunk in reversed(chunks[:-1]):
+        match = re.search(r"(?m)^Content-Type: (?:multipart/alternative;|text/plain;)", chunk)
+        if match is None:
+            continue
+        start = match.start()
+        # Header order is not fixed: Subject/To may precede Content-Type.
+        for line in reversed(chunk[:start].splitlines(keepends=True)):
+            if re.match(r"^[A-Za-z0-9-]+:", line) or line.startswith((" ", "\t")):
+                start -= len(line)
+            else:
+                break
+        return Parser(policy=policy.default).parsestr(chunk[start:])
+    raise ValueError(
+        "No account email found. Request an account or membership-invitation email, then try again."
+    )
 
 
 def preview_html(message: EmailMessage) -> str:
