@@ -41,7 +41,9 @@ export function SafetyFilesPage() {
         </Box>
       ) : (
         <Table striped highlightOnHover className="responsive-table">
-          <Table.Caption>Safety files you own or that have been published</Table.Caption>
+          <Table.Caption>
+            Safety files you own, are named on, or may read as public files
+          </Table.Caption>
           <Table.Thead>
             <Table.Tr>
               <Table.Th>System</Table.Th>

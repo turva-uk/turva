@@ -101,6 +101,54 @@ An unexpected uncommitted change blocks saves rather than attributing someone el
 
 The locks cover participating Turva processes on the local Linux filesystem. They are not distributed locks and do not protect against an administrator bypassing Turva with direct filesystem or Git operations. See [ADR 0004](../specifications/adr/0004-serialised-safety-file-saves.md).
 
+## Record mitigations and link hazards
+
+Use your separate fictional test file, not the prepared BP@Home repository, if you want to keep the demonstration unchanged. No database migration or new dependency is needed for mitigation authoring; the running `./s/up` stack reloads source changes.
+
+1. Open a hazard and choose **Record a mitigation for this hazard**, or choose **Record mitigation** from the file's mitigation list. A hazard-specific entry preselects that hazard, but saves nothing yet.
+2. Enter **Fictional daily safety-netting**, a fictional responsible email address and a control type. The email records responsibility, not an invitation. Leave status **Proposed**, select one or more hazards and record a fictional narrative. Save once.
+3. Expect the next `MIT-nnn` identifier and its detail page. Follow a linked hazard: the mitigation must appear there too. Both sides and the generated log were written in one commit attributed to you. The hazard's severity, likelihood and derived risks must be unchanged.
+4. Edit the mitigation title. Its ID, creation date, evidence and links remain, and its history follows the rename. Save an unchanged form: no new audit entry should appear.
+5. Choose **Implemented** or **Verified** without evidence and save. Expect rejection with the draft retained. Add a fictional test/report reference and save. This records your judgement, not Turva verifying a control or approving deployment.
+6. Remove one hazard from **Linked hazards** and save. Check that the mitigation is also removed from that hazard's links, while the hazard, assessment, other controls and mitigation evidence remain. Withdrawing a mitigation retains its evidence and links; reassess any affected risk separately.
+7. Open the same mitigation edit form in two tabs. Save from one, then try saving the other. The stale draft and its original version must stay in place, with a separate-tab comparison link. Do not refresh and silently retry a clinical judgement against a newer version.
+8. At phone/tablet/desktop widths, inspect the mitigation list, long selected hazard labels and evidence paragraphs. Keyboard users can search/select hazards, save and follow links. Another verified account may read a public file but cannot create/edit its mitigations; private evidence is not disclosed.
+
+New mitigation saves with implemented/verified status require evidence. Older version-1 records without evidence remain readable; supply an evidence statement before saving their mitigation form. Supplier provenance not yet understood by this version is refused, never silently removed. See [the port decisions](../specifications/quill-port.md) for the organisational/team/delegation work still to come.
+
+## Organisations, CSO appointments and named file teams
+
+Use fictional identities and a separate test file. These exercises do not alter the prepared BP@Home repository. Apply the new organisation/index migrations first:
+
+```bash
+./s/manage migrate
+```
+
+Provision an organisation **once**, using an existing verified account. This is an operator action, not a self-service claim based on an organisation name. Re-running it creates another independent organisation, even if the names match; retain the printed organisation reference and use the existing one for later exercises.
+
+```bash
+./s/manage provision_organisation \
+  --name "Fictional Riverbank Federation" \
+  --administrator a.patel@riverbank.example.nhs.uk
+```
+
+1. Sign in as the administrator, open **Organisations**, then the new organisation. It initially grants administration only, not a CSO appointment or evidence access. If this is your seeded fictional CSO, select **Appointed Clinical Safety Officer** on their membership and explicitly save their roles. Other accounts must first complete their own verified-email/profile declaration. Appointment does not verify registration or competence.
+2. Prepare a second fictional account using the registration/confirmation walkthrough below, ideally in a separate private browser window. Complete its fictional CSO profile declaration. Do this **before** requesting the membership invitation, so its account-confirmation email does not replace the latest invitation in the console preview.
+3. As administrator, use **Invite a member** with the second account's exact email. The console backend sends no real email. Run `./s/mail --open`, copy the complete invitation link into the second account's browser window, then choose **Accept invitation**. Acceptance requires the matching verified identity, expires after seven days and works once. It grants membership only; an invitation is not a file share or CSO appointment. A failed mail send is reported honestly, and another attempt must wait ten minutes.
+4. As administrator, appoint the accepted member as a CSO and save deliberately. As that colleague, expect no access to the first person's private files merely because they joined the same organisation or were appointed. An ordinary member cannot change roles or send invitations. Removing the last active administrator is refused until another has been appointed.
+5. As the owner, create a separate fictional file or open your existing disposable test file. Choose **Adopt into an organisation / name a file team**, deliberately select the organisation, name any eligible CSO collaborators and record a reason. Adoption names you as the first accountable CSO. Save once. The manifest upgrades from version 1 to version 2, and `.turva/team.yaml` is recorded in the same attributable commit. Hazards, mitigations, risk scores and narrative pages are unchanged.
+6. The explicitly named colleague can now open that file, record/edit a fictional hazard or mitigation and see their own name/email in its history. Every selected collaborator can read/edit the **whole file**. Do not use this as a substitute for single-mitigation delegation, which remains R13. Unnamed CSOs, other practice/Federation memberships and administrator status alone confer no evidence access.
+7. Keep a colleague's hazard edit form open with an unsaved draft, and build its PDF once. As administrator, remove their CSO appointment or membership, acknowledge the access consequence and save. Their next read/download, including the already cached PDF, must be refused. Saving the old form is refused with its entries retained. Already delivered copies cannot be retracted.
+8. Reappoint that colleague. Access must **not** return automatically. In **Manage file team**, the outdated appointment is visibly unselected. Deliberately select the new appointment and save a new reason/team version to restore access. A form opened before an appointment change cannot silently bind its replacement; start a new team decision after comparing the retained draft.
+9. Open two team-edit tabs. Save from one, or save a hazard elsewhere, then try saving the older team draft. Expect a conflict and retained choices/reason, with a latest-team comparison link opening another tab. Unchanged team saves create no new Git commit.
+10. An organisation administrator can use **File-team administration** to name a replacement accountable CSO even if the previous appointment has expired. This inventory exposes titles and team records, not hazard/mitigation evidence. A collaborator cannot manage the team. There is exactly one recorded accountable CSO; if their appointment is revoked, the record remains historical and grants no access until a current replacement is explicitly named.
+11. Create a separate fictional practice organisation if testing isolation. Matching names and Federation membership do not connect identities or grant inherited access. Organisation transfers are not supported by team editing. Existing owner-controlled files remain untouched until their owner explicitly adopts them.
+12. Inspect the new screens at phone/tablet/desktop widths, with keyboard-only controls, reduced motion and 200% zoom. Long member names/emails, role-removal confirmations and invitation failures must stay readable. A version-2 PDF includes its recorded team as historical evidence, not proof that appointments remain valid today. Narrative pages may still name earlier personnel and require separate review; team saves never silently rewrite clinical prose.
+
+React-only invitation links use `FRONTEND_BASE_URL`: by default `http://localhost:5173` in development, or `SITE_BASE_URL` outside DEBUG. Override it only if your React application is served elsewhere. Production React routing remains a separate deployment gate. `./s/mail` previews both multipart account emails and plain-text invitations, decoding MIME wrapping without printing bearer links. Never publish or share the private preview.
+
+The index can be repaired with `./s/manage reindex_safety_files`, but recovery never creates live memberships or appointments from Git. For an orphan managed file, `--owner` assigns an operational custodian only, not evidence authority. Back up the operational PostgreSQL state as well as the evidence repositories. See [ADR 0006](../specifications/adr/0006-named-file-teams-and-live-appointments.md) for ordering, recovery and limits.
+
 ## Download a draft safety file
 
 The PDF feature adds native fonts/Pango and Python rendering dependencies to the web image. Rebuild after pulling this feature (keep your alternative port variable set if using one):
@@ -116,7 +164,7 @@ The PDF feature adds native fonts/Pango and Python rendering dependencies to the
 5. In your separate fictional test file, open two detail tabs, edit a hazard from one, then download from the older detail tab. Expect a visible **changed after the page opened** error, not a PDF silently labelled with a different version. Reload the detail page, then download the newer version. A save during a build does not alter the captured PDF: its cover still names the version that was captured.
 6. Another account cannot download a private file, even if the owner already built and cached it. Unverified accounts cannot download safety evidence. DCB0129 output is not supported and is not offered as a DCB0160 download.
 
-The current controlled text scope is the four named documents, every recorded hazard's additional narrative, and every mitigation's fields/evidence/narrative. New arbitrary repository pages are **not** automatically included. Attachments remain source references, not embedded files. Embedded images/media, active HTML or unsupported markup block the export rather than silently disappearing. Resolve unsupported content with an administrator; do not treat a failed export as a blank or complete safety case.
+The current controlled text scope is the four named documents, every recorded hazard's additional narrative, every mitigation's fields/evidence/narrative, and the named team at the source version for explicitly adopted files. New arbitrary repository pages are **not** automatically included. Attachments remain source references, not embedded files. Embedded images/media, active HTML or unsupported markup block the export rather than silently disappearing. Resolve unsupported content with an administrator; do not treat a failed export as a blank or complete safety case.
 
 The build uses a committed, clean snapshot and never edits the safety-file repository. Derived PDFs are cached outside it in the web container's `.turva-data/pdf-cache/`; that directory is disposable and is not safety evidence. Cache identity also includes exporter/CSS/scope and dependency versions. Rebuilding the container may discard the cache, not the repositories. The runtime build is bounded (30 seconds for Zensical, 90 seconds overall, 60 CPU seconds and 2 GiB virtual memory per renderer); synchronous rendering and production capacity still need operational review. See [ADR 0005](../specifications/adr/0005-controlled-pdf-exports.md).
 
@@ -166,4 +214,4 @@ The Python suite uses a separate test database and temporary safety-file reposit
 
 ## Current limits
 
-Supplier document extraction, guided workflow, document authoring, mitigation editing/linking and delegated mitigation remain roadmap work. The PDF is a controlled draft text export, not an all-format attachment archive or a completed safety case. Production serving/routing for the built React application and general login/reset rate limiting are not complete. The responsive hazard-review work applies to React, not the interim Django tables. Do not mistake the demo's prepared content for those features being complete. See [the roadmap](../specifications/roadmap.md) and [funded scope](../specifications/phase-one-scope.md).
+Supplier document extraction, guided workflow, document authoring and delegated mitigation remain roadmap work. Organisational appointments and named whole-file CSO collaboration are available in React; they are not professional verification, formal sign-off or scoped delegation. The PDF is a controlled draft text export, not an all-format attachment archive or a completed safety case. Production serving/routing for the built React application and general login/reset rate limiting are not complete. The responsive hazard/mitigation work applies to React, not the interim Django tables. Do not mistake the demo's prepared content for those features being complete. See [the roadmap](../specifications/roadmap.md) and [funded scope](../specifications/phase-one-scope.md).

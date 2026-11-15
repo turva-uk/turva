@@ -48,7 +48,7 @@ export function HazardFormPage({ editing = false }: { editing?: boolean }) {
   if (!data.can_edit)
     return (
       <Alert color="yellow" title="Read-only safety file">
-        Only the safety file's verified owner may record or edit its hazards.
+        Only a verified legacy owner or a currently appointed, named file CSO may edit hazards.
       </Alert>
     );
   if ("repository_missing" in data && data.repository_missing)
@@ -286,8 +286,8 @@ function HazardForm({
           {source && (
             <Text size="sm">
               Linked mitigations are unchanged by this form:{" "}
-              {source.mitigations.join(", ") || "none"}. Mitigation linking and delegated work
-              are not yet available here.
+              {source.mitigations.join(", ") || "none"}. Use the mitigation form to change
+              links; this hazard form preserves them.
             </Text>
           )}
           <Text size="sm">

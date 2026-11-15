@@ -198,13 +198,22 @@ class TestCrossReferences:
             repo.save_hazard(hazard, author)
 
     def test_one_sided_reference_is_reported_by_validate(self, repo, hazard, mitigation, author):
-        repo.save_mitigation(mitigation, author)
-        hazard.mitigations = ["MIT-001"]
-        repo.save_hazard(hazard, author)
+        from safety_file import frontmatter, git
 
-        # MIT-001 does not name HAZ-001 in return.
+        repo.save_mitigation(mitigation, author)
+        repo.save_hazard(hazard, author)
+        # Model a broken legacy/out-of-band edit, not a library save: library
+        # saves now maintain both sides as one commit.
+        hazard.mitigations = ["MIT-001"]
+        frontmatter.write(repo.root / repo.path_for(hazard), hazard.to_frontmatter(), hazard.body)
+        git.commit_all(repo.root, "test: inconsistent legacy links", author)
         problems = repo.validate()
         assert any("does not list" in problem for problem in problems)
+        before = repo.head_sha
+        with pytest.raises(ValidationError, match="does not validate"):
+            repo.save_mitigation(mitigation, author)
+        assert repo.head_sha == before
+        assert repo.is_clean
 
     def test_consistent_references_validate_cleanly(self, repo, hazard, mitigation, author):
         repo.save_mitigation(mitigation, author)

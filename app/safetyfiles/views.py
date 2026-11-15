@@ -9,6 +9,7 @@ from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 
 from app.accounts.decorators import verified_required
+from app.safetyfiles.access import read_evidence
 from app.safetyfiles.forms import SafetyFileForm
 from app.safetyfiles.services import SafetyFileDetails, create_safety_file, visible_to
 from safety_file.errors import SafetyFileError
@@ -89,8 +90,7 @@ def safety_file_detail(request: HttpRequest, slug: str) -> HttpResponse:
         return render(request, "safetyfiles/detail.html", context, status=200)
 
     try:
-        repository = safety_file.repository()
-        with repository.snapshot():
+        with read_evidence(safety_file, request.user) as repository:
             hazards = repository.hazards()
             context |= {
                 "hazards": hazards,

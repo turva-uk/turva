@@ -188,6 +188,8 @@ def appendices(job: dict) -> str:
 def document_html(job: dict, site: Path) -> str:
     name = html.escape(job["name"])
     scope = "".join(f"<li>{label} (docs/{path})</li>" for path, label in PDF_PAGES)
+    team = job.get("team")
+    team_scope = "<li>Named file team at this source version</li>" if team else ""
     cover = (
         f'<section class="cover"><p class="brand">Turva</p><h1>{name}</h1>'
         "<h2>DCB0160 clinical safety management file</h2>"
@@ -196,14 +198,32 @@ def document_html(job: dict, site: Path) -> str:
         f"<p>Committed {html.escape(job['committed_at'])}</p>"
         f"<p>By {html.escape(job['author_name'])} &lt;{html.escape(job['author_email'])}&gt;</p>"
         "<p>This copy is fixed to that version, not a live view. Turva does not certify safety or regulatory compliance.</p>"
-        f"<h3>Controlled contents</h3><ol>{scope}<li>Additional narratives for all recorded hazards</li><li>Evidence and narratives for all recorded mitigations</li></ol>"
+        f"<h3>Controlled contents</h3><ol>{scope}<li>Additional narratives for all recorded hazards</li><li>Evidence and narratives for all recorded mitigations</li>{team_scope}</ol>"
         "<p>Attachments are references, not embedded. Embedded media/active HTML is unsupported and blocks export. Additional repository pages are outside this controlled text scope.</p></section>"
     )
     pages = "".join(
         f'<section class="page" id="source-{index}">{article_html(site, source, index)}</section>'
         for index, (source, _) in enumerate(PDF_PAGES)
     )
-    return f'<!doctype html><html lang="en-GB"><head><meta charset="utf-8"><title>{name} - source {html.escape(job["head"])}</title></head><body>{cover}{pages}{appendices(job)}</body></html>'
+    governance = ""
+    if team:
+
+        def person_text(person):
+            return f"{html.escape(person['name'])} &lt;{html.escape(person['email'])}&gt;"
+
+        collaborators = "".join(
+            f"<li>{person_text(person)}</li>" for person in team["collaborators"]
+        )
+        governance = (
+            '<section class="page"><h1>Named file team at this source version</h1>'
+            f"<p>Organisation: {html.escape(team['organisation_name'])}</p>"
+            f"<p>Accountable CSO: {person_text(team['accountable'])}</p>"
+            f"<h2>CSO collaborators</h2><ul>{collaborators or '<li>None named.</li>'}</ul>"
+            "<h2>Recorded reason</h2>"
+            + recorded(team["reason"])
+            + "<p>This is the recorded team at the cited source version, not a check of current employment, appointment, professional registration or competence. Appointment is not approval to deploy. Narrative pages may retain earlier personnel details and must be reviewed against this team record.</p></section>"
+        )
+    return f'<!doctype html><html lang="en-GB"><head><meta charset="utf-8"><title>{name} - source {html.escape(job["head"])}</title></head><body>{cover}{governance}{pages}{appendices(job)}</body></html>'
 
 
 def deny_resources(url, *args, **kwargs):

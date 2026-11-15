@@ -14,6 +14,7 @@ import logging
 from django.contrib.auth import login as django_login
 from django.contrib.auth import logout as django_logout
 from django.contrib.auth.forms import PasswordResetForm
+from django.db import DatabaseError
 from django.http import FileResponse, Http404
 from django.middleware.csrf import get_token
 from django.shortcuts import get_object_or_404
@@ -34,7 +35,7 @@ from app.accounts.services import (
     reset_password,
     send_confirmation,
 )
-from app.api.permissions import IsVerified
+from app.api.permissions import IsVerified, PrivateAPIView
 from app.api.serializers import (
     AssessmentSerializer,
     CommitSerializer,
@@ -42,6 +43,7 @@ from app.api.serializers import (
     HazardWriteSerializer,
     LoginSerializer,
     MitigationSerializer,
+    MitigationWriteSerializer,
     PasswordResetConfirmSerializer,
     PasswordResetRequestSerializer,
     PDFRequestSerializer,
@@ -52,9 +54,16 @@ from app.api.serializers import (
     UserSerializer,
     VerificationSerializer,
 )
+from app.safetyfiles.access import can_edit, can_manage_team, read_evidence
 from app.safetyfiles.pdf_contract import PDFExportError
 from app.safetyfiles.pdf_export import safety_file_pdf
-from app.safetyfiles.services import SafetyFileDetails, create_safety_file, save_hazard, visible_to
+from app.safetyfiles.services import (
+    SafetyFileDetails,
+    create_safety_file,
+    save_hazard,
+    save_mitigation,
+    visible_to,
+)
 from safety_file.errors import (
     DirtyRepositoryError,
     InvalidRiskScore,
@@ -63,7 +72,7 @@ from safety_file.errors import (
     StaleVersionError,
     ValidationError,
 )
-from safety_file.models import HAZARD_STATUSES, Assessment
+from safety_file.models import CONTROL_TYPES, HAZARD_STATUSES, MITIGATION_STATUSES, Assessment
 from safety_file.risk import LIKELIHOOD_LABELS, SEVERITY_LABELS
 
 logger = logging.getLogger(__name__)
@@ -343,7 +352,7 @@ class ProfileOptionsView(APIView):
 # -------------------------------------------------------------- safety files
 
 
-class SafetyFileListView(APIView):
+class SafetyFileListView(PrivateAPIView):
     """List the safety files you may see, and create new ones."""
 
     permission_classes = [IsVerified]
@@ -383,7 +392,7 @@ class SafetyFileListView(APIView):
         return Response(SafetyFileSerializer(safety_file).data, status=status.HTTP_201_CREATED)
 
 
-class RepositoryView(APIView):
+class RepositoryView(PrivateAPIView):
     """Known storage failures never become empty logs or apparently saved drafts."""
 
     permission_classes = [IsVerified]
@@ -397,7 +406,7 @@ class RepositoryView(APIView):
             return Response({"detail": str(exc)}, status=status.HTTP_409_CONFLICT)
         if isinstance(exc, RepositoryBusyError):
             return Response({"detail": str(exc)}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
-        if isinstance(exc, (SafetyFileError, OSError)):
+        if isinstance(exc, (SafetyFileError, OSError, DatabaseError)):
             logger.exception("Could not read or write safety evidence")
             return Response(
                 {
@@ -434,6 +443,73 @@ class HazardListView(RepositoryView):
         return self.write_hazard(request, safety_file)
 
 
+class MitigationOptionsView(APIView):
+    permission_classes = [IsVerified]
+
+    def get(self, request: Request) -> Response:
+        return Response(
+            {"statuses": list(MITIGATION_STATUSES), "control_types": list(CONTROL_TYPES)}
+        )
+
+
+class MitigationListView(RepositoryView):
+    def post(self, request: Request, slug: str) -> Response:
+        safety_file = get_object_or_404(visible_to(request.user), slug=slug)
+        return _write_mitigation(request, safety_file)
+
+
+def _write_mitigation(request, safety_file, mitigation_id=None):
+    serializer = MitigationWriteSerializer(data=request.data, partial=mitigation_id is not None)
+    serializer.is_valid(raise_exception=True)
+    values = dict(serializer.validated_data)
+    expected_head = values.pop("expected_head")
+    try:
+        mitigation, head = save_mitigation(
+            safety_file,
+            request.user,
+            values,
+            expected_head=expected_head,
+            mitigation_id=mitigation_id,
+        )
+    except ValidationError as exc:
+        return Response({"non_field_errors": [str(exc)]}, status=400)
+    return Response(
+        {"mitigation": MitigationSerializer(mitigation).data, "head_sha": head},
+        status=201 if mitigation_id is None else 200,
+    )
+
+
+class MitigationDetailView(RepositoryView):
+    """Read mitigation evidence, hazard choices and its rename-following history."""
+
+    def get(self, request: Request, slug: str, mitigation_id: str) -> Response:
+        safety_file = get_object_or_404(visible_to(request.user), slug=slug)
+        with read_evidence(safety_file, request.user) as repository:
+            mitigation = next((m for m in repository.mitigations() if m.id == mitigation_id), None)
+            if mitigation is None:
+                raise Http404
+            return Response(
+                {
+                    "safety_file": SafetyFileSerializer(safety_file).data,
+                    "can_edit": can_edit(safety_file, request.user, repository),
+                    "mitigation": MitigationSerializer(mitigation).data,
+                    "hazards": HazardSerializer(repository.hazards(), many=True).data,
+                    "history": CommitSerializer(
+                        repository.mitigation_history(mitigation_id), many=True
+                    ).data,
+                    "problems": repository.validate(),
+                    "head_sha": repository.head_sha,
+                }
+            )
+
+    def patch(self, request: Request, slug: str, mitigation_id: str) -> Response:
+        safety_file = get_object_or_404(visible_to(request.user), slug=slug)
+        with read_evidence(safety_file, request.user) as repository:
+            if not any(m.id == mitigation_id for m in repository.mitigations()):
+                raise Http404
+        return _write_mitigation(request, safety_file, mitigation_id)
+
+
 class SafetyFilePDFView(RepositoryView):
     """A private download of the explicitly opened version, with no evidence writes."""
 
@@ -442,8 +518,12 @@ class SafetyFilePDFView(RepositoryView):
         serializer = PDFRequestSerializer(data=request.query_params.dict())
         serializer.is_valid(raise_exception=True)
         download = safety_file_pdf(safety_file.repository(), **serializer.validated_data)
+        # Rendering releases the source snapshot. Recheck current access even
+        # after a cache hit or a revocation while the worker was running.
+        with read_evidence(safety_file, request.user):
+            stream = download.path.open("rb")
         response = FileResponse(
-            download.path.open("rb"),
+            stream,
             as_attachment=True,
             filename=f"{safety_file.slug}-{download.source_commit[:8]}.pdf",
             content_type="application/pdf",
@@ -504,7 +584,7 @@ class SafetyFileDetailView(RepositoryView):
 
         payload = {
             "safety_file": SafetyFileSerializer(safety_file).data,
-            "can_edit": safety_file.owner_id == request.user.pk,
+            "can_edit": False,
         }
 
         if not safety_file.exists_on_disk:
@@ -518,10 +598,12 @@ class SafetyFileDetailView(RepositoryView):
             }
             return Response(payload)
 
-        repository = safety_file.repository()
-        with repository.snapshot():
+        with read_evidence(safety_file, request.user) as repository:
             hazards = repository.hazards()
             payload |= {
+                "can_edit": can_edit(safety_file, request.user, repository),
+                "can_manage_team": can_manage_team(safety_file, request.user, repository),
+                "team": repository.team().to_dict() if repository.team() else None,
                 "repository_missing": False,
                 "hazards": HazardSerializer(hazards, many=True).data,
                 "mitigations": MitigationSerializer(repository.mitigations(), many=True).data,
@@ -542,8 +624,7 @@ class HazardDetailView(RepositoryView):
 
     def get(self, request: Request, slug: str, hazard_id: str) -> Response:
         safety_file = get_object_or_404(visible_to(request.user), slug=slug)
-        repository = safety_file.repository()
-        with repository.snapshot():
+        with read_evidence(safety_file, request.user) as repository:
             hazard = next((h for h in repository.hazards() if h.id == hazard_id), None)
             if hazard is None:
                 raise Http404
@@ -551,7 +632,7 @@ class HazardDetailView(RepositoryView):
             return Response(
                 {
                     "safety_file": SafetyFileSerializer(safety_file).data,
-                    "can_edit": safety_file.owner_id == request.user.pk,
+                    "can_edit": can_edit(safety_file, request.user, repository),
                     "hazard": HazardSerializer(hazard).data,
                     "mitigations": MitigationSerializer(linked, many=True).data,
                     "history": CommitSerializer(
@@ -564,8 +645,7 @@ class HazardDetailView(RepositoryView):
 
     def patch(self, request: Request, slug: str, hazard_id: str) -> Response:
         safety_file = get_object_or_404(visible_to(request.user), slug=slug)
-        repository = safety_file.repository()
-        with repository.snapshot():
+        with read_evidence(safety_file, request.user) as repository:
             if not any(h.id == hazard_id for h in repository.hazards()):
                 raise Http404
         return self.write_hazard(request, safety_file, hazard_id=hazard_id)

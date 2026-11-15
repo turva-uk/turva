@@ -1,6 +1,6 @@
 # ADR 0004: Serialised safety-file saves with opened-version preconditions
 
-- **Status**: Implemented for phase-one hazard entry
+- **Status**: Implemented for phase-one hazard and mitigation entry
 - **Date**: 2026-11-11
 - **Related**: [ADR 0003](0003-react-frontend-over-drf.md), [safety-file layout](../safety-file-layout.md)
 
@@ -12,13 +12,13 @@ The hazard log is a committed generated page. Every hazard or mitigation save ca
 
 Keep the committed generated-log contract. On the local Linux filesystem used by the funded deployment, `SafetyFileRepository.edit()` holds an exclusive advisory lock at `.git/turva.lock` for the entire operation. Its nested saves on the same repository instance retain that lock. Hazard and mitigation saves revalidate mutable domain objects before writing. New safety-file creation atomically reserves its directory before scaffolding.
 
-The hazard-write service requires the full HEAD read when the form opened. It checks that precondition inside the lock, before allocating identifiers or writing. Any intervening commit in that safety file returns a conflict, even if it concerns a different hazard. The interface retains the stale draft and offers comparison in another tab; it never substitutes the new HEAD and retries automatically. Clinical judgements are not automatically merged.
+The hazard- and mitigation-write services require the full HEAD read when the form opened. They check that precondition inside the lock, before allocating identifiers or writing. Any intervening commit in that safety file returns a conflict, even if it concerns a different artefact. The interface retains the stale draft and offers comparison in another tab; it never substitutes the new HEAD and retries automatically. Clinical judgements are not automatically merged.
 
 Multi-read HTTP responses use a shared `snapshot()` lock and require a clean working tree, so the returned evidence and HEAD belong together. A dirty/staged tree blocks both these reads and new saves. Failed work is left for administrator inspection, not automatically reset or attributed to the next saver. Lock acquisition has a five-second bound and reports contention as retryable unavailability.
 
 ## Consequences and limits
 
-- Each successful changed form save updates the artefact and generated log in one attributable commit. Unchanged saves do not add a commit. IDs, creation dates and existing mitigation links are not client-controlled.
+- Each successful changed form save updates the artefact and generated log in one attributable commit. Unchanged saves do not add a commit. IDs and creation dates are not client-controlled. Hazard-entry forms preserve their links; mitigation forms can change the relationship, with both sides updated in the same commit.
 - The whole safety file is the concurrency unit. A small CSO team may need to reopen a form after an unrelated hazard save; this is safer and more reversible than an implicit merge.
 - A request may commit successfully and lose its response. The UI reports uncertainty, preserves the draft, and the original version precondition prevents a duplicate create or silent overwrite on retry.
 - These are cooperating-process advisory locks, not NFS/distributed coordination or protection against administrators using Git/files directly. Low-level readers used for inspection remain available without a snapshot; callers presenting committed evidence must use one.

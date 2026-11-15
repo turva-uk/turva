@@ -102,6 +102,7 @@ Each Clinical Safety Management File is its own Git repository on disk, holding 
 - The audit trail is the commit history: attributed, timestamped, and tamper-evident
 - The database is an **index over** those repositories, not the truth. It exists so projects can be listed, searched, and permission-checked quickly, and it must be rebuildable from the repositories
 - No safety evidence may exist only in the database
+- The safety-file index is rebuildable, but operational users, sessions, membership, appointments and invitation history are not inferred from evidence repositories. Back up that database state too; a restored or copied named team must not recreate live access. See [ADR 0006](adr/0006-named-file-teams-and-live-appointments.md).
 - Generated documents, including the safety case PDF, are build artefacts reproducible from the commit they came from
 - The web application performs Git operations on the user's behalf; the Clinical Safety Officer never sees a commit, branch, or merge
 

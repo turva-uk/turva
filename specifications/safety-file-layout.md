@@ -9,7 +9,8 @@ This document is the contract between the storage layer, the document pipeline, 
 ```text
 <repository root>/
 ├── .turva/
-│   └── manifest.yaml              # Schema version, identity, template provenance
+│   ├── manifest.yaml              # Schema version, identity, template provenance
+│   └── team.yaml                  # Required in version 2; absent in owner-only version 1
 ├── mkdocs.yml                     # Zensical site configuration
 └── docs/
     ├── index.md                   # Front page: system, scope, status
@@ -100,6 +101,10 @@ evidence: >
 
 The hazard-to-mitigation relationship is recorded on both sides. That is deliberate redundancy: either file read alone is complete, which matters when a reviewer is reading a single hazard in a Git diff. The storage layer keeps the two in step and treats disagreement as a validation error.
 
+Saving either artefact updates any changed reverse references and the generated log in the same attributable commit. An existing inconsistent relationship is reported for inspection, not silently repaired by a later save. Mitigation editing may link/unlink hazards; the hazard-entry API continues to preserve its links. Neither linking nor mitigation status changes severity/likelihood automatically. Saving an implemented or verified mitigation requires an evidence statement; older version-1 records without one remain readable, but need evidence before a mitigation save. The statement is recorded judgement, not machine verification of a control's effectiveness.
+
+Unrecognised hazard, mitigation and assessment frontmatter fields are refused rather than silently dropped on re-save. In particular, Quill's extended version-1 `source` and `review` fields require the explicit provenance/schema work described in [the port decisions](quill-port.md); this stricter reader does not migrate or discard those fields.
+
 ## `.turva/manifest.yaml`
 
 ```yaml
@@ -115,6 +120,14 @@ created: 2026-02-10
 `schema_version` exists so that a safety file created today can be recognised and upgraded by a later version of Turva. The database index is rebuildable from these manifests, which is what makes the database disposable.
 
 `project_id` is the join key to the database index. It lives in the repository so that the repository remains the source of truth: a restored or relocated repository still knows what it is.
+
+### Version 2: explicitly adopted file teams
+
+Both versions 1 and 2 are supported. Creating an owner-controlled file still writes version 1. Explicit adoption upgrades `schema_version` to 2 and writes `.turva/team.yaml` in the same attributable commit, without rewriting narrative pages, hazards, mitigations or old history. There is no automatic bulk upgrade, downgrade or organisation-name matching. A version-1 file with a stray team record, or a version-2 file without a valid team record, is refused.
+
+The team YAML contains exactly `organisation_id`, `organisation_name`, `accountable`, `collaborators` and `reason`. `accountable` is one identity; `collaborators` is a list of identities. Each identity has exactly `user_id`, `membership_id`, `appointment_id`, `name` and `email`. IDs are canonical UUID strings; duplicate people and unsupported fields are rejected. The reason is non-empty recorded text. Dates and the acting identity come from the Git commit, not client-controlled metadata.
+
+This record preserves named accountability but cannot prove current authority. Current private-file access also requires the exact recorded membership/appointment and a still-valid profile declaration in this deployment. Reindex restores the managed marker and organisation binding, never operational roles or appointments. A fallback owner cannot edit a managed file. Reappointment creates a new identity and needs an explicit file-team save before old access can return. See [ADR 0006](adr/0006-named-file-teams-and-live-appointments.md).
 
 ## Placeholders
 

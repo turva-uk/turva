@@ -18,7 +18,7 @@ import re
 import unicodedata
 import uuid
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date
 from pathlib import Path
 from typing import Any
@@ -37,8 +37,10 @@ from .git import Author, Commit
 from .locking import RepositoryLock
 from .models import Hazard, Manifest, Mitigation
 from .render import render_hazard_log
+from .team import FileTeam
 
 MANIFEST_PATH = Path(".turva") / "manifest.yaml"
+TEAM_PATH = Path(".turva") / "team.yaml"
 DOCS_DIR = Path("docs")
 HAZARDS_DIR = DOCS_DIR / "hazards"
 MITIGATIONS_DIR = DOCS_DIR / "mitigations"
@@ -94,6 +96,8 @@ class SafetyFileRepository:
                     "This safety file has uncommitted changes. They cannot be presented as "
                     "committed evidence; ask an administrator to inspect the repository."
                 )
+            self._check_schema_version()
+            self.team()
             yield self
 
     @contextmanager
@@ -118,6 +122,8 @@ class SafetyFileRepository:
                     "This safety file has uncommitted changes. No new save is allowed: ask "
                     "an administrator to inspect them so they are not attributed to you."
                 )
+            self._check_schema_version()
+            self.team()
             yield self
 
     def _ignored_artefacts(self) -> bool:
@@ -133,6 +139,8 @@ class SafetyFileRepository:
                     "--",
                     f"{HAZARDS_DIR}/HAZ-*.md",
                     f"{MITIGATIONS_DIR}/MIT-*.md",
+                    str(TEAM_PATH),
+                    str(MANIFEST_PATH),
                 ],
                 cwd=self.root,
             ).strip()
@@ -178,7 +186,9 @@ class SafetyFileRepository:
                 "created": created.isoformat(),
             },
             manifest=Manifest(
-                schema_version=Manifest.CURRENT_SCHEMA_VERSION,
+                # Owner-only files stay version 1 until explicitly adopted.
+                # Version 2 requires the named team written by save_team().
+                schema_version=1,
                 project_id=project_id,
                 name=name,
                 standard=standard,
@@ -210,6 +220,8 @@ class SafetyFileRepository:
 
     def _check_schema_version(self) -> None:
         version = self.manifest.schema_version
+        if type(version) is not int or version < 1:
+            raise SchemaVersionError("A safety-file schema version must be a positive integer")
         if version > Manifest.CURRENT_SCHEMA_VERSION:
             raise SchemaVersionError(
                 f"{self.root} uses schema version {version}, but this version of "
@@ -221,7 +233,52 @@ class SafetyFileRepository:
     @property
     def manifest(self) -> Manifest:
         raw = (self.root / MANIFEST_PATH).read_text(encoding="utf-8")
-        return Manifest.from_dict(yaml.safe_load(raw))
+        try:
+            return Manifest.from_dict(yaml.safe_load(raw))
+        except yaml.YAMLError as exc:
+            raise ValidationError("The safety-file manifest YAML could not be read") from exc
+
+    def team(self) -> FileTeam | None:
+        """The recorded team, never an assertion that appointments remain valid."""
+        self._check_schema_version()
+        path = self.root / TEAM_PATH
+        if self.manifest.schema_version == 1:
+            if path.exists():
+                raise ValidationError("A version-1 file cannot contain a version-2 team record")
+            return None
+        if not path.is_file() or path.is_symlink():
+            raise ValidationError("A version-2 safety file requires its own .turva/team.yaml")
+        try:
+            return FileTeam.from_dict(yaml.safe_load(path.read_text(encoding="utf-8")))
+        except yaml.YAMLError as exc:
+            raise ValidationError("The file team YAML could not be read") from exc
+
+    def save_team(self, team: FileTeam, author: Author) -> str | None:
+        """Adopt a legacy file or replace its team in one attributable commit.
+
+        This is the explicit v1-to-v2 upgrade; no evidence pages are rewritten.
+        Organisation transfers require a separate deliberate workflow.
+        """
+        team = FileTeam.from_dict(team.to_dict())
+        with self.edit():
+            previous = self.team()
+            if previous and previous.organisation_id != team.organisation_id:
+                raise ValidationError("A file team cannot transfer a file to another organisation")
+            for path in (TEAM_PATH, MANIFEST_PATH):
+                if git.run(["check-ignore", "--", str(path)], cwd=self.root, check=False).strip():
+                    raise ValidationError("Git ignores the team or manifest; nothing was written")
+            manifest = yaml.safe_load((self.root / MANIFEST_PATH).read_text(encoding="utf-8"))
+            manifest["schema_version"] = 2
+            (self.root / MANIFEST_PATH).write_text(
+                yaml.safe_dump(manifest, sort_keys=False), encoding="utf-8"
+            )
+            (self.root / TEAM_PATH).write_text(
+                yaml.safe_dump(team.to_dict(), sort_keys=False, allow_unicode=True),
+                encoding="utf-8",
+            )
+            return git.commit_all(
+                self.root, "feat(team): record named CSOs and accountability", author=author
+            )
 
     # ----------------------------------------------------------------- reading
 
@@ -342,7 +399,6 @@ class SafetyFileRepository:
                 hazard,
                 author=author,
                 message=message or f"feat({hazard.id}): {hazard.title}",
-                regenerate_log=True,
             )
 
     def save_mitigation(
@@ -355,12 +411,17 @@ class SafetyFileRepository:
         """Validate, write, regenerate the hazard log, and commit."""
         with self.edit():
             mitigation.__post_init__()
+            # Legacy version-1 files may lack evidence: keep them readable, but
+            # never save an evidenced status without an evidence statement.
+            if mitigation.status in {"implemented", "verified"} and not mitigation.evidence.strip():
+                raise ValidationError(
+                    f"{mitigation.id}: an implemented or verified mitigation must record evidence"
+                )
             self._validate_cross_references(mitigation=mitigation)
             return self._save(
                 mitigation,
                 author=author,
                 message=message or f"feat({mitigation.id}): {mitigation.title}",
-                regenerate_log=True,
             )
 
     def _save(
@@ -369,28 +430,58 @@ class SafetyFileRepository:
         *,
         author: Author,
         message: str,
-        regenerate_log: bool,
     ) -> str | None:
-        relative = self.path_for(artefact)
-        target = self.root / relative
-        if git.run(["check-ignore", "--", relative], cwd=self.root, check=False).strip():
+        # A link is one decision, not two independent saves. Prepare both sides
+        # before touching disk, then publish them and the generated log in one
+        # attributable commit under the outer edit lock (TH-003/TH-004).
+        if problems := self.validate():
             raise ValidationError(
-                "Git ignores this safety evidence path. Ask an administrator to inspect the ignore rules before saving; nothing from this save was written."
+                "This safety file does not validate. Ask an administrator to inspect it "
+                "before saving: " + "; ".join(problems)
             )
-
-        # A retitled artefact moves file. Remove the old path through Git so the
-        # move is recorded as a rename and `git log --follow` keeps working.
-        for existing in self._artefact_paths(Path(relative).parent, artefact.id.split("-")[0]):
-            if existing.name.startswith(f"{artefact.id}-") and existing != target:
-                git.run(
-                    ["rm", "--quiet", "--", str(existing.relative_to(self.root))], cwd=self.root
+        pending: list[Hazard | Mitigation] = [artefact]
+        if isinstance(artefact, Hazard):
+            related = self.mitigations()
+            selected = artefact.mitigations
+            reverse_field = "hazards"
+        else:
+            related = self.hazards()
+            selected = artefact.hazards
+            reverse_field = "mitigations"
+        for other in related:
+            references = getattr(other, reverse_field)
+            wanted = other.id in selected
+            if (artefact.id in references) != wanted:
+                references = [identifier for identifier in references if identifier != artefact.id]
+                if wanted:
+                    references.append(artefact.id)
+                pending.append(
+                    replace(
+                        other,
+                        **{reverse_field: sorted(references)},
+                        updated=max(other.updated, artefact.updated),
+                    )
                 )
 
-        frontmatter.write(target, artefact.to_frontmatter(), artefact.body)
-
-        if regenerate_log:
-            self._write_hazard_log()
-
+        # Check every destination before the first write, including counterparts
+        # and the log. Otherwise an ignored reverse link can leave half an edit.
+        paths = [self.path_for(item) for item in pending] + [str(HAZARD_LOG_PATH)]
+        for relative in paths:
+            if git.run(["check-ignore", "--", relative], cwd=self.root, check=False).strip():
+                raise ValidationError(
+                    "Git ignores this safety evidence path. Ask an administrator to inspect the ignore rules before saving; nothing from this save was written."
+                )
+        for item in pending:
+            relative = self.path_for(item)
+            target = self.root / relative
+            # A retitle moves the file without changing its permanent identity.
+            for existing in self._artefact_paths(Path(relative).parent, item.id.split("-")[0]):
+                if existing.name.startswith(f"{item.id}-") and existing != target:
+                    git.run(
+                        ["rm", "--quiet", "--", str(existing.relative_to(self.root))], cwd=self.root
+                    )
+            frontmatter.write(target, item.to_frontmatter(), item.body)
+        self._write_hazard_log()
         return git.commit_all(self.root, message, author=author)
 
     def close_hazard(
@@ -513,6 +604,10 @@ class SafetyFileRepository:
     def hazard_history(self, hazard_id: str, limit: int = 50) -> list[Commit]:
         """Every recorded decision about one hazard."""
         return self.history(self.path_for(self.hazard(hazard_id)), limit=limit)
+
+    def mitigation_history(self, mitigation_id: str, limit: int = 50) -> list[Commit]:
+        """Every recorded decision about one mitigation, including link changes."""
+        return self.history(self.path_for(self.mitigation(mitigation_id)), limit=limit)
 
     def version_at(self, revision: str, file_path: str) -> str:
         """An artefact as it stood at a past commit."""

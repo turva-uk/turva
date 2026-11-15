@@ -13,17 +13,16 @@ import logging
 from dataclasses import dataclass, replace
 
 from django.conf import settings
-from django.core.exceptions import PermissionDenied
 from django.db import transaction
-from django.db.models import QuerySet
 from django.utils import timezone
 from django.utils.text import slugify
 
 from app.accounts.models import User
-from app.safetyfiles.models import SafetyFile, Visibility
+from app.safetyfiles.access import edit_evidence, visible_to  # noqa: F401 - shared public import
+from app.safetyfiles.models import SafetyFile
 from safety_file import Author, SafetyFileRepository
 from safety_file.errors import ValidationError
-from safety_file.models import Assessment, Hazard
+from safety_file.models import Assessment, Hazard, Mitigation
 
 logger = logging.getLogger(__name__)
 
@@ -35,27 +34,6 @@ TO_BE_COMPLETED = "*To be completed.*"
 
 #: Slug length cap, leaving room for the numeric suffix a collision adds.
 MAX_SLUG_LENGTH = 72
-
-
-def visible_to(user) -> QuerySet[SafetyFile]:
-    """Safety files this user may see.
-
-    Phase one's permission model in one function: you see your own, and you see
-    anything published. Team membership and delegated hazard mitigation both
-    land here when they are built, which is the reason this is a single named
-    queryset rather than a filter repeated in each view - a permission rule
-    expressed in three places is a permission rule that will eventually
-    disagree with itself.
-
-    It lives here rather than beside the template views because it now has two
-    callers: those views and the API. That is the same argument the paragraph
-    above makes, applied one level up.
-    """
-    if not user.is_authenticated:
-        return SafetyFile.objects.filter(visibility=Visibility.PUBLIC)
-    return SafetyFile.objects.filter(owner=user) | SafetyFile.objects.filter(
-        visibility=Visibility.PUBLIC
-    )
 
 
 @dataclass(frozen=True)
@@ -193,19 +171,12 @@ def save_hazard(
     expected_head: str,
     hazard_id: str | None = None,
 ) -> tuple[Hazard, str]:
-    """One deliberate, owner-only form save to the repository, never a DB row.
+    """One deliberate, authorised form save to the repository, never a DB row.
 
     Identifier allocation, stale-version check, validation, generated log and
     attributable commit are inside one shared repository lock. Existing links,
     identifiers and creation dates cannot be changed by this operation.
     """
-    if (
-        not actor.is_authenticated
-        or not actor.is_active
-        or not actor.is_verified
-        or safety_file.owner_id != actor.pk
-    ):
-        raise PermissionDenied("Only the safety file's verified owner may edit its hazards.")
     allowed = {
         "title",
         "status",
@@ -222,10 +193,7 @@ def save_hazard(
         raise ValidationError(
             "Identifiers, dates, mitigation links and derived risk cannot be set by this save."
         )
-    if not isinstance(expected_head, str) or not expected_head:
-        raise ValidationError("The version you opened is required before saving a hazard.")
-    repository = safety_file.repository()
-    with repository.edit(expected_head=expected_head):
+    with edit_evidence(safety_file, actor, expected_head) as repository:
         data = dict(values)
         for field in ("initial", "residual"):
             if field in data:
@@ -253,6 +221,43 @@ def save_hazard(
             message=f"feat({hazard.id}): {'record' if hazard_id is None else 'update'} hazard - {hazard.title}",
         )
         return repository.hazard(hazard.id), repository.head_sha
+
+
+def save_mitigation(
+    safety_file: SafetyFile,
+    actor: User,
+    values: dict,
+    *,
+    expected_head: str,
+    mitigation_id: str | None = None,
+) -> tuple[Mitigation, str]:
+    """Save evidence and both sides of its hazard links as one opened-version edit.
+
+    Linking or changing a mitigation never changes a hazard's risk assessment.
+    Responsibility is recorded text, not an invitation or access grant.
+    """
+    allowed = {"title", "status", "owner", "control_type", "hazards", "evidence", "body"}
+    if set(values) - allowed:
+        raise ValidationError("Identifiers, dates and risk assessments cannot be set by this save.")
+    with edit_evidence(safety_file, actor, expected_head) as repository:
+        if mitigation_id is None:
+            mitigation = Mitigation(
+                id=repository.next_mitigation_id(),
+                created=timezone.localdate(),
+                updated=timezone.localdate(),
+                **values,
+            )
+        else:
+            current = repository.mitigation(mitigation_id)
+            mitigation = replace(current, **values)
+            if mitigation != current:
+                mitigation.updated = timezone.localdate()
+        repository.save_mitigation(
+            mitigation,
+            author_for(actor),
+            message=f"feat({mitigation.id}): {'record' if mitigation_id is None else 'update'} mitigation - {mitigation.title}",
+        )
+        return repository.mitigation(mitigation.id), repository.head_sha
 
 
 def _template_for(standard: str) -> str:

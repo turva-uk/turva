@@ -91,6 +91,7 @@ INSTALLED_APPS = [
     "django_htmx",
     "app.accounts",
     "app.api",
+    "app.organisations",
     "app.safetyfiles",
 ]
 
@@ -327,6 +328,9 @@ DEFAULT_FROM_EMAIL = env_str("SMTP_FROM_ADDRESS", "noreply@turva.org")
 #: Used to build absolute links in emails, where there is no request to derive
 #: them from.
 SITE_BASE_URL = env_str("SITE_BASE_URL", "http://localhost")
+FRONTEND_BASE_URL = env_str(
+    "FRONTEND_BASE_URL", "http://localhost:5173" if DEBUG else SITE_BASE_URL
+)
 
 # ---------------------------------------------------------------- safety files
 

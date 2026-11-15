@@ -6,6 +6,7 @@ import { useApiResource } from "../api/useApiResource";
 import { HazardLog } from "../components/HazardLog";
 import { HistoryTable } from "../components/HistoryTable";
 import { PDFDownload } from "../components/PDFDownload";
+import { MitigationList } from "../components/MitigationList";
 
 const NOT_FOUND = "That safety file does not exist, or you do not have access to it.";
 
@@ -39,6 +40,24 @@ export function SafetyFileDetailPage() {
       <Text c="dimmed" mb="md">
         {file.standard_display} &middot; {file.organisation}
       </Text>
+      <Box my="md">
+        <Text>
+          {detail.team
+            ? `Recorded accountable CSO: ${detail.team.accountable.name} (${detail.team.accountable.email})`
+            : `Owner-controlled file: ${file.owner_name}`}
+        </Text>
+        {detail.team && (
+          <Text size="sm">
+            {detail.team.organisation_name} · {detail.team.collaborators.length} named CSO
+            collaborators. Appointments are not professional verification.
+          </Text>
+        )}
+        {detail.can_manage_team && (
+          <Anchor component={Link} to={`/safety-files/${file.slug}/team`}>
+            {detail.team ? "Manage file team" : "Adopt into an organisation / name a file team"}
+          </Anchor>
+        )}
+      </Box>
       <Anchor component={Link} to="/safety-files">
         All safety files
       </Anchor>
@@ -95,6 +114,18 @@ export function SafetyFileDetailPage() {
           </Group>
 
           <HazardLog hazards={detail.hazards ?? []} slug={file.slug} />
+
+          <Group justify="space-between" mt="xl" mb="sm" id="mitigations">
+            <Title order={2} size="h3">
+              Mitigations
+            </Title>
+            {detail.can_edit && (
+              <Button component={Link} to={`/safety-files/${file.slug}/mitigations/new`}>
+                Record mitigation
+              </Button>
+            )}
+          </Group>
+          <MitigationList mitigations={detail.mitigations ?? []} slug={file.slug} />
 
           <Title order={2} size="h3" mt="xl" mb="sm">
             Audit trail

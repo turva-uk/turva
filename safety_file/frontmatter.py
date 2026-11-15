@@ -62,7 +62,10 @@ def parse(text: str) -> tuple[dict[str, Any], str]:
     if index == -1:
         raise FrontmatterError("frontmatter block is not closed")
 
-    raw_yaml = rest[:index]
+    # The newline before the delimiter terminates the last YAML scalar. Keep
+    # it: dropping it strips a trailing newline from a final block scalar,
+    # silently changing evidence when an unrelated link is saved (TH-003).
+    raw_yaml = rest[:index] + "\n"
     body = rest[index + len(closing) :]
     body = body.lstrip("\n")
 

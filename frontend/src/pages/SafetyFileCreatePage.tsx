@@ -86,7 +86,7 @@ export function SafetyFileCreatePage() {
           )}
           <TextInput
             label="Organisation"
-            description="The organisation accountable for this deployment or product."
+            description="Recorded organisation name only, not membership or an access grant. After creation, use File team to explicitly adopt the file into a provisioned organisation."
             required
             maxLength={200}
             autoComplete="organization"

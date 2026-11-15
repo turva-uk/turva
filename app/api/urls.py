@@ -10,11 +10,42 @@ a second `include()` rather than a branch inside every view.
 
 from django.urls import path
 
-from app.api import views
+from app.api import organisations, views
 
 app_name = "v1"
 
 urlpatterns = [
+    path("organisations/", organisations.OrganisationListView.as_view(), name="organisation-list"),
+    path(
+        "organisations/<uuid:organisation_id>/",
+        organisations.OrganisationDetailView.as_view(),
+        name="organisation-detail",
+    ),
+    path(
+        "organisations/<uuid:organisation_id>/members/<uuid:member_id>/",
+        organisations.MembershipView.as_view(),
+        name="organisation-member",
+    ),
+    path(
+        "organisations/<uuid:organisation_id>/invitations/",
+        organisations.InvitationView.as_view(),
+        name="organisation-invite",
+    ),
+    path(
+        "organisations/<uuid:organisation_id>/invitations/<uuid:invitation_id>/revoke/",
+        organisations.InvitationRevokeView.as_view(),
+        name="organisation-invitation-revoke",
+    ),
+    path(
+        "invitations/<uuid:invitation_id>/accept/",
+        organisations.InvitationAcceptView.as_view(),
+        name="invitation-accept",
+    ),
+    path(
+        "safety-files/<slug:slug>/team/",
+        organisations.FileTeamView.as_view(),
+        name="safety-file-team",
+    ),
     # Session and authentication. `session/` also sets the CSRF cookie, so the
     # client calls it before its first unsafe request.
     path("auth/session/", views.SessionView.as_view(), name="session"),
@@ -32,6 +63,7 @@ urlpatterns = [
     path("profile/", views.ProfileView.as_view(), name="profile"),
     path("profile/options/", views.ProfileOptionsView.as_view(), name="profile-options"),
     path("hazard-options/", views.HazardOptionsView.as_view(), name="hazard-options"),
+    path("mitigation-options/", views.MitigationOptionsView.as_view(), name="mitigation-options"),
     path("assessment-preview/", views.AssessmentPreviewView.as_view(), name="assessment-preview"),
     path("safety-files/", views.SafetyFileListView.as_view(), name="safety-file-list"),
     path(
@@ -43,6 +75,16 @@ urlpatterns = [
         "safety-files/<slug:slug>/pdf/",
         views.SafetyFilePDFView.as_view(),
         name="safety-file-pdf",
+    ),
+    path(
+        "safety-files/<slug:slug>/mitigations/",
+        views.MitigationListView.as_view(),
+        name="mitigation-list",
+    ),
+    path(
+        "safety-files/<slug:slug>/mitigations/<str:mitigation_id>/",
+        views.MitigationDetailView.as_view(),
+        name="mitigation-detail",
     ),
     path(
         "safety-files/<slug:slug>/hazards/",

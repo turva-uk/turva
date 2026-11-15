@@ -10,6 +10,7 @@ from django.contrib import admin
 from django.utils.translation import gettext_lazy as _
 
 from app.safetyfiles.models import SafetyFile
+from safety_file.errors import SafetyFileError
 
 
 @admin.register(SafetyFile)
@@ -22,6 +23,22 @@ class SafetyFileAdmin(admin.ModelAdmin):
     # Identity and content are the repository's. Only the deployment state that
     # genuinely lives here - who owns it, who may see it - is editable.
     readonly_fields = ("id", "slug", "name", "standard", "organisation", "created_at", "updated_at")
+
+    def get_readonly_fields(self, request, obj=None):
+        # Publishing and reassignment of an adopted file must not bypass its
+        # dedicated governance boundary through an operational support form.
+        if obj:
+            managed = obj.team_managed
+            try:
+                repository = obj.repository()
+                with repository.snapshot():
+                    managed = managed or repository.team() is not None
+            except SafetyFileError, OSError:
+                managed = True  # Inspection, not an owner/publishing fallback.
+            if managed:
+                return (*self.readonly_fields, "owner", "visibility")
+        return self.readonly_fields
+
     fieldsets = (
         (
             _("From the repository"),
