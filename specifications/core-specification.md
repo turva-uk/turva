@@ -174,6 +174,8 @@ This reduces duplication, improves quality, and accelerates safe deployment.
 
 AI integration is planned, not implemented. [ADR 0007](adr/0007-user-and-organisation-supplied-inference.md) defines user- or organisation-supplied inference through scoped connections, including supported provider authentication and local models. [The AI strategy](llm-strategy.md) owns the settings, provider and safety requirements; the opportunities below are not a claim that a particular model or clinical capability is available.
 
+All AI assistance is optional and explicitly requested by the user, never invoked by ordinary loading, typing or saving. Manual work remains available without AI or credentials. [Inline wording assistance](llm-strategy.md#optional-inline-wording-assistance) proposes visibly compared changes for human acceptance into a draft, followed by a separate explicit Save; it does not silently rewrite evidence or make clinical decisions.
+
 ### The LLM Opportunity
 
 Modern LLMs can draft clinical safety cases in minutes, potentially making traditional templating engines obsolete. Turva embraces this by:
@@ -181,7 +183,7 @@ Modern LLMs can draft clinical safety cases in minutes, potentially making tradi
 - **Embedded safety expert LLM**: AI assistant helps CSOs identify hazards, assess risks, and draft mitigations
 - **Safety case generation**: LLM drafts complete safety cases from structured data
 - **Review and critique**: AI challenges assessments and suggests missed hazards
-- **Evidence synthesis**: Automatically links supporting evidence to claims
+- **Evidence synthesis**: Suggests links between supporting evidence and claims for explicit human review
 
 ### What LLMs Can't Replace
 

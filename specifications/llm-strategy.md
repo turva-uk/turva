@@ -12,6 +12,8 @@ Provider and model support must be extensible. No vendor or local model is exclu
 
 AI may help draft narrative, suggest hazards or mitigations, explain criteria and challenge reasoning. It cannot replace a CSO, accept an assessment, confer competence or claim that a system is safe. Derived risk remains the canonical server calculation from human-confirmed severity and likelihood, never a model-entered level.
 
+**AI use is optional and user-driven.** Reading, authoring, reviewing, saving and exporting must remain usable without AI, provider credentials or model availability. A configured personal or organisation connection is permission to offer assistance, not consent to invoke it automatically. No inference starts on page load, typing, blur, save or an unattended background trigger; each generation or regeneration needs an explicit user action. An unavailable or declined AI feature must not block ordinary editing or saving.
+
 ## Connection scopes and settings
 
 An inference connection is operational configuration, not clinical evidence and not a new grant to a safety file. Settings must distinguish:
@@ -84,12 +86,26 @@ No private safety content is training data by default. Public visibility is not 
 
 Local/on-device inference must keep safety content within the declared boundary, without hidden cloud routing or telemetry. Test that property; running a model locally does not by itself establish it. Caches and retained outputs remain scoped to authorised users/files and need the same disclosure and retention controls.
 
+## Optional inline wording assistance
+
+R163 defines a shared field/editor interaction, not a mandatory chatbot or a replacement for ordinary text entry. Beside an eligible narrative text box, offer an explicit **AI** button with a field-specific accessible name such as "Suggest wording for mitigation rationale". Keep the control secondary to writing and saving; explain unavailable assistance without forcing a provider setup step to continue manual work.
+
+The interaction must provide:
+
+- **Deliberate request:** the user asks for alternative wording for the selected field or passage. Show the effective provider/model, destination, billed owner and exact input before dispatch. Send only that text and the minimal authorised context the user has selected; do not silently include the whole form, safety file or attachments. Connection setup and destination disclosure can precede the request when needed; merely opening settings or a preview is not consent to generate.
+- **Review in context:** show the proposed wording inline or immediately alongside the field without replacing its current draft on arrival. Retain the exact original and display a faithful diff: removals in red, additions in green, with explicit "Removed"/"Added" labels and deletion/insertion styling that remains understandable without colour. Provide keyboard and screen-reader access, readable contrast, high-contrast and narrow-screen layouts. Edit colours mean changed wording, not risk level, correctness or clinical approval.
+- **User-controlled application:** offer **Accept suggestion**, **Reject**, editing of the proposal and **Undo** before saving. Recompute the comparison after proposal edits. Acceptance updates only the unsaved draft; rejection/cancellation leaves the current draft intact, and undo must not discard unrelated later edits. Retain the original for comparison while reviewing. A separate explicit whole-form/document **Save** is still required; AI request, arrival and acceptance create no evidence commit. Diff markup is review UI, not text to store in the safety document. After a save, corrections create a new attributable commit, never a history rewrite.
+- **Preserving content:** a wording request must ask to preserve clinical meaning, uncertainty, quantities and citations, but that instruction is not evidence that a model did so. Make changed negation, numbers, references and structure visible for human review. Preserve unaffected Markdown, links, tables and template comments; use the preserving Markdown-source fallback for unsupported constructs instead of flattening or dropping them. Render proposed content safely as untrusted input, never executable model HTML. Wording assistance cannot change scores, identifiers, statuses, relationships or review/approval decisions through a text-field action.
+- **Draft and request identity:** bind each request to its safety file, artefact, field/passage, exact submitted draft revision and the form's opened source commit. Typing while waiting, a newer request, cancellation, navigation or switching resources must prevent an older response being applied. Retain the current draft; mark a superseded proposal stale and require a fresh explicit request or deliberate comparison, never automatic replacement or merging. A remote repository change still causes the existing opened-version save conflict; do not refresh `expected_head` or retry that save automatically. Failure, incomplete output or cancellation must preserve the draft and must not be presented as a completed suggestion. Cancelling the UI cannot promise to recall data already sent or avoid a provider charge.
+
+Accepting improved wording is not clinical verification. The person must check meaning and evidence, and any applicable CSO review remains separate. This workflow refines the human-review requirement below; it is planned behaviour, not an implemented button or diff editor.
+
 ## Human review and evidence workflow
 
-1. An authorised person selects an eligible connection/model for the current safety file and previews the intended input and destination.
-2. The service rechecks file and connection authority, captures the opened source version and invokes the provider within policy/resource limits.
+1. An authorised person explicitly requests assistance, selects an eligible connection/model for the current safety file and previews the intended input and destination.
+2. The service rechecks file and connection authority, retains the form's opened source version and exact submitted draft revision, and invokes the provider within policy/resource limits. It must not substitute the latest repository version for the one the person opened.
 3. The result is displayed as untrusted AI assistance, separate from accepted CSO reasoning; source-document instructions and model tool suggestions cannot bypass authority or trigger privileged actions.
-4. The person reviews, edits or rejects it. Risk suggestions never set a risk level directly or stand in for the CSO's confirmation of valid severity/likelihood.
+4. The person compares, reviews, edits, accepts or rejects the proposal; applying it changes an unsaved draft only. Risk suggestions never set a risk level directly or stand in for the CSO's confirmation of valid severity/likelihood.
 5. An explicit whole-form/document save uses the opened version and the existing services. Accepted content and AI-review provenance are committed under the acting user's identity, not the model or a shared provider account. Record available provider/model identity/revision, source commit and review decision without credentials; make mutable/unknown model revisions visible. Retain stale drafts rather than refreshing the version and retrying the clinical save automatically.
 
 An AI draft is not a safety case, an effectiveness finding, clinical sign-off or regulatory acceptance. A fine-tuned model or a second model judging the first does not remove independent human review.
@@ -102,7 +118,7 @@ Allow policy-compliant custom choices beyond that catalogue. Re-evaluate changed
 
 ## Delivery and acceptance
 
-Existing roadmap codes remain: R113 personal connections, R114 visible data flow, R115 provenance/human review, R116 external-client access and R117 separately scoped Turva-hosted inference. R155-R162 cover scoped settings, authentication/subscriptions, credential lifecycle, adapters, local inference, routing/policy, recommendations and conformance/safety acceptance.
+Existing roadmap codes remain: R113 personal connections, R114 visible data flow, R115 provenance/human review, R116 external-client access and R117 separately scoped Turva-hosted inference. R155-R162 cover scoped settings, authentication/subscriptions, credential lifecycle, adapters, local inference, routing/policy, recommendations and conformance/safety acceptance. R163 covers optional inline wording assistance and accessible change review.
 
 Before enabling a slice, test applicable combinations with fictional data and controlled provider stubs, not real customer documents or production credentials:
 
@@ -110,7 +126,10 @@ Before enabling a slice, test applicable combinations with fictional data and co
 - Key replacement/removal, encryption/redaction, OAuth callback binding, expired/rotated refresh tokens and safe disconnection. Protect all settings mutations with the existing session/CSRF boundary.
 - Native/compatible/custom/local adapters, undiscovered models, denied destinations/redirects and unsupported capabilities.
 - Quotas, allowance expiry, timeouts, cancellation, partial output, uncertain retries and refusal to switch billing/destination silently.
+- Ordinary reading/editing/saving/exporting with AI declined, not configured, disabled or unavailable; no automatic inference on load, typing, blur or save, including with an organisation connection configured. Assert no provider request until an explicit AI action and no evidence write until a separate Save.
+- Exact original/proposal comparisons, accept/reject/edit/undo, retained drafts and safe rendering. Fictional fixtures must expose changed negation, punctuation, quantities, citations, links, tables, template comments and unsupported Markdown, not just unchanged words or a plausible-looking preview.
+- Out-of-order responses, user edits during inference, cancellation, navigation, resource changes, revocation and intervening repository commits. Neither suggestion application nor save may silently replace a newer draft or substitute a fresh source version.
 - Prompt/content injection, fabricated references, attempted direct risk-level writes, accepted-content provenance, failed Git writes and retained stale drafts.
-- Settings and review screens on phone/tablet/desktop, including keyboard, screen-reader and clear failure states.
+- Settings and review screens on phone/tablet/desktop, including keyboard, screen-reader, zoom, high-contrast/colour-independent diff cues and clear failure states.
 
 Update the relevant hazards and obtain the independent clinical/security review appropriate to the capability. Passing these tests is evidence of implementation behaviour, not closure of TH-002, TH-004, TH-005, TH-006 or TH-008 and not a claim of clinical or regulatory approval.

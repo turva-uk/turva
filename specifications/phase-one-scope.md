@@ -93,6 +93,8 @@ Later, and out of scope here: other formats such as `.docx` from the same pipeli
 
 ## AI features
 
+AI use must remain optional and explicitly driven by the user. Ordinary editing and saving need neither AI nor configured credentials, and loading, typing or saving must never trigger inference automatically. Planned field-level assistance offers an **AI** button with reviewable red/green additions and deletions plus accessible non-colour cues; accepting or editing a suggestion changes a draft only, before a separate explicit Save. See [R163's wording-review contract](llm-strategy.md#optional-inline-wording-assistance); late/stale responses must not overwrite newer work.
+
 Any AI feature must use an explicitly authorised inference connection supplied by the user or the owning organisation. As clarified on 15 November 2026, personal API keys are one option, not the only ownership or authentication scope; this supersedes the earlier profile-only BYOK restriction. Organisation-level and explicitly delegated unit/team settings must also be possible, with provider-supported API keys, OAuth, API-enabled subscriptions or local/on-premises endpoints. A consumer chat subscription is not assumed to grant third-party API access.
 
 NHS organisations have well-founded sensitivities about where their data goes during an LLM round trip, and a deployment safety case contains a named organisation's assessment of its own clinical risk. The connection owner supplies the provider relationship and allowance; use must still satisfy the owning organisation's data-handling policy and the acting person's current file authority. Credential management is not evidence authority, and a parent organisation's connection is not inherited access to another organisation's files.
