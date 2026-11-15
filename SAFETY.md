@@ -10,7 +10,8 @@ This is a governance record maintained alongside the code. It is not a completed
 - Enforces that risk level is derived from severity and likelihood rather than chosen
 - Keeps an attributable, timestamped audit trail in Git
 - Generates a safety case document (PDF) from that evidence
-- Offers AI assistance to help a Clinical Safety Officer draft and review safety content
+
+**AI status:** Assistance is planned, not implemented. [The AI strategy](specifications/llm-strategy.md) and [ADR 0007](specifications/adr/0007-user-and-organisation-supplied-inference.md) describe the intended user-/organisation-supplied access and the review gates that must precede enabling it.
 
 ## What Turva does not do
 
@@ -68,6 +69,12 @@ TH-009 was introduced deliberately, with mitigation, when profile and CSO design
 ### Planned risk presentation and source review
 
 On 15 November 2026, the roadmap source check compared `safety_file/risk.py` with Table 9, page 35 of the [DCB0160 implementation guidance v4.2, 2 May 2018](https://digital.nhs.uk/binaries/content/assets/website-assets/data-and-information/information-standards/standards-and-collections/dcb0160/0160252018impguid.pdf#page=35), source SHA-256 `4e2cff49e717e9344d7922fce4b47faaa47f80691663f84bab6733f6ac28462b`. Five cells differ: L2/S3, L3/S2, L3/S4, L3/S5 and L4/S3. For example, L3/S4 returns 4 in Turva and 3 in the published example. Section 4.4, page 33, explicitly makes these classifications illustrative and requires the organisation to document its chosen criteria; this comparison does not itself establish which matrix is clinically appropriate. [R17](specifications/roadmap.md#risk-presentation-and-matrix-assurance) requires a recorded CSO decision and independent source-derived vectors before any scoring change or claim that a display reproduces that example. R15's exact NHSE RGB palette and R16's optional initial/residual matrix markers remain planned presentation work, not shipped controls. No runtime scoring, rendering or historical evidence changed in this documentation update; TH-008 remains open.
+
+### Planned scoped AI access
+
+The 15 November 2026 access decision broadens future inference from personal API keys to user- and organisation-owned connections, including provider-supported OAuth/subscriptions and local endpoints. [R155-R162](specifications/roadmap.md#ai-access) require explicit management/use scopes, protected credential storage, current file-authority checks, provider/data-handling policy, visible billing/destinations and negative-path conformance tests. Connection ownership or organisation administration must not grant evidence authority (TH-005/TH-006), and personal settings must not bypass the owning organisation's data policy. Credentials and tokens must not enter Git evidence, prompts, exports or logs.
+
+Credential leakage, cross-organisation use, OAuth callback/refresh mistakes, custom-endpoint request forgery, unexpected provider/billing switches and local-connectivity failures need threat and hazard review before implementation is enabled. Model recommendations are not clinical approval; AI output remains a proposal needing attributable human review and an opened-version save (TH-002/TH-004), with no model-selected risk level (TH-008). These are planned requirements, not implemented mitigations or evidence of clinical acceptance. No runtime inference, secrets, settings permissions or safety-file content changed; the hazards remain open.
 
 ### Profile and creation interface evidence
 

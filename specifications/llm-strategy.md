@@ -1,212 +1,116 @@
-# LLM Strategy: How AI Changes Clinical Safety Management
+# AI inference connections and settings strategy
 
-## The Disruption
+<!-- cspell:ignore PKCE -->
 
-In early 2023, a competent developer could use ChatGPT or Claude to generate a complete clinical safety case in 20-30 minutes. By 2025, these LLMs understand DCB0129/DCB0160, can identify hazards from system descriptions, assess risks, and draft mitigations in seconds.
+**Status: planned, not implemented.** AI is outside the current Quill workflow port. This strategy records the access direction agreed on 15 November 2026 and replaces the former personal-profile-only BYOK assumption and claims that an embedded fine-tuned model already exists. It does not promise clinical accuracy, regulatory acceptance or a new funded delivery date. See [ADR 0007](adr/0007-user-and-organisation-supplied-inference.md), [the roadmap](roadmap.md#ai-access) and [SAFETY.md](../SAFETY.md).
 
-**The uncomfortable question**: Why build a clinical safety platform when an LLM can generate the entire safety case?
+## Purpose and boundaries
 
-## Why Turva Still Matters
+Users or the owning organisation supply the inference service and its permitted allowance: an API account/key, a supported account/subscription integration or their own local/on-premises runtime. Turva supplies the reviewed connection and clinical-safety workflow, not an implicit model subscription. Turva-funded/hosted inference is a separate future proposal, never an automatic fallback.
 
-### 1. Structure Enforces Rigour
+Provider and model support must be extensible. No vendor or local model is excluded merely because it is absent from an initial menu, but adding an endpoint or model name does not prove compatibility, permission, privacy or clinical suitability. Unsupported interfaces/capabilities must be reported explicitly.
 
-LLMs generate free text. Turva enforces a structured risk assessment model:
+AI may help draft narrative, suggest hazards or mitigations, explain criteria and challenge reasoning. It cannot replace a CSO, accept an assessment, confer competence or claim that a system is safe. Derived risk remains the canonical server calculation from human-confirmed severity and likelihood, never a model-entered level.
 
-- **Derived risk levels**: An LLM might say "moderate risk" inconsistently. Turva calculates risk level from severity and likelihood, preventing subjective downgrading.
-- **Mandatory fields**: An LLM might skip assigning a hazard owner. Turva requires it.
-- **Standardized scales**: LLMs use natural language ("unlikely", "rare", "possible"). Turva uses defined 1-5 scales with clear criteria.
+## Connection scopes and settings
 
-Structure ensures consistency across hazards, projects, and organizations.
+An inference connection is operational configuration, not clinical evidence and not a new grant to a safety file. Settings must distinguish:
 
-### 2. Audit Trails Are Non-Negotiable
+| Context                   | Required behaviour                                                                                                                                                                                                                             |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Personal profile          | A user can connect and manage their own permitted provider account/key. It is not automatically shared with colleagues or required when an authorised organisation connection is available.                                                    |
+| Owning organisation       | Authorised settings managers configure organisation-supplied connections and eligible users. Managing credentials/billing does not permit reading or editing private safety evidence.                                                          |
+| Organisation unit or team | Support explicit delegated availability at these levels when their identity/grant model is implemented. Separate federation/practice organisations do not inherit connections or evidence rights from names, ancestry or membership elsewhere. |
+| Safety file/project       | Allow a narrower connection/model binding or default within the owning organisation's policy. Binding selects an eligible connection; it does not copy a key into the safety repository or grant access.                                       |
 
-An LLM conversation is ephemeral. Turva provides:
+Keep credential ownership, billing responsibility, who may configure a connection and who may use it as separate concepts. A personal OAuth account, an organisation API billing account and an organisation-managed local endpoint need not have the same authentication or charging model.
 
-- **Immutable version history**: Every change attributed to a named person with timestamp
-- **System state correlation**: Safety decisions linked to specific code versions
-- **Regulatory evidence**: Complete audit trail meeting DCB0129/DCB0160 requirements
+Settings need the following groups, not a single universal API-key field:
 
-A regulator can't audit a ChatGPT conversation. They can audit Turva's version control.
+- **Ownership and authority:** stable owner/scope identity, current manage/use grants, delegated unit/team or file bindings, and revocation status.
+- **Provider and location:** adapter, endpoint, deployment/region and provider-specific API settings; make the actual execution location visible.
+- **Authentication and lifecycle:** supported method, protected secret reference or authorised account connection, provider-issued scopes, expiry/refresh/disconnection state and provider-specific client registration where needed.
+- **Models and capabilities:** discovered or explicitly entered model/deployment identifiers, available revisions, task capabilities and context/output limits. Report unknown metadata as unknown, not as a fabricated default.
+- **Policy and cost:** permitted providers/models/endpoints/data classes, data residency/retention requirements, allowed personal overrides, defaults, spending/rate/token limits and the billed owner. Distinguish estimated, actual and unknown cost.
+- **Operational status:** explicit connection test with non-sensitive input, last result, redacted failures and attributable settings changes. Show configured/expired/disconnected status, never an existing secret value.
 
-### 3. Collaboration Requires Governance
+Organisation policy is the ceiling for organisational evidence, including when a personal connection is selected. Resolve an eligible explicit selection or a permitted, visibly identified default in the current user/file context. If none is valid, stop and explain the missing configuration; do not search other users' keys or silently fall back across owner, organisation, provider, endpoint or model. The precedence and override rules need an explicit implementation contract and tests in R160.
 
-Clinical safety is a team effort:
+Recheck live evidence access, connection-use grants and policy before dispatch and before retaining a result as evidence. Membership removal, credential revocation or a policy change must block subsequent use. Any future hierarchy/delegation must define revocation/rejoining behaviour explicitly, not restore permissions from a copied safety repository.
 
-- **CSO approves**, developers identify hazards, clinical reviewers assess impact
-- **Multiple contributors** but **explicit accountability**
-- **Delegation is traceable**: Who did what, when, and with whose authority
+## Authentication and subscriptions
 
-LLMs generate content for one user at a time. Turva orchestrates multi-stakeholder workflows.
+Provider authentication is separate from Turva login. Django sessions and CSRF remain the application authentication contract; adding provider OAuth does not replace it with JWT login.
 
-### 4. Federation Compounds Value
+- **API keys:** support the provider's documented key mechanism with write-only entry, validation and secure replacement/removal.
+- **OAuth:** offer only provider-supported third-party flows and scopes. Follow [OAuth security best current practice, RFC 9700](https://www.rfc-editor.org/info/rfc9700) and [PKCE, RFC 7636](https://www.rfc-editor.org/info/rfc7636). Bind the authorisation transaction to the initiating Turva user, connection owner and provider; validate issuer/redirects and one-time state, use PKCE for supported authorisation-code flows, and protect access/refresh tokens through refresh, rotation, expiry and revocation. Do not use password collection or implicit-token flows.
+- **Cloud/service credentials:** allow provider-supported workload or service authentication through a reviewed adapter, with minimal permissions and an identified owner; do not force every provider into an API-key field.
+- **Subscriptions:** a subscription is an entitlement/billing relationship, not itself an authentication protocol. Only connect it where the provider officially permits third-party API use through a supported integration. A consumer chat subscription is not automatically an API licence. Never request a consumer password or reuse unsupported browser/CLI session tokens to imitate an API.
+- **Local endpoints:** support the actual reviewed authentication policy, including a no-secret mode only for an explicitly approved isolated endpoint; local does not automatically mean trusted or publicly accessible.
 
-An LLM starts from scratch every time. Turva enables:
+Check the provider's current official documentation and terms before implementing or recommending any adapter or subscription/OAuth option. Do not advertise an unsupported login method just because another provider offers it.
 
-- **Manufacturers publish safety cases** that deployers inherit and extend
-- **Organizations share hazard logs** so others don't duplicate effort
-- **Public projects** contribute to collective safety knowledge
-- **Reuse at scale**: A hazard identified once benefits the entire community
+## Credentials and operational storage
 
-Network effects make Turva more valuable as adoption grows.
+Store keys, client secrets and access/refresh tokens encrypted in a protected server-side secret store or equivalent reviewed encrypted operational storage, with appropriate backup and encryption-key management. Never put them into safety-file Git repositories, browser persistent storage, ordinary API responses, prompts, logs, analytics, issue fixtures or document exports. A connection's public identifier is not permission to retrieve its secret.
 
-### 5. Regulatory Compliance Requires Evidence
+Implement least-privilege management/use checks, expiry, key/token rotation, disconnection, provider-side revocation where supported and visible failures. Record attributable non-secret configuration/usage events without logging authentication headers or credential-bearing URLs. Do not show stored secrets back to settings managers as a convenience.
 
-LLMs produce outputs. Turva produces evidence:
+This operational secret/configuration storage is not an exception allowing clinical evidence to live only in SQL. Accepted safety content and retained AI review provenance belong in the safety repository, attributed to the acting person. Record only the non-secret connection/provider/model references required for traceability.
 
-- **Compliance reports** auto-generated from structured data
-- **Mapping to standards**: Which DCB0129 requirement is met by which hazard/mitigation
-- **Exportable audit trails**: Complete CSV/PDF exports for regulators
-- **Sign-off records**: Named CSO approval with registration number
+## Provider and model interoperability
 
-An LLM output is a claim. Turva output is proof.
+Use a capability-based adapter contract: configuration validation, supported authentication, non-sensitive connection testing, model/capability discovery where available, invocation and normalised error/usage reporting. Support native provider APIs as well as compatible gateways; an OpenAI-compatible transport is useful, not a universal protocol requirement.
 
-## How Turva Uses LLMs
+Allow explicit model/deployment IDs for providers without discovery, subject to policy and compatibility checks. Declare task capabilities such as text generation, structured output, images or tool interfaces where relevant; a familiar model name is not evidence that a capability exists. Unsupported tasks fail visibly rather than being silently degraded or routed elsewhere. Model tool support does not authorise autonomous side effects or new evidence access.
 
-Rather than compete with LLMs, Turva integrates them as a force multiplier.
+Apply request/context/output bounds, timeouts, cancellation and provider-aware retry/idempotency rules. Report incomplete or interrupted output as incomplete and preserve the user's draft; do not imply an uncertain retry cannot cause another charge. Provider failures must not trigger another account, model or destination automatically.
 
-### Embedded Safety Expert LLM
+## Local and organisation-hosted inference
 
-Turva includes a fine-tuned LLM trained on:
+Support user-/organisation-operated runtimes through reviewed adapters and network paths. Settings must say whether inference runs on the Turva deployment host, an organisation network host or an individual device, and what hardware/model it requires. An endpoint at `localhost` on a hosted Django server is not the user's laptop.
 
-- DCB0129/DCB0160 standards
-- Historical hazard logs (from public projects)
-- Clinical safety best practices
-- NHS Digital guidance
+User-device inference needs a separately reviewed local connector or supported browser/device runtime; do not assume the cloud deployment can reach it or solve reachability by exposing a local service publicly. Keep model-download/setup traffic distinguishable from transmission of safety-file content.
 
-**How it helps**:
+Custom endpoint support requires server-side request-forgery protection, controlled destinations/redirects, appropriate transport security, authentication and explicit approval for local/private-network targets. Do not indiscriminately block all organisation-hosted endpoints or allow arbitrary internal/metadata-service access. Validate the actual data path and failure states; never silently move local work to a cloud provider.
 
-- **Hazard identification**: "Describe your system" → LLM suggests 20 potential hazards
-- **Risk assessment assistance**: "Why severity 4 not 5?" → LLM explains criteria
-- **Mitigation brainstorming**: LLM suggests controls based on similar hazards
-- **Safety case drafting**: LLM generates narrative from structured data
-- **Review and challenge**: "Have you considered this hazard?" prompts critical thinking
+## Privacy and confidentiality
 
-### LLM as Assistant, Not Replacement
+Turva does not process patient data. Adding an AI connection does not permit patient data in prompts, fixtures or safety files.
 
-The LLM proposes; the CSO decides:
+Before a request, show the effective connection owner, billing context, provider/endpoint location, model and the information selected for transmission. Minimise the payload and require an explicit user action under the owning organisation's permitted data-handling terms. File visibility or possession of a key is not consent to send an entire file, another organisation's evidence or unrelated account information.
 
-- **LLM suggests** a severity score → **CSO approves or overrides** → Decision recorded with justification
-- **LLM drafts** a safety case section → **CSO reviews and edits** → Final version attributed to CSO
-- **LLM identifies** potential hazards → **CSO filters and prioritizes** → Selected hazards tracked
+No private safety content is training data by default. Public visibility is not permission for training either: any future data contribution/fine-tuning scheme needs its own consent, licensing, retention and withdrawal design. Do not promise that already trained weights can simply have a contribution removed. Provider retention, residency and training behaviour must be checked against actual configuration and contracts, not inferred from a model's name or a local/cloud label.
 
-The LLM accelerates work but doesn't eliminate accountability.
+Local/on-device inference must keep safety content within the declared boundary, without hidden cloud routing or telemetry. Test that property; running a model locally does not by itself establish it. Caches and retained outputs remain scoped to authorised users/files and need the same disclosure and retention controls.
 
-### Safety Case Generation Workflow
+## Human review and evidence workflow
 
-1. **CSO enters structured data** (hazards, assessments, mitigations) via forms
-2. **Turva stores** in database with version control
-3. **LLM generates narrative** from structured data
-4. **CSO reviews** and edits generated text
-5. **Turva exports** to PDF/Markdown with audit trail
-6. **CSO signs off** with name and registration number
+1. An authorised person selects an eligible connection/model for the current safety file and previews the intended input and destination.
+2. The service rechecks file and connection authority, captures the opened source version and invokes the provider within policy/resource limits.
+3. The result is displayed as untrusted AI assistance, separate from accepted CSO reasoning; source-document instructions and model tool suggestions cannot bypass authority or trigger privileged actions.
+4. The person reviews, edits or rejects it. Risk suggestions never set a risk level directly or stand in for the CSO's confirmation of valid severity/likelihood.
+5. An explicit whole-form/document save uses the opened version and the existing services. Accepted content and AI-review provenance are committed under the acting user's identity, not the model or a shared provider account. Record available provider/model identity/revision, source commit and review decision without credentials; make mutable/unknown model revisions visible. Retain stale drafts rather than refreshing the version and retrying the clinical save automatically.
 
-The LLM handles boilerplate; the CSO ensures clinical accuracy.
+An AI draft is not a safety case, an effectiveness finding, clinical sign-off or regulatory acceptance. A fine-tuned model or a second model judging the first does not remove independent human review.
 
-## What LLMs Enable That Wasn't Possible Before
+## Model recommendations
 
-### Intelligent Hazard Search
+Maintain an optional, versioned recommendation catalogue for specific tasks, not a fixed provider whitelist or a claim that a model is clinically approved. Record evaluation date, exact available model/version or alias uncertainty, fictional/public test material, results and limitations, supported capabilities/context, cost/latency, provider data terms, licence and local hardware requirements.
 
-**Before**: Manual keyword search through hazard logs.
+Allow policy-compliant custom choices beyond that catalogue. Re-evaluate changed/retired models and provider terms, and never silently substitute the current recommendation for the user's selected model. General generation, extraction assistance and critique need separate evaluations; fluency or benchmark scores alone do not establish safety-case quality.
 
-**With LLM**: "Show me hazards related to medication dosing errors in elderly patients" → Semantic search across all public projects.
+## Delivery and acceptance
 
-### Automated Evidence Synthesis
+Existing roadmap codes remain: R113 personal connections, R114 visible data flow, R115 provenance/human review, R116 external-client access and R117 separately scoped Turva-hosted inference. R155-R162 cover scoped settings, authentication/subscriptions, credential lifecycle, adapters, local inference, routing/policy, recommendations and conformance/safety acceptance.
 
-**Before**: CSO manually writes "Mitigation MIT-001 is effective because..."
+Before enabling a slice, test applicable combinations with fictional data and controlled provider stubs, not real customer documents or production credentials:
 
-**With LLM**: "Summarize evidence for MIT-001's effectiveness" → LLM pulls from test results, code reviews, and incident reports.
+- Personal versus organisation/unit/team/file scope, separate manage/use/evidence permissions, policy-constrained personal choices and revocation during a request.
+- Key replacement/removal, encryption/redaction, OAuth callback binding, expired/rotated refresh tokens and safe disconnection. Protect all settings mutations with the existing session/CSRF boundary.
+- Native/compatible/custom/local adapters, undiscovered models, denied destinations/redirects and unsupported capabilities.
+- Quotas, allowance expiry, timeouts, cancellation, partial output, uncertain retries and refusal to switch billing/destination silently.
+- Prompt/content injection, fabricated references, attempted direct risk-level writes, accepted-content provenance, failed Git writes and retained stale drafts.
+- Settings and review screens on phone/tablet/desktop, including keyboard, screen-reader and clear failure states.
 
-### Contextual Guidance
-
-**Before**: CSO reads DCB0129 PDF to understand requirements.
-
-**With LLM**: "What does DCB0129 require for residual risk acceptance?" → Conversational guidance in context.
-
-### Cross-Project Learning
-
-**Before**: Each organization starts from scratch.
-
-**With LLM**: "Find similar systems to mine and show their top hazards" → LLM identifies relevant public safety cases.
-
-## LLM Fine-Tuning Strategy
-
-### Training Data Sources
-
-1. **Public Turva projects**: Organizations can opt to contribute anonymized safety cases
-2. **Published safety cases**: Publicly available DCB0129/DCB0160 submissions
-3. **Synthetic data**: Generated examples covering edge cases
-4. **Domain expertise**: Clinical safety guidance documents, standards, textbooks
-
-### Fine-Tuning Objectives
-
-- **Hazard identification**: Given system description, suggest hazards
-- **Risk assessment**: Justify severity/likelihood scores
-- **Mitigation generation**: Suggest controls for given hazards
-- **Safety case narrative**: Generate readable prose from structured data
-- **Standards compliance**: Map requirements to evidence
-
-### Model Selection
-
-- **General capability**: Claude/GPT for broad reasoning
-- **Domain-specific**: Fine-tuned smaller model for clinical safety specifics
-- **Hybrid approach**: General LLM for generation, domain model for validation
-
-Choice depends on cost, latency, and accuracy trade-offs.
-
-## Privacy and Confidentiality
-
-### Private Projects
-
-LLM assistance for private projects must not leak data:
-
-- **Local inference**: Option to run LLM on-premises for sensitive projects
-- **No training on private data**: Private projects excluded from fine-tuning dataset
-- **Data isolation**: LLM queries scoped to project's own data plus public knowledge
-
-### Public Projects
-
-Organizations opting for public projects contribute to collective safety knowledge:
-
-- **Anonymization**: Remove organization names, patient details, commercial info
-- **Explicit consent**: Projects marked public are knowingly contributed
-- **Revocable**: Organizations can withdraw projects from training data
-
-## Success Metrics
-
-How do we know LLM integration is working?
-
-1. **Time to complete safety case**: Baseline (manual) vs LLM-assisted
-2. **Hazard identification coverage**: LLM-suggested hazards that CSO missed
-3. **Risk assessment consistency**: Variation in severity/likelihood scores across similar hazards
-4. **Adoption rate**: Percentage of CSOs using LLM features
-5. **Quality indicators**: Regulatory approval rates, audit findings, incident correlation
-
-## The Vision
-
-### Turva = Structured Safety + LLM Assistance
-
-A CSO working on a new patient portal:
-
-1. Describes the system in natural language
-2. LLM suggests 30 potential hazards based on similar public projects
-3. CSO selects 18 relevant hazards, adds 3 more from local context
-4. LLM drafts initial risk assessments based on historical data
-5. CSO reviews and adjusts severity/likelihood scores
-6. LLM suggests mitigations for high-risk hazards
-7. CSO implements controls, marks hazards as mitigated
-8. LLM generates safety case narrative from structured data
-9. CSO reviews, edits, and approves
-10. Turva exports compliance evidence for DCB0129 submission
-
-**Result**: A rigorous, auditable safety case completed in hours instead of weeks, with the CSO's clinical judgement central to every decision.
-
-## Open Questions
-
-1. **Liability**: If an LLM suggests a mitigation that fails, who is accountable? (Answer: The CSO who approved it. LLM is a tool, not a decision-maker.)
-2. **Regulatory acceptance**: Will NHS Digital accept LLM-assisted safety cases? (Answer: Yes, if audit trail shows human oversight and approval.)
-3. **Model bias**: How do we prevent LLMs from perpetuating historical hazard identification gaps? (Answer: Diverse training data, human review, continuous monitoring.)
-4. **Cost**: Running LLMs at scale is expensive. Can Turva be sustainable? (Answer: Freemium model - basic features free, advanced LLM assistance paid.)
-
----
-
-This document outlines how Turva integrates LLMs to accelerate clinical safety work without compromising rigour, accountability, or regulatory compliance. LLMs are assistants, not replacements, for Clinical Safety Officers.
+Update the relevant hazards and obtain the independent clinical/security review appropriate to the capability. Passing these tests is evidence of implementation behaviour, not closure of TH-002, TH-004, TH-005, TH-006 or TH-008 and not a claim of clinical or regulatory approval.

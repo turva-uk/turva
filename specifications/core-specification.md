@@ -172,6 +172,8 @@ This reduces duplication, improves quality, and accelerates safe deployment.
 
 ## AI and LLM Integration
 
+AI integration is planned, not implemented. [ADR 0007](adr/0007-user-and-organisation-supplied-inference.md) defines user- or organisation-supplied inference through scoped connections, including supported provider authentication and local models. [The AI strategy](llm-strategy.md) owns the settings, provider and safety requirements; the opportunities below are not a claim that a particular model or clinical capability is available.
+
 ### The LLM Opportunity
 
 Modern LLMs can draft clinical safety cases in minutes, potentially making traditional templating engines obsolete. Turva embraces this by:
