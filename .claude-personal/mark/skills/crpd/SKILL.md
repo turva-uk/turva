@@ -31,8 +31,9 @@ has nothing to say.
 ## The authorisation ends with the run
 
 **Everything this skill does - committing, branching, rebasing, pushing,
-opening a pull request - is authorised only while this skill is running.**
-The moment its report is written, that authorisation is spent.
+opening a pull request, writing its description - is authorised only while
+this skill is running.** The moment its report is written, that
+authorisation is spent.
 
 So after a run finishes:
 
@@ -46,11 +47,9 @@ The branch this skill made is not an open workspace. A later fix on it
 needs the user to run `/crpd` again, or to ask for a commit in their
 own words.
 
-**Confirming that a change works is not asking for it to be landed.**
-"That works", "great", "yes", "perfect" are verification. The right
-response to them is to stop, leave the tree dirty, and say plainly what
-is uncommitted. So is silence about git: a message that does not mention
-committing is not asking for one.
+**Confirming that a change works is not asking for it to be landed**, as
+`CLAUDE.md` already says: stop, leave the tree dirty, and say what is
+uncommitted.
 
 **This is how the rule gets broken, every time.** The user runs
 `/crpd`, the branch lands, work continues, they confirm the next fix -
@@ -100,7 +99,7 @@ These hold on every run.
 One optional argument:
 
 - **`draft`** - leave the pull request a draft. Omitted, the pull request
-  is taken out of draft once it is described. Neither merges anything.
+  is taken out of draft once the PR description is written. Neither merges anything.
 - **`ready`** is accepted and changes nothing, since ready is the default.
 
 So `/crpd` and `/crpd draft` are both valid. `draft` and `ready` together
@@ -156,7 +155,6 @@ The arguments supplied to this command are: `$ARGUMENTS`
      form in step 3.
 
    **Two ways a stack can look merged and not be.**
-
    - **A pull request GitHub closed without merging.** When the branch
      beneath it is deleted after a merge into another branch, GitHub
      closes the pull request above rather than moving it to `main`. Its
@@ -200,7 +198,6 @@ The arguments supplied to this command are: `$ARGUMENTS`
    `./s/lint` checks untracked files as well as tracked ones, so it sees
    the unit as it will be committed. `./s/test` runs its second suite in the
    `web` container, so the dev stack must be up.
-
    - **A gate fails on the unit's own files** - stop and report it. Fixing
      it is a code change nobody has reviewed, and by this point the unit is
      being landed rather than built. A formatter that rewrote a file has
@@ -245,7 +242,6 @@ The arguments supplied to this command are: `$ARGUMENTS`
    **Choose both the name and the message yourself**, from what actually
    changed - do not ask for them. This command is called unattended, and
    stopping to ask would defeat that.
-
    - **The name** describes the unit, not the session: `hazard-stale-save`,
      not `fixes` or `part-2`. Lower case, hyphenated, after a `feature/`
      prefix. Keep it short enough to read in a stack diagram. Name it for
@@ -322,7 +318,6 @@ The arguments supplied to this command are: `$ARGUMENTS`
    branch has then been created and checked out, but holds no commit.
 
    **Fix the cause, then finish the same unit. How depends on the form.**
-
    - **The first-unit form is safe to finish by hand.** The branch exists,
      is checked out and is in the stack, so `git add -A` and the same
      `git commit -m` complete it.
@@ -361,7 +356,6 @@ The arguments supplied to this command are: `$ARGUMENTS`
 
    This covers every kind of second-guessing, not only whether the work is
    one unit:
-
    - **What the work is.** A plan document, a scratch file, notes, a
      half-built feature - all of it is the unit. It is not your business
      whether the file looks like an input rather than an output, or
@@ -536,7 +530,6 @@ The arguments supplied to this command are: `$ARGUMENTS`
 
     First in the body, so the reader learns what the change is before
     being told how to review it.
-
     - **Two or three short sentences: what is true now that was not true
       before.** In terms of what someone using the thing would see. Never
       a paraphrase of the title, and never a sentence that only parses if
@@ -556,7 +549,6 @@ The arguments supplied to this command are: `$ARGUMENTS`
     wants is the strongest single predictor of a pull request merging
     (Pirouzkhah, Wurzel Gonçalves and Bacchelli, arXiv 2602.14611), and
     these lines are where that is said.
-
     - **`Size`** - `tiny`, `small`, `medium` or `large`, then what makes it
       so in a few words: the file count, a migration, a security boundary,
       safety evidence. A migration, a security or permission boundary, or
@@ -590,7 +582,6 @@ The arguments supplied to this command are: `$ARGUMENTS`
     Mahowald, arXiv 2610.29162). All four come from reaching for the
     shorter of two phrasings, so **never trade a plain sentence for a
     shorter one**.
-
     - **The subject is a person or a named thing in the code.** "Turva
       refuses the save", "`SafetyFileRepository.edit` raises
       `StaleVersionError`", "the owner clicks". Never an abstraction doing
@@ -631,7 +622,6 @@ The arguments supplied to this command are: `$ARGUMENTS`
     one or two plain sentences giving the reason or the consequence.** The
     reader skims the bold column and dips into the plain text only where
     they want to.
-
     - **The bold and the plain text never say the same thing.** A bold
       headline that the sentence then repeats is wasted, and so is a
       conclusion in bold with its premise left out.
@@ -660,7 +650,6 @@ The arguments supplied to this command are: `$ARGUMENTS`
     guess which thing is meant.
 
     **Each kind of thing has one way to be named:**
-
     - **A route**: its method and path,
       `PATCH /api/v1/safety-files/{slug}/hazards/{hazard_id}/`.
     - **A page or form**: its on-screen title and URL, or its component
@@ -715,7 +704,6 @@ The arguments supplied to this command are: `$ARGUMENTS`
     Avoid double negatives. Be concise." The sentence rules above already
     carry the short sentences, the bullets, the first-use explanation of a
     name and bold in place of italics. These are the rest.
-
     - **Active voice.** "Turva refuses the save", never "the save is
       refused". The subject names who does the verb, so the sentence says
       who did it.
@@ -739,7 +727,6 @@ The arguments supplied to this command are: `$ARGUMENTS`
     ### The sections
 
     Three sections, in this order.
-
     - **`## Decisions to check`** - the choices you made that a human might
       have made differently. A wrong one means the whole pull request needs
       a closer read, so it comes first. Each bullet takes one shape: what

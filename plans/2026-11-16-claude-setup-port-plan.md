@@ -32,15 +32,17 @@ This comes first because the plan rules govern this document and every plan that
 
 ## Phase 3: Write Turva's CLAUDE.md
 
-- [ ] Read `.claude-personal/mark/reference-CLAUDE.md` end to end and sort each section into three groups: how Mark works with Claude whatever the project (reply style, plan discipline, commit habits, British English, no em dashes), facts about the alternative codebase that have a Turva equivalent (commands, branch rules, where documents live), and facts that have none (its clinical record services, its alert watcher, the stack recipes, brands).
+- [x] Read `.claude-personal/mark/reference-CLAUDE.md` end to end and sort each section into three groups: how Mark works with Claude whatever the project (reply style, plan discipline, commit habits, British English, no em dashes), facts about the alternative codebase that have a Turva equivalent (commands, branch rules, where documents live), and facts that have none (its clinical record services, its alert watcher, the stack recipes, brands).
 
-- [ ] Write `.claude-personal/mark/CLAUDE.md` from the first two groups. It defers to `AGENTS.md` for the stack, the safety invariants, the `./s/` scripts and the approval rules, and does not restate them: two copies would drift, and `AGENTS.md` is the one Marcus and the overnight routine read. Where the alternative codebase's habit and `AGENTS.md` disagree, `AGENTS.md` wins and the difference is recorded under Decisions below.
+- [x] Write `.claude-personal/mark/CLAUDE.md` from the first two groups. It defers to `AGENTS.md` for the stack, the safety invariants, the `./s/` scripts and the approval rules, and does not restate them: two copies would drift, and `AGENTS.md` is the one Marcus and the overnight routine read. Where the alternative codebase's habit and `AGENTS.md` disagree, `AGENTS.md` wins and the difference is recorded under Decisions below. Written at about 190 lines against the reference's 1,028. It imports `AGENTS.md` with `@AGENTS.md` and says that file wins unless this one is stricter. It keeps: change code only on `implement` or `i`; one sentence before working; a closing `## TL;DR`, with `## Conclusion` for finished work; dyslexia-friendly British English with no em or en dashes; the Git rules; the test rules; spacing functions as paragraphs, typing, validating at the edges and explicit authorisation; using `./s/` and `just`; and keeping `.private/` out of commits. One rule was loosened from the original for a while: a direct request such as "remove 1 to 4" also counted as the instruction to change code. That was taken out again on 16 November 2026, so only the bare word, `/crpd` or `/f` counts, as in the original.
 
-- [ ] Settle the Git workflow wording. The alternative codebase requires `feature/*` branches, stacked pull requests and a merge queue. `AGENTS.md` currently allows direct commits to `main` and says to move to branches and pull requests when more contributors join. With two people now committing, that condition may already be met, which is a question for Marcus, not something to assume in this file.
+- [ ] Settle the Git workflow wording. The alternative codebase requires `feature/*` branches, stacked pull requests and a merge queue. `AGENTS.md` currently allows direct commits to `main` and says to move to branches and pull requests when more contributors join. With two people now committing, that condition may already be met, which is a question for Marcus, not something to assume in this file. For now `.claude-personal/mark/CLAUDE.md` is stricter than `AGENTS.md` for Claude working with Mark only: commit only when asked, never merge, every unit on a `feature/*` branch stacked with `gh stack`, one commit per branch, and no AI attribution except in overnight runs. `AGENTS.md` itself is unchanged until Marcus agrees.
 
-- [ ] Add `CLAUDE.md` to the `link-claude` recipe, linking `.claude/CLAUDE.md` to `.claude-personal/mark/CLAUDE.md`, and run it. Only do this once the Turva version is written, so the copied version is never live in this repository.
+- [x] Add `CLAUDE.md` to the `link-claude` recipe, linking `.claude/CLAUDE.md` to `.claude-personal/mark/CLAUDE.md`, and run it. Only do this once the Turva version is written, so the copied version is never live in this repository. Done: the recipe links it as a single file and refuses to replace a real `.claude/CLAUDE.md`.
 
 - [ ] Delete `.claude-personal/mark/reference-CLAUDE.md` once nothing more is being taken from it. It remains in the alternative codebase.
+
+- [ ] Update the `crpd` skill once GitHub rulesets protect `main`. Its "Never" list says every unit of work goes through a pull request "even though GitHub does not enforce it yet", which stops being true when the rulesets land. Drop that clause, and check `AGENTS.md` and `.claude-personal/mark/CLAUDE.md` for the same assumption.
 
 ## Phase 4: Sort and rewrite the rules
 
@@ -52,11 +54,11 @@ Each rule is scoped by `paths:`, so a rule whose paths do not exist in Turva nev
 
 - [x] Delete `ci.md`. It described a merge queue, the Terraform that configures it and a draft-first pull request lifecycle, none of which Turva has. Its one general point, never to rebase a branch that has already merged, comes back with the stack recipes if it is wanted.
 
-- [ ] Rewrite `workflows.md` against Turva's three workflows and `s/lint`. Turva's own rules, such as pinning Actions to full commit SHAs, are already in `AGENTS.md` and should be referred to, not copied.
+- [x] Rewrite `workflows.md` against Turva's three workflows and `s/lint`. Turva's own rules, such as pinning Actions to full commit SHAs, are already in `AGENTS.md` and should be referred to, not copied. Cut to the four points that are true of Turva today, scoped to `.github/workflows/**`: no `${{ }}` inside `run:`, write permissions per job, pinning to commit SHAs (referring to `AGENTS.md`), and the zizmor audit in `./s/lint` and `workflow-security.yml`.
 
-- [ ] Change `just.md` to match `justfile`. Its path is `Justfile` with a capital, so it does not load here. Turva's recipes are thin wrappers over `s/`, which the rule should say.
+- [x] Change `just.md` to match `justfile`. Its path is `Justfile` with a capital, so it does not load here. Turva's recipes are thin wrappers over `s/`, which the rule should say. The path is now `justfile`, and the only example is a real one, `just sd b`. It says that thin wrappers over `s/` and recipes with logic of their own are both fine, and neither is converted into the other. It keeps the rule that recipes are in alphabetical order, though the `justfile` has not been reordered to match yet.
 
-- [ ] Keep `home-details.md` with the wording about the alternative codebase removed. It has no paths, so it always loads, and it applies as it stands: Turva is public too.
+- [x] Keep `home-details.md` with the wording about the alternative codebase removed. It has no paths, so it always loads, and it applies as it stands: Turva is public too. Rewritten so anyone can use it: any private network or VPN, placeholders such as `<the server's LAN address>` and `<the computer's VPN name>`, and "the dev box" as the example of a generic machine name.
 
 - [x] Delete `e2e.md` and `incidents.md`. Turva has no `frontend/e2e/` and no incidents folder, so neither rule could ever load.
 
@@ -64,19 +66,25 @@ Each rule is scoped by `paths:`, so a rule whose paths do not exist in Turva nev
 
 There were 21, and 12 are left after the deletions below. Those marked `disable-model-invocation` are only run when Mark types them, which is why Claude lists fewer than are in the folder.
 
-- [ ] Adapt the small general ones first, since they need little or nothing: `e`, `s`, `tldr`, `read-project-instructions`, `in-code-documentation`, `strong-static-typing-defensive-programming`, `fix-vs-code-problems`.
+- [ ] Adapt the small general ones first, since they need little or nothing: `e`, `s`, `tldr`, `read-project-instructions`, `in-code-documentation`, `strong-static-typing-defensive-programming`, `fix-vs-code-problems`. `e`, `s` and `in-code-documentation` are done and committed; `in-code-documentation` covers `safety_file/`, `app/` and `frontend/src/`, and notes that `safety_file` docstrings are published to the docs site in Google style. The other four folders, and `update-docs-docs` and `update-nav`, are empty on disk. Confirm whether they were meant to be deleted, and remove the folders or restore the skills.
 
 - [x] Delete `nst-crp` and `nst-crpf`, the commit skills for a branch that is not stacked. Turva work lands as stacked branches through `crpd`, so they had no use here.
 
 - [x] Rewrite `crpd` for Turva. It now drives `gh stack` directly (`gh stack add`, `rebase`, `submit` and `view --json`) instead of the `just stack-*` recipes, which Turva does not have. It runs the gates `AGENTS.md` names before every commit, `./s/lint` and `./s/test`, plus `./s/frontend` for frontend work, instead of a targeted subset. The repository arguments, the merge queue, the readability scoring script and the alternative codebase's examples are gone; the examples now use Turva's hazard saving.
 
-- [ ] Decide whether to port the stack recipes and their helper scripts after all. They add checks `gh stack` lacks: refusing to stack on a merged branch, a per-branch diff, and a repair when GitHub's record of the stack drifts. `crpd` does the first two by hand for now.
+- [x] Port the stack recipes `f` needs, and their helper scripts. They add checks `gh stack` lacks: refusing to stack on a merged branch, a per-branch diff, and a repair when GitHub's record of the stack drifts. The recipes are at the end of `justfile`, as `stack-*`, with `stack-checkout`, `stack-refresh` and `stack-relink` as well because the others' messages point to them. Three scripts sat in `just/stack/` at first, and now sit in `s/stack/` (see the next step). The other codebase's tab titles, Python version guard, multi-repository switch and two-tier CI marks are gone, since Turva has none of them. `stack-add`, `stack-ready` and `stack-watch` were not ported, as `f` does not use them, and nor was `stack-branch-merged.sh`, which only `stack-add` called. `crpd` still drives `gh stack` directly. `f`'s permission to run `python3 scripts/stack-status.py` now names the new path. Lint passes on `justfile` and the three scripts.
+
+- [x] Move the three stack scripts from `just/stack/` to `s/stack/`, following the decision below that Mark's scripts go in subfolders of `s/`. The `stack_scripts` variable in `justfile`, its comments and `f`'s permission now name `s/stack/`. The `just/` folder is gone.
+
+- [ ] Test the stack recipes that change things. The read-only ones were run against the stack holding #68 and #69 and drew it correctly: `stack-help`, `stack-log`, `stack-log-long`, `stack-files` and `stack-move 2`, as were the scripts' `--check`, `--left-behind` and `--rebuild-order` and `stack-relink.py --check`. `stack-new`, `stack-update`, `stack-rebase`, `stack-submit`, `stack-sync`, `stack-fresh`, `stack-refresh` and `stack-relink` were not run, because each rewrites or pushes branches and the only stack was those two open pull requests. Try them on a throwaway stack, or on the next real one, before `f` relies on them.
+
+- [ ] Decide whether to strip the code in `s/stack/stack-status.py` that only served `stack-watch`: the `--expand`, `--diff-at` and `--numbered` options and the comments about the watch. It was left in because it is threaded through the drawing code and does no harm, but its comments describe a recipe Turva does not have. Either remove it, or port `stack-watch` and its two scripts.
 
 - [ ] Decide whether to port the readability scoring script that `crpd` used to score each pull request description before posting it.
 
 - [x] Delete `nst-follow-the-plan-document`, which follows a plan without stacking.
 
-- [ ] Rewrite `f`, which follows a plan as a stack of branches, one per reviewable unit. Point it at `plans/`, and remove its references to the deleted skills.
+- [x] Rewrite `f`, which follows a plan as a stack of branches, one per reviewable unit. Point it at `plans/`, and remove its references to the deleted skills. The `just stack-*` recipes it calls now exist. The rest of the alternative codebase in it is gone too. Plans are found under `plans/`. The bottom unit must be safe on `main` rather than safe to deploy to a teaching site. The migration-chain checker and the API-diff gate, which Turva lacks, are replaced by making each Django migration with `./s/manage makemigrations` in the unit that needs it. The `xfail` example from its backend is now a general description. Permission to run `git push` is replaced by `./s/lint`, `./s/test`, `./s/frontend` and `./s/up`, with a rule that only `/crpd` pushes. Writes to an existing safety file's Git history, and changes to who can edit a safety file, are added to what stops a run. It passes lint.
 
 - [x] Delete `run-all-tests`. It called `scripts/run-ci-checks.sh`, which Turva does not have, and `./s/lint`, `./s/test` and `./s/frontend` already are that gate.
 
@@ -90,15 +98,15 @@ There were 21, and 12 are left after the deletions below. Those marked `disable-
 
 - [x] Delete `play-finished-sound`. It ran `scripts/notification.sh`, which Turva does not have. If that script is ported in Phase 6, the hooks call it and no skill is needed.
 
-- [ ] Leave `f`, `g` and `p` out of the first commit of `.claude-personal/mark/`. `f` still runs on the alternative codebase's stack recipes and paths, so it does not work in Turva yet, and `g` and `p` exist to feed it: `p` writes plans for `f` to build and `g` settles them before `f` runs. Commit the three together once `f` is rewritten.
+- [x] Leave `f`, `g` and `p` out of the first commit of `.claude-personal/mark/`. `f` still runs on the alternative codebase's stack recipes and paths, so it does not work in Turva yet, and `g` and `p` exist to feed it: `p` writes plans for `f` to build and `g` settles them before `f` runs. Commit the three together once `f` is rewritten. Done: they are committed with `CLAUDE.md` and the stack recipes, in the branch above #69.
 
 ## Phase 6: Hooks and settings
 
 These stay in the ignored `.claude/` for now. They run commands, so they are the part most able to surprise somebody else.
 
-- [ ] Port `scripts/notification.sh` and its sound file from the alternative codebase, or remove the three hooks in `.claude/settings.json` that call it. Until one of those is done, every finished turn reports a hook error, because Turva has no `scripts/` folder. If it is ported, it goes in `.claude/hooks/` with the other hook scripts, not in `s/`, which holds the shared project scripts.
+- [ ] Port `scripts/notification.sh` and its sound file from the alternative codebase, or remove the three hooks in `.claude/settings.json` that call it. Until one of those is done, every finished turn reports a hook error, because Turva has no `scripts/` folder. If it is ported, it goes in `s/notification/`, following the decision below on where Mark's scripts live, so it is tracked; `.claude/hooks/` is git-ignored. The three hooks in the local `.claude/settings.json` are then pointed at it.
 
-- [ ] Trim the `permissions.allow` list in `.claude/settings.json` to commands Turva has. `poetry run`, the `just stack-*` recipes, `just ub`, `just uf` and `scripts/slack-reply.sh` go. `./s/lint`, `./s/test` and `./s/frontend` are candidates to add. The `deny` on merging pull requests stays: it matches `AGENTS.md`.
+- [ ] Trim the `permissions.allow` list in `.claude/settings.json` to commands Turva has. `poetry run`, `just ub`, `just uf` and `scripts/slack-reply.sh` go. The `just stack-*` entries stay, since Turva now has those recipes. `./s/lint`, `./s/test` and `./s/frontend` are candidates to add. The `deny` on merging pull requests stays: it matches `AGENTS.md`.
 
 - [ ] Remove the two hooks that serve the alternative codebase's unattended alert bot, and their tests. They do nothing unless that bot's tmux session sets a variable, and the bot is not being ported.
 
@@ -110,7 +118,9 @@ These stay in the ignored `.claude/` for now. They run commands, so they are the
 
 - [ ] Get `./s/lint` passing on `.claude-personal/mark/`. As copied, cspell reports 185 unknown words and markdownlint 34 findings. Most of the spelling findings are names from the alternative codebase that the earlier phases remove; what is left is fixed in the files or added to `cspell.config.json`. `AGENTS.md` says not to commit red, and `s/lint` checks untracked files as well as tracked ones.
 
-- [ ] Commit `.claude-personal/mark/`, the `link-claude` recipe and this plan.
+- [x] Commit `.claude-personal/mark/`, the `link-claude` recipe and this plan. Done in #69, stacked on #68, which adds the `claude-session` and `tmux-window` recipes. Both await review. `f`, `g` and `p` were left out, as Phase 5 says. So were `.claude-personal/mark/CLAUDE.md` and the stack recipes and scripts, which came after.
+
+- [x] Commit `.claude-personal/mark/CLAUDE.md`, the stack recipes and their scripts, and the `f`, `g` and `p` skills as the next branch in the stack, above #69.
 
 - [x] Keep the personal files in `.claude-personal/mark/`, one folder per person, and make `link-claude` take a name: `just lc mark` links `.claude-personal/mark/` into `.claude/`, and anyone else can keep their own set in `.claude-personal/<name>/` and link it the same way. The name must be lower-case letters, so it can only reach a folder directly inside `.claude-personal/`, and the recipe checks every part exists before linking any of them. The `.gitignore` rule for the local reference copy covers `/.claude-personal/*/reference-CLAUDE.md`. The folder was first called `.claude-mark/`; it moved on 17 November 2026.
 
@@ -128,6 +138,6 @@ These stay in the ignored `.claude/` for now. They run commands, so they are the
 
 - **This plan covers the Claude setup only** - what else to bring across from the alternative codebase is for later plans, written once this setup is in place to write them with.
 
-- **Each ported script's home is decided when it is ported** - there is no blanket rule. A hook, or a script a hook calls, goes with the other Claude files in `.claude/hooks/`. A project tool everyone would use, for building, testing, linting or running Turva, belongs in `s/`, and adding one there is agreed with Marcus first. Mark's own tooling lives in `justfile`, in the recipe or in a script it calls. Later plans that port scripts name each one's home in its step.
+- **Mark's scripts live in subfolders of `s/`, one per topic** - `s/stack/`, `s/notification/` and so on, including scripts a Claude hook calls. Decided by Mark on 16 November 2026, for now, replacing two earlier choices: `just/<topic>/` for scripts that recipes call, and `.claude/hooks/` for hook scripts, which is git-ignored and so would never have been tracked. The top level of `s/` stays a flat set of commands that anyone runs, such as `./s/up` and `./s/test`, and a new one there is agreed with Marcus first. Subfolders keep the two apart without a second scripts folder at the root. Mark's recipes stay in `justfile` and call the scripts by path.
 
-<!-- cspell:words crpd crpf -->
+<!-- cspell:words crpd crpf oasdiff xfail -->

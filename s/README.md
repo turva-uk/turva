@@ -138,3 +138,9 @@ The build goes through the production storage layer and imports no framework, so
 The account is the demo's Clinical Safety Officer, `a.patel@riverbank.example.nhs.uk`, with the same name its commits are attributed to. Its password comes from `TURVA_DEMO_PASSWORD`, defaulting to `turva-demo-local`, and the command prints whichever it used. It is not a staff account unless you pass `--staff`: the admin is the only place a professional registration can be marked as verified, and a known-password account should not reach that without being asked for.
 
 The seeding step refuses to run with `DEBUG` off. It creates an account whose password is written down here and gives it ownership of a safety file, which is right for a laptop and wrong everywhere else.
+
+## Helper scripts in subfolders
+
+The scripts at the top level of `s/` are commands to type. The subfolders hold helper scripts that something else runs, one folder per topic, so they stay out of the way of the commands:
+
+- **`s/stack/`** - the helpers behind the `just stack-*` recipes for stacked pull requests. Run `just stack-help` to list the recipes.
