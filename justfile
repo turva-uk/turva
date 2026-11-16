@@ -117,3 +117,115 @@ abbreviate-just:
     fi
 
     echo "Run 'source ~/.zshrc' to apply the change to this terminal."
+
+
+alias cl := claude-session
+# Go to the turva Claude session in tmux, starting it or Claude again if needed (dev box)
+claude-session:
+    #!/usr/bin/env bash
+    # Take this terminal to the turva Claude session on the dev box, with
+    # Claude running in it, whatever state either is in. This:
+    #
+    #   - starts the session, with Claude in it, when there is none;
+    #   - starts Claude again in it when Claude has exited and left the shell;
+    #   - attaches from outside tmux, or switches from another session.
+    #
+    # Claude started here gets --ide, which links it to the VS Code window
+    # open on the dev box; a Claude already running cannot be linked from
+    # outside, so type /ide in it instead.
+
+    set -euo pipefail
+
+    if ! command -v tmux > /dev/null; then
+        echo "✗ tmux is not installed. This is for the dev box." >&2
+        exit 1
+    fi
+
+    top={{quote(justfile_directory())}}
+    name="turva"
+    start_claude="claude --continue --ide --remote-control ${name} || claude --ide --remote-control ${name}"
+
+    if ! tmux has-session -t "=${name}" 2> /dev/null; then
+        tmux new-session -d -s "${name}" -c "${top}" "bash -lc '${start_claude}; exec bash'"
+        echo "Started ${name} in ${top}"
+    else
+        pane_id="$(tmux display-message -p -t "=${name}:" "#{pane_id}")"
+        pane_pid="$(tmux display-message -p -t "=${name}:" "#{pane_pid}")"
+
+        # The pane is its process session's leader, so its pid is the session id.
+        if ! pgrep -x -s "${pane_pid}" claude > /dev/null; then
+
+            # This terminal is the pane, so start Claude here.
+            if [ "${TMUX_PANE:-}" = "${pane_id}" ]; then
+                cd "${top}"
+                bash -c "${start_claude}"
+                exit 0
+            fi
+
+            tmux send-keys -t "${pane_id}" "${start_claude}" Enter
+            echo "Started Claude again in ${name}"
+        fi
+    fi
+
+    if [ -n "${TMUX:-}" ]; then
+        if [ "$(tmux display-message -p "#{session_name}")" = "${name}" ]; then
+            exit 0
+        fi
+
+        exec tmux switch-client -t "=${name}"
+    fi
+
+    exec tmux attach -t "=${name}"
+
+
+alias tw := tmux-window
+# Go to a plain shell in tmux for this repo, starting it if needed; `just tw 2` for a second
+tmux-window NUMBER="":
+    #!/usr/bin/env bash
+    # Take this terminal to a plain shell in tmux for this repo, so a command
+    # run there outlives the terminal that started it.
+    #
+    # The session is t-turva, beside turva, which holds Claude. A number gives
+    # another one: `just tw 2` is t-turva-2, and `just tw 2` again comes back
+    # to it. This starts the session, with a login shell in the repo, when
+    # there is none, then attaches from outside tmux or switches from another
+    # session.
+
+    set -euo pipefail
+
+    number={{quote(NUMBER)}}
+
+    case "${number}" in
+        "" | [2-9] | [1-9][0-9]) ;;
+        *)
+            echo "✗ The number names another shell beside the first, so it runs from 2 to 99: just tw 2" >&2
+            exit 1
+            ;;
+    esac
+
+    if ! command -v tmux > /dev/null; then
+        echo "✗ tmux is not installed. This is for the dev box." >&2
+        exit 1
+    fi
+
+    top={{quote(justfile_directory())}}
+    name="t-turva"
+
+    if [ -n "${number}" ]; then
+        name="${name}-${number}"
+    fi
+
+    if ! tmux has-session -t "=${name}" 2> /dev/null; then
+        tmux new-session -d -s "${name}" -c "${top}" "bash -l"
+        echo "Started ${name} in ${top}"
+    fi
+
+    if [ -n "${TMUX:-}" ]; then
+        if [ "$(tmux display-message -p "#{session_name}")" = "${name}" ]; then
+            exit 0
+        fi
+
+        exec tmux switch-client -t "=${name}"
+    fi
+
+    exec tmux attach -t "=${name}"
