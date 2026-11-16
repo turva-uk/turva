@@ -263,13 +263,14 @@ tmux-window NUMBER="":
 
 
 alias lc := link-claude
-# Link one person's .claude-personal/<name>/ into .claude/ so their skills and rules load: `just lc mark`
+# Link one person's .claude-personal/<name>/ into .claude/ so their skills, rules and CLAUDE.md load: `just lc mark`
 link-claude NAME:
     #!/usr/bin/env bash
     # .claude-personal/ holds each person's own Claude Code set-up, in a
-    # folder named after them: rules/ and skills/, as plain tracked files.
-    # Claude Code only loads them from .claude/, which is git-ignored, so
-    # they do nothing for anyone else until this links them in.
+    # folder named after them: CLAUDE.md, rules/ and skills/, as plain
+    # tracked files. Claude Code only loads them from .claude/, which is
+    # git-ignored, so they do nothing for anyone else until this links them
+    # in.
     #
     # Run it once in each clone or worktree. Running it again changes
     # nothing. Running it with another name switches to that person's set.
@@ -289,12 +290,12 @@ link-claude NAME:
     source=".claude-personal/${name}"
 
     if [ ! -d "${source}" ]; then
-        echo "✗ ${source} is missing. Create it with rules/ and skills/ inside, then run this again." >&2
+        echo "✗ ${source} is missing. Create it with CLAUDE.md, rules/ and skills/ inside, then run this again." >&2
         exit 1
     fi
 
     # Check everything first, so a missing part links nothing at all.
-    for item in skills rules; do
+    for item in skills rules CLAUDE.md; do
         if [ ! -e "${source}/${item}" ]; then
             echo "✗ ${source}/${item} is missing, so there is nothing to link." >&2
             exit 1
@@ -308,10 +309,797 @@ link-claude NAME:
 
     mkdir -p .claude
 
-    for item in skills rules; do
+    # The two folders and the file are linked the same way. Claude Code
+    # loads .claude/CLAUDE.md alongside the root CLAUDE.md.
+    for item in skills rules CLAUDE.md; do
         link=".claude/${item}"
         target="../${source}/${item}"
 
         ln -sfn "${target}" "${link}"
         echo "${link} -> ${target}"
     done
+
+
+# Stacked pull requests
+#
+# Recipes over the `gh stack` extension, for building a piece of work as a
+# chain of small branches, each with its own pull request. The `/f` skill
+# drives them, and they work just as well by hand: `just stack-help` lists
+# them. Their helper scripts live in s/stack/, by full path, so a recipe
+# that has changed directory can still find them.
+stack_scripts := justfile_directory() / "s" / "stack"
+
+
+# Prefix a bare name with feature/, leaving an already-prefixed one alone.
+#
+# Every unit of work goes on a feature/* branch, so a stack branch named
+# without the prefix is given one here rather than unpicked by hand later.
+_stack-branch-name name:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    case "{{name}}" in
+        feature/*|hotfix/*|renovate/*) echo "{{name}}" ;;
+        *) echo "feature/{{name}}" ;;
+    esac
+
+
+# Refuse a stack operation when a stack branch lives in another worktree.
+#
+# gh-stack keeps one record for every worktree, in the shared .git/gh-stack.
+# But a branch can be checked out in only one worktree at a time, so a stack
+# is worked on from one worktree, and its branches must not be checked out
+# in any other.
+#
+# The guard matters because `gh stack rebase` does not enforce that itself.
+# Given a branch checked out elsewhere it prints the git error, skips the
+# branch, and still exits 0 (github/gh-stack#35). Anything chaining
+# `rebase && submit` would then push a stack it believed was rebased and
+# was not.
+_stack-guard:
+    #!/usr/bin/env bash
+    set -uo pipefail
+    python3 "{{stack_scripts}}"/stack-status.py --check
+    status=$?
+
+    # 1 is "no stack here". The script has already named the recipes and
+    # the skill that start or check out one, so stopping here keeps that
+    # the last thing on the screen.
+    if [ "${status}" -eq 1 ]; then
+        exit 1
+    fi
+
+    if [ "${status}" -eq 2 ]; then
+        echo "✗ Refusing to run: this stack spans more than one worktree." >&2
+        echo "  Free the branches above, or run this from the worktree" >&2
+        echo "  that owns the stack." >&2
+        exit 1
+    fi
+
+
+alias stc := stack-checkout
+# Check out a stack by number, PR number, PR URL or branch (picker if empty)
+stack-checkout target="":
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    # The recovery path when a stack is missing from the local record in
+    # .git/gh-stack. This fetches the stack back from GitHub, which works
+    # once two or more pull requests exist. With no argument it opens a
+    # picker of every stack.
+    gh stack checkout {{target}}
+    python3 "{{stack_scripts}}"/stack-status.py
+
+
+alias stf := stack-files
+# List what each branch in the stack changes, against its own parent
+stack-files patch="":
+    #!/usr/bin/env bash
+
+    # Against its own parent, not the trunk: a branch three layers up
+    # diffed against main replays every change below it, which is the
+    # wall of diff that stacking exists to avoid. Pass 'p' for the full
+    # patch rather than the per-file summary.
+    if [ "{{patch}}" = "p" ]; then
+        python3 "{{stack_scripts}}"/stack-status.py --files --patch || true
+    else
+        python3 "{{stack_scripts}}"/stack-status.py --files || true
+    fi
+
+
+alias stfr := stack-fresh
+# Move this checkout to current main, carrying uncommitted work, ready for stack-new
+stack-fresh:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    # For the moment after a stack has merged: the branch checked out is
+    # spent, the trunk has moved, and the working tree holds the next unit.
+    # `just stack-sync` then `git switch main` does not survive the ordinary
+    # case: the sync will not rebase with uncommitted changes in the tree,
+    # `main` may be checked out in another worktree, and a plain switch
+    # refuses whenever the trunk has changed a file that is also changed
+    # locally.
+    #
+    # So: detach at the trunk's tip rather than switch to the branch, which
+    # another worktree may hold, and carry the work with a three-way merge.
+    # `--merge` keeps every local change and combines it with what the
+    # trunk changed in the same file. If the two cannot be combined git
+    # leaves conflict markers, nothing is lost, and this stops and says
+    # which files.
+    trunk="$(git symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null | sed 's|^origin/||' || true)"
+    trunk="${trunk:-main}"
+    git fetch origin "${trunk}" --quiet
+
+    if ! git switch --detach --merge "origin/${trunk}" >/dev/null; then
+        echo "✗ Could not move this checkout to origin/${trunk}." >&2
+        exit 1
+    fi
+
+    conflicted="$(git diff --name-only --diff-filter=U)"
+
+    if [ -n "${conflicted}" ]; then
+        echo "✗ The uncommitted work overlaps what has merged, in:" >&2
+        echo "${conflicted}" | sed 's/^/    /' >&2
+        echo "  Each file holds both versions between conflict markers." >&2
+        echo "  Settle them by hand, then run: just stack-new <name> \"<message>\"" >&2
+        exit 1
+    fi
+
+    # The spent stack's record still names its merged branches, and a new
+    # stack started beside it would be drawn underneath them.
+    python3 "{{stack_scripts}}"/stack-forget-merged.py >/dev/null 2>&1 || true
+    echo "  On origin/${trunk} ($(git rev-parse --short HEAD)), with the uncommitted work carried across."
+    echo "  Next: just stack-new <name> \"<message>\""
+
+
+alias sth := stack-help
+# List the stack commands, one per line, with their arguments
+stack-help:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    # Read back out of `just --list` rather than written out here, so the
+    # list cannot go stale when a recipe gains an argument. `--list` prints
+    # "  name args   # description [alias: x]"; only the part before the
+    # comment, and the alias, are wanted.
+    #
+    # Coloured only when stdout is a terminal, so piping or capturing the
+    # output does not pick up escape sequences.
+    if [ -t 1 ]; then
+        recipe_colour=$'\033[38;2;206;166;87m'
+        argument_colour=$'\033[38;2;159;206;253m'
+        reset=$'\033[0m'
+    else
+        recipe_colour=""
+        argument_colour=""
+        reset=""
+    fi
+
+    # Collected into arrays first, because the alias column is aligned on
+    # the widest signature, which is not known until every line is read.
+    signatures=()
+    aliases=()
+    widest=0
+
+    while IFS= read -r line; do
+        alias_name=""
+        case "${line}" in
+            *"[alias: "*)
+                alias_name="${line##*\[alias: }"
+                alias_name="${alias_name%%]*}"
+                ;;
+        esac
+        signature="${line%%#*}"
+        signature="${signature%"${signature##*[![:space:]]}"}"
+
+        signatures+=("${signature}")
+        aliases+=("${alias_name}")
+        [ "${#signature}" -gt "${widest}" ] && widest="${#signature}"
+    done < <(
+        just --list 2>/dev/null \
+            | grep -E '^\s+stack(-[a-z-]+)?( |$)' \
+            | sed -E 's/^[[:space:]]+//'
+    )
+
+    echo ""
+    echo "  Prefix any of these with 'just' to run it:"
+    echo ""
+
+    for index in "${!signatures[@]}"; do
+        signature="${signatures[${index}]}"
+        alias_name="${aliases[${index}]}"
+        name="${signature%% *}"
+        arguments="${signature#"${name}"}"
+        arguments="${arguments# }"
+
+        if [ -n "${arguments}" ]; then
+            rendered="${recipe_colour}${name}${reset} ${argument_colour}${arguments}${reset}"
+        else
+            rendered="${recipe_colour}${name}${reset}"
+        fi
+
+        # Padded on the signature's own length, never on `rendered`, whose
+        # escape sequences take width in the string and none on the screen.
+        padding=$((widest - ${#signature}))
+        if [ -n "${alias_name}" ]; then
+            printf '  %s%*s   %s%s%s\n' \
+                "${rendered}" "${padding}" "" \
+                "${recipe_colour}" "${alias_name}" "${reset}"
+        else
+            printf '  %s\n' "${rendered}"
+        fi
+    done
+
+    echo ""
+
+
+alias stl := stack-log
+# Show the current stack (fast, local only - no network)
+stack-log:
+    #!/usr/bin/env bash
+
+    # Local flags only: branch order, merged, needs-rebase, and which
+    # branches another worktree holds. Instant and works offline.
+    # `just stll` is the same picture with pull request and CI state.
+    #
+    # Exit 1 means "no stack here", which the script has already explained.
+    # Passing it through would make just print "Recipe failed", dressing an
+    # ordinary answer up as a fault.
+    python3 "{{stack_scripts}}"/stack-status.py || true
+
+
+alias stll := stack-log-long
+# Show the current stack with pull request and CI state (one network call)
+stack-log-long:
+    #!/usr/bin/env bash
+
+    # One `gh pr list` for the whole stack rather than one call per branch,
+    # so a six-deep stack is one round trip. This is the view that answers
+    # "is this one green yet" without opening a browser.
+    python3 "{{stack_scripts}}"/stack-status.py --prs || true
+
+
+alias stm := stack-move
+# Move about the stack: up, down, top, bottom, trunk, or a picker if empty
+stack-move direction="":
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    # `gh stack switch` with no argument opens an interactive picker; the
+    # named directions are the cheap ones. Redrawing afterwards is what
+    # makes the move legible.
+    case "{{direction}}" in
+        "")               gh stack switch ;;
+        up|u)             gh stack up ;;
+        down|d)           gh stack down ;;
+        top|t)            gh stack top ;;
+        bottom|b)         gh stack bottom ;;
+        trunk|main)       gh stack trunk ;;
+        [1-9]|[1-9][0-9])
+
+            # A branch by its number, 1 at the bottom. The script owns the
+            # numbering so that the number and the branch it reaches cannot
+            # drift apart.
+            if ! target="$(python3 "{{stack_scripts}}"/stack-status.py --branch-at "{{direction}}")"; then
+                echo "✗ No open branch numbered {{direction}} in this stack." >&2
+                exit 1
+            fi
+            git switch "${target}"
+            ;;
+        *)
+            echo "✗ Unknown direction: {{direction}}" >&2
+            echo "  Use: up, down, top, bottom, trunk, a branch number - or none for a picker." >&2
+            exit 1
+            ;;
+    esac
+
+    python3 "{{stack_scripts}}"/stack-status.py
+
+
+alias stn := stack-new
+# Start a new stack: create the bottom branch, commit everything, draw it
+stack-new name message:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    branch="$(just _stack-branch-name '{{name}}')"
+
+    # init adopts the branch it creates as the bottom of a new stack, based
+    # on the default branch. No guard here: there is no stack to span a
+    # worktree yet, and this is the command that creates one.
+    #
+    # Safe to re-run. A pre-commit hook that stops the commit below leaves
+    # the branch created and the stack initialised, so a second run picks
+    # up from the commit rather than failing on `git switch -c`.
+    if git show-ref --verify --quiet "refs/heads/${branch}"; then
+        if [ "$(git branch --show-current)" != "${branch}" ]; then
+            git switch "${branch}"
+        fi
+
+        # A run stopped after `git switch -c` and before `gh stack init`
+        # leaves the branch made but in no stack, and a re-run that skipped
+        # init would commit onto it unregistered: stack-submit then pushes
+        # nothing. Finish the init, but only for a branch with no commits
+        # of its own. Exit 1 from --check means no stack here.
+        in_stack=0
+        python3 "{{stack_scripts}}"/stack-status.py --check >/dev/null 2>&1 || in_stack=$?
+
+        if [ "${in_stack}" -eq 1 ]; then
+            git fetch origin main --quiet || true
+
+            if [ "$(git rev-list --count origin/main..HEAD)" -ne 0 ]; then
+                echo "✗ ${branch} already has commits of its own and is in no stack." >&2
+                echo "  Start the stack from a new name, or ask what the branch holds." >&2
+                exit 1
+            fi
+
+            gh stack init "${branch}"
+        fi
+    else
+
+        # A new stack is cut from wherever the checkout is, so it has to be
+        # at the trunk's tip. Cut from a branch that has merged, the new
+        # branch sits behind the trunk and its pull request carries the old
+        # stack's merge commits, and nothing warns of it.
+        git fetch origin main --quiet || true
+        if [ "$(git rev-parse HEAD)" != "$(git rev-parse origin/main)" ]; then
+            echo "✗ Refusing to start a stack here: this checkout is not at origin/main." >&2
+            echo "  Move to it first, carrying any uncommitted work across:" >&2
+            echo "    just stack-fresh" >&2
+            exit 1
+        fi
+        git switch -c "${branch}"
+        gh stack init "${branch}"
+    fi
+
+    # -A stages everything, untracked files included. Splitting a dirty
+    # tree across branches is done by committing what is ready and leaving
+    # the rest for the branch above.
+    git add -A
+    git commit -m "{{message}}"
+    python3 "{{stack_scripts}}"/stack-status.py
+
+
+alias str := stack-rebase
+# Rebase the whole stack onto an updated trunk, refusing if it spans worktrees
+stack-rebase:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    just _stack-guard
+    gh stack rebase
+
+    # gh stack rebase exits 0 even when it skipped a branch, so the result is
+    # verified rather than trusted: `view --json` reports needsRebase
+    # correctly for exactly the branch a silent skip leaves behind. A branch
+    # in a merge queue, and one sitting exactly on it, are left out: the
+    # rebase leaves a queued branch alone on purpose. See --left-behind.
+    if ! left_behind="$(python3 "{{stack_scripts}}"/stack-status.py --left-behind)"; then
+        echo "" >&2
+        echo "✗ Branches still need a rebase after gh stack rebase:" >&2
+        printf '    %s\n' ${left_behind} >&2
+        echo "  It reports success even when it skips a branch." >&2
+        echo "  Run 'just stack-log' to see where they sit." >&2
+        echo "" >&2
+        echo "  If it instead conflicted in files this branch never" >&2
+        echo "  touched, the record's trunk.head is stale: run" >&2
+        echo "  'just stack-refresh'. See that recipe for why." >&2
+        exit 1
+    fi
+
+    python3 "{{stack_scripts}}"/stack-status.py
+
+
+alias stre := stack-refresh
+# Repoint a stale stack record at today's trunk, fixing runaway rebases
+stack-refresh:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    # The record in .git/gh-stack stores trunk.head: the commit main sat
+    # at when the stack was started. `gh stack rebase` works out "your
+    # commits" from that point, and nothing refreshes it as the branches
+    # below merge. Once it is stale, everything merged into main since
+    # then looks like unpushed work of yours, and the rebase replays it
+    # onto a main that already has it, conflicting against history in
+    # files the branch never touched.
+    #
+    # `stack-sync` does not fix this: it prunes merged branches and
+    # redraws, leaving trunk.head exactly as it was. Only unstack-then-init
+    # rewrites it.
+    #
+    # No commit is touched: unstack removes the local record, init adopts
+    # the same branches again against today's trunk. Branches that have
+    # merged are left out, so a stack part-way through landing rebuilds as
+    # the units still in flight, based on main.
+    branch="$(git branch --show-current)"
+
+    if [ -z "${branch}" ] || [ "${branch}" = "main" ]; then
+        echo "✗ Run this from a branch in the stack, not main." >&2
+        exit 1
+    fi
+
+    # Bottom to top, which is the order `gh stack init` adopts them in.
+    branches="$(python3 "{{stack_scripts}}"/stack-status.py --rebuild-order)"
+
+    if [ -z "${branches}" ]; then
+        echo "✗ No unmerged branches in this stack to rebuild." >&2
+        exit 1
+    fi
+
+    # unstack drops this stack from the record, so keep a copy: if init
+    # then fails, the copy goes back.
+    record="$(git rev-parse --path-format=absolute --git-common-dir)/gh-stack"
+    backup="$(mktemp)"
+    rebuilt=0
+    cp "${record}" "${backup}"
+
+    restore() {
+        if [ "${rebuilt}" -ne 1 ] && [ -s "${backup}" ]; then
+            cp "${backup}" "${record}"
+            echo "✗ Refresh failed - the stack record was restored." >&2
+        fi
+
+        rm -f "${backup}"
+    }
+
+    trap restore EXIT
+
+    git fetch origin main --quiet
+    echo "Rebuilding the stack record for:"
+    echo "${branches}" | sed 's/^/  /'
+
+    if python3 "{{stack_scripts}}"/stack-relink.py --needed; then
+
+        # GitHub refuses to unstack a stack holding a merged pull request,
+        # and the attempt can leave the open ones in no stack on GitHub at
+        # all. So GitHub's stack is left alone: the record is rebuilt
+        # locally, the open pull requests are linked into a stack, and the
+        # record is pointed at it. See s/stack/stack-relink.py.
+        echo "GitHub's stack holds merged pull requests, which it will"
+        echo "not unstack. Rebuilding the local record and linking the"
+        echo "open pull requests instead."
+        gh stack unstack --local
+
+        # shellcheck disable=SC2086
+        gh stack init ${branches}
+
+        # shellcheck disable=SC2086
+        python3 "{{stack_scripts}}"/stack-relink.py --link ${branches}
+    else
+        gh stack unstack
+
+        # shellcheck disable=SC2086
+        gh stack init ${branches}
+    fi
+
+    rebuilt=1
+    python3 "{{stack_scripts}}"/stack-status.py
+
+
+alias strl := stack-relink
+# Make the open pull requests one stack on GitHub again, in order
+stack-relink:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    # For when GitHub's stack has drifted from this one: split in two,
+    # missing pull requests, or holding one that was closed. Nothing is
+    # pushed and no branch is touched. See s/stack/stack-relink.py.
+    branches="$(python3 "{{stack_scripts}}"/stack-status.py --rebuild-order)"
+
+    if [ -z "${branches}" ]; then
+        echo "✗ No unmerged branches in this stack to relink." >&2
+        exit 1
+    fi
+
+    # shellcheck disable=SC2086
+    python3 "{{stack_scripts}}"/stack-relink.py --repair ${branches}
+
+    # shellcheck disable=SC2086
+    python3 "{{stack_scripts}}"/stack-relink.py --check ${branches}
+
+
+alias stsu := stack-submit
+# Rebase onto the latest trunk, then push and open or update the drafts
+stack-submit:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    # Rebase first, every time. A stack is submitted over and over as the
+    # units above it are revised, and main moves underneath it meanwhile.
+    # `stack-rebase` rather than a bare `gh stack rebase`, for its worktree
+    # guard and its check for a rebase that silently skipped a branch.
+    just stack-rebase
+
+    # --auto skips the interactive editor and opens every new pull request
+    # as a draft. A person takes a branch out of draft, with `gh pr ready`
+    # or on GitHub, once they have read it.
+    gh stack submit --auto
+    python3 "{{stack_scripts}}"/stack-status.py --prs
+
+    # GitHub keeps its own record of which pull requests are one stack,
+    # and `gh stack submit` reports one it could not add only as a
+    # warning. So the result is checked, and a mismatch is repaired here,
+    # on the push that caused it. A repair that does not make them one
+    # stack fails the push, naming the pull requests.
+    branches="$(python3 "{{stack_scripts}}"/stack-status.py --rebuild-order)"
+
+    # shellcheck disable=SC2086
+    if ! python3 "{{stack_scripts}}"/stack-relink.py --check ${branches}; then
+        echo "  Repairing GitHub's stack."
+        python3 "{{stack_scripts}}"/stack-relink.py --repair ${branches}
+        python3 "{{stack_scripts}}"/stack-relink.py --check ${branches}
+    fi
+
+
+alias stsy := stack-sync
+# Drop merged branches, re-target the rest, and redraw the stack. Pass 'a' to sweep every worktree.
+stack-sync scope="":
+    #!/usr/bin/env bash
+    set -uo pipefail
+
+    # One function, called once per worktree, so a sweep gives each checkout
+    # exactly the same treatment as a single run rather than a second, more
+    # hastily written copy of it. It returns rather than exits: in a sweep a
+    # worktree that has nothing to do must not stop the ones after it.
+    # Clear out a stack with nothing left to land: move the checkout to the
+    # trunk's tip, delete the merged branches and drop them from the record,
+    # so the next drawing is the ordinary "no stack on this branch".
+    # Returns 0 cleared, 1 the stack is not spent, 2 it could not be cleared.
+    #
+    # The move is `stack-fresh`'s: detached, because another worktree may
+    # hold the trunk, and `--merge`, so uncommitted work comes across.
+    # `branch -d`, not `-D`: it refuses a branch with commits the trunk
+    # does not have, and one left behind costs nothing.
+    clear_spent() {
+        local spent=""
+        spent="$(python3 "{{stack_scripts}}"/stack-status.py --spent 2>/dev/null)" || return 1
+
+        local trunk=""
+        trunk="$(git symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null | sed 's|^origin/||' || true)"
+        trunk="${trunk:-main}"
+        if ! git switch --detach --merge "origin/${trunk}" >/dev/null 2>&1; then
+            echo "  ✗ Stack fully merged, but this checkout could not move to origin/${trunk}." >&2
+            return 2
+        fi
+        local conflicted=""
+        conflicted="$(git diff --name-only --diff-filter=U)"
+        if [ -n "${conflicted}" ]; then
+            echo "  ✗ Stack fully merged, but the uncommitted work overlaps it, in:" >&2
+            echo "${conflicted}" | sed 's/^/      /' >&2
+            echo "    Each file holds both versions between conflict markers." >&2
+            return 2
+        fi
+
+        local name=""
+        while IFS= read -r name; do
+            if [ -n "${name}" ]; then
+                git branch -d "${name}" >/dev/null 2>&1 || true
+            fi
+        done <<< "${spent}"
+        python3 "{{stack_scripts}}"/stack-forget-merged.py >/dev/null 2>&1 || true
+        echo "  Stack fully merged - cleared. Now on origin/${trunk} ($(git rev-parse --short HEAD))."
+        return 0
+    }
+
+    sync_one() {
+        cd "$1" || return 0
+
+        # Not `just _stack-guard`: that collapses "no stack here" and "this
+        # stack spans worktrees" into the same exit 1, which is the right
+        # answer for a single run and the wrong one inside a loop. Both are
+        # ordinary outcomes of a sweep and each deserves its own line.
+        local status=0
+        python3 "{{stack_scripts}}"/stack-status.py --check >/dev/null 2>&1 || status=$?
+
+        if [ "${status}" -eq 1 ]; then
+            echo "  No stack here - nothing to sync."
+            return 0
+        fi
+
+        if [ "${status}" -eq 2 ]; then
+            echo "  ✗ Skipped: this stack spans more than one worktree." >&2
+            echo "    Free the branches above, or sync it from the worktree" >&2
+            echo "    that owns it." >&2
+            return 0
+        fi
+
+        # Run this after a pull request merges: it notices the merge, deletes
+        # the branch, cascade-rebases what sat above it and pushes the result.
+        #
+        # --prune answers the "delete N merged branches?" prompt in advance.
+        # Tidying up after a merge is the whole reason this recipe exists, and
+        # a merged branch's commits are on main and its pull request is on
+        # GitHub, so there is nothing in one to lose.
+        #
+        # The record is tidied first as well as afterwards. An entry
+        # whose pull request was closed and replaced still looks live to
+        # gh-stack after the replacement merges, so the sync pushes a
+        # branch GitHub has deleted and the whole push is rejected,
+        # before the tidy below is ever reached. The fetch is what lets
+        # stack-forget-merged.py see that such a branch is already in
+        # the trunk; it leaves an ordinary merge for --prune to delete.
+        git fetch origin --quiet || true
+
+        # A stack whose every branch has merged is cleared here and not
+        # handed to gh-stack, which cannot finish the job: the checkout is
+        # on a merged branch, `main` is usually held by another worktree,
+        # so it stays put, warns, and leaves the spent stack drawn.
+        local cleared=0
+        clear_spent || cleared=$?
+
+        if [ "${cleared}" -ne 1 ]; then
+            return "${cleared}"
+        fi
+
+        python3 "{{stack_scripts}}"/stack-forget-merged.py || return 1
+        if ! gh stack sync --prune; then
+            echo "  ✗ gh stack sync failed here; leaving this worktree alone." >&2
+
+            # The usual cause, and one gh reports only as git's own
+            # "cannot rebase: You have unstaged changes", which names
+            # neither the files nor the way out. Asked after the failure
+            # and not before: a sync with nothing to rebase is fine over
+            # a dirty tree, and refusing it up front would be a new fault.
+            local dirty=""
+            dirty="$(git status --porcelain --untracked-files=no)"
+            if [ -n "${dirty}" ]; then
+                echo "    Uncommitted changes are in the way of the rebase, in:" >&2
+                echo "${dirty}" | sed 's/^/      /' >&2
+                echo "    Fold them into this branch's commit with \`just stu\`," >&2
+                echo "    or put them aside with \`git stash\`, then sync again." >&2
+            fi
+
+            return 1
+        fi
+
+        # Asked again: the sync is what records a merge, so a stack whose
+        # last pull request landed since the previous run is spent only now.
+        cleared=0
+        clear_spent || cleared=$?
+        if [ "${cleared}" -ne 1 ]; then
+            return "${cleared}"
+        fi
+
+        # `--prune` deletes the local branch of a merged pull request, which is
+        # the half that frees the name - but it leaves the branch's entry in
+        # the stack. Those entries are not only clutter: an entry whose branch
+        # is gone costs `gh stack rebase` the base it should be rebasing onto,
+        # and it replays the trunk's own history instead. So the record is
+        # tidied here, where the branches were just deleted, rather than left
+        # to surprise the next rebase.
+        #
+        # The record is shared by every worktree, so this tidies every
+        # stack in it, leaving alone any branch checked out in a worktree.
+        python3 "{{stack_scripts}}"/stack-forget-merged.py || return 1
+
+        # A merge is when GitHub's stack drifts from this one: the merged
+        # or closed pull request can stay in GitHub's stack and refuse
+        # what is added after it. So it is checked now, and relinked if
+        # it no longer matches. See `stack-relink`.
+        local branches=""
+        branches="$(python3 "{{stack_scripts}}"/stack-status.py --rebuild-order 2>/dev/null)" || branches=""
+
+        # shellcheck disable=SC2086
+        if [ -n "${branches}" ] && ! python3 "{{stack_scripts}}"/stack-relink.py --check ${branches} >/dev/null 2>&1; then
+            echo "  GitHub's stack no longer matches this one; relinking it."
+            python3 "{{stack_scripts}}"/stack-relink.py --repair ${branches} || return 1
+        fi
+
+        # Exit 1 means "no stack here". That is the ordinary ending for a sync
+        # - the last branch merging deletes the stack, so the run that tidies
+        # it up is the one guaranteed to find nothing left to draw. The
+        # script's own message advises starting a new stack, which is not the
+        # point here, so its output is held back and the outcome is reported
+        # instead. Any other exit code is a real fault.
+        local drawn=""
+        local draw_status=0
+        drawn=$(python3 "{{stack_scripts}}"/stack-status.py --prs --colour 2>&1) || draw_status=$?
+
+        if [ "${draw_status}" -eq 0 ]; then
+            printf '%s\n' "${drawn}"
+        elif [ "${draw_status}" -eq 1 ]; then
+            echo "  Stack fully merged - nothing left to draw."
+        else
+            printf '%s\n' "${drawn}" >&2
+            return "${draw_status}"
+        fi
+
+        return 0
+    }
+
+    if [ "{{scope}}" != "a" ]; then
+        sync_one "$(pwd)"
+        exit $?
+    fi
+
+    # A sweep. This cascade-rebases and force-pushes in every worktree it visits, so it says
+    # what it is about to do and names each worktree as it goes.
+    ROOT=$(git rev-parse --path-format=absolute --git-common-dir)
+    ROOT=$(dirname "${ROOT}")
+    PARENT=$(dirname "${ROOT}")
+
+    failed=0
+
+    while IFS= read -r WT; do
+
+        # Worktrees outside the checkout's own parent directory are not part
+        # of the working set: agent sessions leave detached ones under
+        # /private/tmp, and a sweep that force-pushed from one of those would
+        # be acting on a checkout nobody is watching.
+        case "${WT}" in
+            "${PARENT}"/*) ;;
+            *) continue ;;
+        esac
+        echo ""
+        echo "▸ $(basename "${WT}")"
+
+        # A subshell, so sync_one's `cd` cannot leak into the next iteration.
+        ( sync_one "${WT}" ) || failed=1
+    done < <(git worktree list --porcelain | awk '/^worktree /{print $2}')
+
+    if [ "${failed}" -ne 0 ]; then
+        echo ""
+        echo "✗ At least one worktree did not sync cleanly - see above." >&2
+        exit 1
+    fi
+
+
+alias stu := stack-update
+# Fold changes into this branch's last commit (message optional, to reword it)
+stack-update message="":
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    # The counterpart to stack-new, which creates a branch. This one revises the branch already checked out - the ordinary case when
+    # a review comment, or a second pass over generated code, changes a unit
+    # that already exists.
+    #
+    # It amends rather than adding a commit, because a stacked branch reads
+    # best as one commit doing one thing: that is the unit being reviewed. A
+    # branch that accumulates "fix: typo" on top of its real change is
+    # harder to review. Amending keeps each branch to its single, finished
+    # commit.
+    #
+    # Either way the branches above this one must be rebased afterwards, so
+    # amending costs nothing extra: a plain commit leaves them behind just as
+    # surely, only less visibly. `stack-rebase` is the repair, and
+    # `stack-log` flags what still needs it.
+    #
+    # No stack guard: amending the branch you have checked out touches nothing
+    # another worktree holds. `stack-submit` runs the guard when this work is
+    # pushed - and pushes with --force-with-lease, which an amended branch
+    # needs and a stack does on every submit anyway.
+    if git diff --quiet && git diff --cached --quiet && \
+       [ -z "$(git ls-files --others --exclude-standard)" ] && \
+       [ -z "{{message}}" ]; then
+        echo "Nothing to fold in - the working tree is clean." >&2
+        echo "  Pass a message to reword the last commit on its own." >&2
+        exit 1
+    fi
+
+    # -A to match stack-new: both stage everything, untracked files
+    # included, so the two cannot differ in what they quietly leave behind.
+    git add -A
+
+    if [ -n "{{message}}" ]; then
+        git commit --amend -m "{{message}}"
+    else
+
+        # --no-edit keeps the existing message rather than opening an editor,
+        # which would hang anywhere non-interactive.
+        git commit --amend --no-edit
+    fi
+
+    # Amending rewrote this commit, so the branches above must be rebased
+    # onto the new one. Skipped only when --check exits 1 (not in a stack).
+    # Exit 2 (stack spans worktrees) still goes to stack-rebase, which
+    # refuses.
+    stack_state=0
+    python3 "{{stack_scripts}}"/stack-status.py --check >/dev/null 2>&1 || stack_state=$?
+
+    if [ "${stack_state}" -eq 1 ]; then
+        echo "  Amended. Not in a stack, so nothing above needs rebasing."
+    else
+        just stack-rebase
+    fi
