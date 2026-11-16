@@ -46,6 +46,6 @@ gunicorn
 # Controlled PDF export: build rendered pages, extract articles, then print.
 # Keep Zensical at the currently validated documentation pin for this parcel;
 # adopting its newer minor line is separate upgrade work.
-zensical==0.0.74
+zensical==0.1.0
 beautifulsoup4
 weasyprint
