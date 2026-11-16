@@ -634,6 +634,37 @@ stack-new name message:
     python3 "{{stack_scripts}}"/stack-status.py
 
 
+alias strd := stack-ready
+# Take every open pull request in this worktree's stack out of draft
+stack-ready:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    just _stack-guard
+
+    # Bottom to top, the order `gh stack view` lists them, so the branch
+    # nearest main is ready first. Merged branches and branches with no pull
+    # request are skipped rather than failed: a stack part-way through
+    # merging is normal. This never merges anything; that stays a human act.
+    prs="$(gh stack view --json \
+        | jq -r '.branches[] | select(.isMerged | not) | .pr.number // empty')"
+
+    if [ -z "${prs}" ]; then
+        echo "No open pull requests in this stack."
+        exit 0
+    fi
+
+    for number in ${prs}; do
+        state="$(gh pr view "${number}" --json state,isDraft \
+            --jq '"\(.state) \(.isDraft)"')"
+        case "${state}" in
+            "OPEN true") gh pr ready "${number}" ;;
+            "OPEN false") echo "#${number} is already ready for review." ;;
+            *) echo "#${number} is not open (${state%% *}); skipped." ;;
+        esac
+    done
+
+    python3 "{{stack_scripts}}"/stack-status.py --prs
+
 alias str := stack-rebase
 # Rebase the whole stack onto an updated trunk, refusing if it spans worktrees
 stack-rebase:
@@ -1077,3 +1108,287 @@ stack-update message="":
     else
         just stack-rebase
     fi
+
+
+alias stw := stack-watch
+# Redraw the stack with PR and CI state every minute; keys ready, sync, move, rebase, expand and open a file's diff
+stack-watch:
+    #!/usr/bin/env bash
+    set +x
+
+    # `stack-log-long` in a loop, once a minute. Not `watch(1)`: macOS does
+    # not ship it.
+    #
+    # The dots run in the background and would outlive ctrl-c, so the
+    # interrupt kills them by name.
+    dots=""
+    trap '[ -n "${dots}" ] && kill "${dots}" 2>/dev/null; echo; exit 130' INT TERM
+
+    # A label, then a dot every two seconds, so a slow network call does
+    # not look like a hang.
+    start_dots() {
+        printf '%s' "$1"
+        ( while sleep 2; do printf '.'; done ) &
+        dots=$!
+    }
+
+    # `wait` collects the job, so bash does not print a "Terminated" line
+    # over whatever is drawn next.
+    stop_dots() {
+        if [ -n "${dots}" ]; then
+            kill "${dots}" 2>/dev/null || true
+            wait "${dots}" 2>/dev/null || true
+            dots=""
+        fi
+    }
+
+    # Whether `e` has expanded the branch checked out, listing its files.
+    # While it is on, a digit opens a file rather than moving branch.
+    expanded=0
+
+    # Opening a file's diff changes nothing in the stack, so the drawing
+    # already on screen is kept rather than fetched from GitHub again.
+    refetch=1
+
+    while true; do
+
+        # The branch is read afresh each time, so moving branch with a
+        # number moves the expansion with it. Spelt out so an empty array
+        # expands to nothing: a bare "${expand[@]}" stops a Mac's bash 3.2
+        # under `set -u`.
+        expand=()
+
+        if [ "${expanded}" -eq 1 ]; then
+            expand=(--expand "$(git branch --show-current)")
+        fi
+
+        # Fetch first, then clear, so the old stack stays on screen during
+        # the ~3s call.
+        if [ "${refetch}" -eq 1 ]; then
+            drawn=$(python3 "{{stack_scripts}}"/stack-status.py --prs --numbered --colour ${expand[@]+"${expand[@]}"} 2>&1 || true)
+        fi
+
+        refetch=1
+
+        # Stop the dots a keypress started, further down.
+        stop_dots
+
+        # Home the cursor, clear the screen and clear the scrollback. Without
+        # the last, a tall stack leaves its old copy above the new one.
+        printf '\033[H\033[2J\033[3J'
+
+        # The key letter in each word is bold bright blue (94). Plain blue
+        # (34) is unreadable on a dark terminal.
+        k='\033[1;94m'
+        n='\033[0m'
+
+        # What a digit does depends on whether the files are listed.
+        picks="branch"
+
+        if [ "${expanded}" -eq 1 ]; then
+            picks="file"
+        fi
+
+        # The colour codes split each word at its key letter, which the
+        # spelling check reads as fragments.
+        # cspell:disable
+        printf '%b\n' \
+            "ready ${k}a${n}ll - ${k}s${n}ync - ${k}number${n} ${picks} - re${k}b${n}ase - re${k}f${n}resh - ${k}e${n}xpand - ${k}ctrl-c${n} to stop"
+
+        # cspell:enable
+        # Flush with the left edge, like the line above. stack-status.py
+        # indents its drawing by two spaces for the other recipes.
+        printf '%s\n' "${drawn}" | sed 's/^  //'
+
+        # The minute's wait doubles as the keyboard: a is `stack-ready`, s is
+        # `stack-sync`, a number is `stack-move`, b is `stack-rebase`, f
+        # refreshes, and e lists the files the branch checked out changes,
+        # or stops listing them. While they are listed, a number opens that
+        # file side by side with its parent's copy, with `code --diff`.
+        #
+        # With no terminal on stdin `read` returns at once and the loop
+        # would spin against GitHub, so that case just sleeps.
+        if [ ! -t 0 ]; then
+            sleep 60
+            continue
+        fi
+
+        # Read one key silently, within what is left of the minute. A key
+        # not listed is ignored. An escape starts an arrow or function key
+        # sequence, whose tail can hold a listed key (page down ends in 6),
+        # so the rest of it is drained.
+        key=""
+        deadline=$((SECONDS + 60))
+
+        while true; do
+            remaining=$((deadline - SECONDS))
+
+            if [ "${remaining}" -le 0 ]; then
+                key=""
+                break
+            fi
+
+            pressed=0
+            read -rsn1 -t "${remaining}" key || pressed=$?
+
+            if [ "${pressed}" -ne 0 ]; then
+                key=""
+                break
+            fi
+
+            case "${key}" in
+                a|A|s|S|[1-9]|b|B|f|F|e|E)
+                    break
+                    ;;
+                $'\e')
+                    while read -rsn1 -t 1 _; do :; done
+                    ;;
+            esac
+        done
+
+        if [ -z "${key}" ]; then
+            continue
+        fi
+
+        # The dots started here run until the fetch at the top of the loop.
+        echo ""
+
+        case "${key}" in
+            a|A)
+                recipe=(stack-ready)
+                start_dots "a · taking every pull request out of draft"
+                ;;
+            b|B)
+                recipe=(stack-rebase)
+                start_dots "b · rebasing the stack onto the trunk"
+                ;;
+            s|S)
+                recipe=(stack-sync)
+                start_dots "s · syncing the stack"
+                ;;
+            [1-9])
+
+                # While the files are listed, a digit picks a file. The same
+                # option that lists them says which, so the numbers on screen
+                # and the one picked come from one reading of the branch.
+                # With ten or more, wait 5s for a second digit, as for a
+                # branch below.
+                if [ "${expanded}" -eq 1 ]; then
+                    pick=(python3 "{{stack_scripts}}"/stack-status.py ${expand[@]+"${expand[@]}"} --diff-at)
+                    number="${key}"
+
+                    if "${pick[@]}" "$((key * 10))" >/dev/null 2>&1; then
+                        printf '%s · a second digit within 5s for %s0 and up, or any other key for file %s ' \
+                            "${key}" "${key}" "${key}"
+                        second=""
+                        read -rsn1 -t 5 second || true
+                        echo ""
+
+                        case "${second}" in
+                            [0-9]) number="${key}${second}" ;;
+                        esac
+                    fi
+
+                    # The drawing on screen stays as it is whatever happens
+                    # next: nothing in the stack has changed.
+                    refetch=0
+
+                    if ! sides="$("${pick[@]}" "${number}" 2>/dev/null)"; then
+                        start_dots "${number} · there is no file ${number}"
+                        continue
+                    fi
+
+                    # Two lines: the parent's copy, then the working file.
+                    # vscode-code.sh finds the VS Code window this terminal
+                    # belongs to, from a tmux window opened by `just tw` as
+                    # well as from VS Code's own terminal, and runs `code`
+                    # for it. When it cannot, or `code` fails, the message
+                    # is shown and waits, since the redraw would wipe it.
+                    left="${sides%%$'\n'*}"
+                    right="${sides#*$'\n'}"
+                    opened=0
+                    opening=$(bash "{{stack_scripts}}"/vscode-code.sh --diff "${left}" "${right}" 2>&1) || opened=$?
+
+                    if [ "${opened}" -ne 0 ]; then
+                        printf '\n%s\n\n' "${opening}"
+                        read -rsn1 -p "file ${number} did not open · any key to carry on" _ || true
+                        echo ""
+                        continue
+                    fi
+
+                    start_dots "${number} · opened file ${number} side by side with its parent"
+                    continue
+                fi
+
+                # With ten or more branches, wait 5s for a second digit.
+                # "Is there a branch ten times this one" says whether any
+                # two-digit number starts with it.
+                number="${key}"
+                if python3 "{{stack_scripts}}"/stack-status.py --branch-at "$((key * 10))" >/dev/null 2>&1; then
+                    printf '%s · a second digit within 5s for %s0 and up, or any other key for branch %s ' \
+                        "${key}" "${key}" "${key}"
+                    second=""
+                    read -rsn1 -t 5 second || true
+                    echo ""
+                    case "${second}" in
+                        [0-9]) number="${key}${second}" ;;
+                    esac
+                fi
+
+                # No such branch, or already on it: say so in a line and
+                # skip the recipe.
+                if ! target="$(python3 "{{stack_scripts}}"/stack-status.py --branch-at "${number}" 2>/dev/null)"; then
+                    start_dots "${number} · there is no branch ${number}"
+                    continue
+                fi
+
+                if [ "${target}" = "$(git branch --show-current)" ]; then
+                    start_dots "${number} · already on branch ${number}"
+                    continue
+                fi
+
+                recipe=(stack-move "${number}")
+                start_dots "${number} · checking out branch ${number}"
+                ;;
+            e|E)
+
+                # A redraw, as f is, with the files listed or no longer.
+                if [ "${expanded}" -eq 1 ]; then
+                    expanded=0
+                    start_dots "e · no longer listing the branch's files"
+                else
+                    expanded=1
+                    start_dots "e · listing the branch's files"
+                fi
+
+                continue
+                ;;
+            *)
+
+                # Only `f` reaches here: the read above drops the rest.
+                start_dots "f · refreshing"
+                continue
+                ;;
+        esac
+
+        # Show the recipe's output only if it went wrong: a non-zero exit, or
+        # a line saying work was not done. A warning about work that was
+        # done does not stop the watcher. stack-watch-outcome.sh decides,
+        # and says why.
+        recipe_status=0
+        recipe_output=$(just "${recipe[@]}" 2>&1) || recipe_status=$?
+        if ! printf '%s\n' "${recipe_output}" \
+            | bash "{{stack_scripts}}"/stack-watch-outcome.sh "${recipe_status}"; then
+            recipe_status=1
+        else
+            recipe_status=0
+        fi
+
+        if [ "${recipe_status}" -ne 0 ]; then
+            stop_dots
+            printf '\n%s\n\n' "${recipe_output}"
+            read -rsn1 -p "${recipe[*]} did not finish cleanly · any key to carry on" _ || true
+            echo ""
+            start_dots "refreshing"
+        fi
+    done
