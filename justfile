@@ -229,3 +229,39 @@ tmux-window NUMBER="":
     fi
 
     exec tmux attach -t "=${name}"
+
+
+alias lc := link-claude
+# Link .claude-mark/ into .claude/ so its skills and rules load in Claude Code on this machine
+link-claude:
+    #!/usr/bin/env bash
+    # .claude-mark/ holds personal Claude Code skills and rules as plain
+    # tracked files. Claude Code only loads them from .claude/, which is git-ignored,
+    # so they do nothing for anyone else until this links them in. Run it once
+    # in each clone or worktree; running it again changes nothing.
+
+    set -euo pipefail
+
+    cd {{quote(justfile_directory())}}
+    mkdir -p .claude
+
+    for name in skills rules; do
+        link=".claude/${name}"
+        target="../.claude-mark/${name}"
+
+        if [ ! -d ".claude-mark/${name}" ]; then
+            echo "✗ .claude-mark/${name} is missing, so there is nothing to link." >&2
+            exit 1
+        fi
+
+        if [ -L "${link}" ]; then
+            ln -sfn "${target}" "${link}"
+        elif [ -e "${link}" ]; then
+            echo "✗ ${link} is a real folder, not a link. Move its contents into .claude-mark/${name} and remove it, then run this again." >&2
+            exit 1
+        else
+            ln -s "${target}" "${link}"
+        fi
+
+        echo "${link} -> ${target}"
+    done
