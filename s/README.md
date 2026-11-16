@@ -144,3 +144,4 @@ The seeding step refuses to run with `DEBUG` off. It creates an account whose pa
 The scripts at the top level of `s/` are commands to type. The subfolders hold helper scripts that something else runs, one folder per topic, so they stay out of the way of the commands:
 
 - **`s/stack/`** - the helpers behind the `just stack-*` recipes for stacked pull requests. Run `just stack-help` to list the recipes.
+- **`s/notification/`** - the banner a Claude Code hook shows when a response finishes, with the listener that brings it to a Mac from a Linux box. Its own `README.md` explains setting it up.
