@@ -260,3 +260,58 @@ tmux-window NUMBER="":
     fi
 
     exec tmux attach -t "=${name}"
+
+
+alias lc := link-claude
+# Link one person's .claude-personal/<name>/ into .claude/ so their skills and rules load: `just lc mark`
+link-claude NAME:
+    #!/usr/bin/env bash
+    # .claude-personal/ holds each person's own Claude Code set-up, in a
+    # folder named after them: rules/ and skills/, as plain tracked files.
+    # Claude Code only loads them from .claude/, which is git-ignored, so
+    # they do nothing for anyone else until this links them in.
+    #
+    # Run it once in each clone or worktree. Running it again changes
+    # nothing. Running it with another name switches to that person's set.
+
+    set -euo pipefail
+
+    name={{quote(NAME)}}
+
+    # Lower-case letters only, so the name can only ever be a folder
+    # directly inside .claude-personal/.
+    if ! [[ "${name}" =~ ^[a-z]+$ ]]; then
+        echo "✗ Give a first name in lower case, for example: just lc mark" >&2
+        exit 1
+    fi
+
+    cd {{quote(justfile_directory())}}
+    source=".claude-personal/${name}"
+
+    if [ ! -d "${source}" ]; then
+        echo "✗ ${source} is missing. Create it with rules/ and skills/ inside, then run this again." >&2
+        exit 1
+    fi
+
+    # Check everything first, so a missing part links nothing at all.
+    for item in skills rules; do
+        if [ ! -e "${source}/${item}" ]; then
+            echo "✗ ${source}/${item} is missing, so there is nothing to link." >&2
+            exit 1
+        fi
+
+        if [ -e ".claude/${item}" ] && [ ! -L ".claude/${item}" ]; then
+            echo "✗ .claude/${item} is real, not a link. Move its contents into ${source}/${item} and remove it, then run this again." >&2
+            exit 1
+        fi
+    done
+
+    mkdir -p .claude
+
+    for item in skills rules; do
+        link=".claude/${item}"
+        target="../${source}/${item}"
+
+        ln -sfn "${target}" "${link}"
+        echo "${link} -> ${target}"
+    done
