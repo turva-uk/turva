@@ -320,6 +320,12 @@ link-claude NAME:
     done
 
 
+alias nli := notify-listen-install
+# Install the Mac's listener for banners from a Linux box (macOS only; run again after the scripts change)
+notify-listen-install:
+    ./s/notification/notification-listen-install.sh
+
+
 # Stacked pull requests
 #
 # Recipes over the `gh stack` extension, for building a piece of work as a
