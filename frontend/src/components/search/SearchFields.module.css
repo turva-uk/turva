@@ -1,0 +1,13 @@
+/*
+ * On a phone the close-search ✕ fills the input's right section, which
+ * touch-targets.css makes a 44px square, rather than sitting at Mantine's
+ * 28px in the middle of it. The ✕ icon keeps its size.
+ */
+@media (width <= 40em) {
+  .close {
+    width: 100%;
+    height: 100%;
+    min-width: 100%;
+    min-height: 100%;
+  }
+}
