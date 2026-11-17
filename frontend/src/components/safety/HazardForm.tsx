@@ -22,7 +22,7 @@
  */
 
 import { SimpleGrid, Stack } from "@mantine/core";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import BaseCard from "@/components/base-card/BaseCard";
 import ButtonPair from "@/components/button/ButtonPair";
@@ -35,7 +35,6 @@ import {
   isHazardStatus,
   isRiskScore,
   previewAssessment as askTheServer,
-  type Assessment,
   type AssessmentInput,
   type HazardInput,
   type HazardOptions,
@@ -43,53 +42,11 @@ import {
 } from "@/lib/safety";
 
 import RiskScoreBadge from "./RiskScoreBadge";
-
-/** Asks for the level the server derives from a severity and likelihood. */
-export type PreviewAssessment = (
-  severity: RiskScore,
-  likelihood: RiskScore,
-  signal?: AbortSignal,
-) => Promise<Assessment>;
+import { useAssessmentPreview, type PreviewAssessment } from "./useAssessmentPreview";
 
 /** "transferred" as "Transferred", for the status select. */
 function statusLabel(status: string): string {
   return status.charAt(0).toUpperCase() + status.slice(1);
-}
-
-type Preview =
-  { state: "working" } | { state: "ready"; assessment: Assessment } | { state: "failed" };
-
-/**
- * The level the server gives the scores now chosen. A new pair cancels
- * the request for the old one, so an answer that arrives late is never
- * shown against scores it was not for.
- */
-function usePreview(value: AssessmentInput, preview: PreviewAssessment): Preview {
-  const { severity, likelihood } = value;
-  const [result, setResult] = useState<{ key: string; preview: Preview }>({
-    key: "",
-    preview: { state: "working" },
-  });
-  const key = `${severity},${likelihood}`;
-
-  useEffect(() => {
-    const controller = new AbortController();
-
-    preview(severity, likelihood, controller.signal).then(
-      (assessment) => {
-        if (!controller.signal.aborted) {
-          setResult({ key, preview: { state: "ready", assessment } });
-        }
-      },
-      () => {
-        if (!controller.signal.aborted) setResult({ key, preview: { state: "failed" } });
-      },
-    );
-
-    return () => controller.abort();
-  }, [key, severity, likelihood, preview]);
-
-  return result.key === key ? result.preview : { state: "working" };
 }
 
 function AssessmentFields({
@@ -105,7 +62,7 @@ function AssessmentFields({
   preview: PreviewAssessment;
   onChange: (value: AssessmentInput) => void;
 }) {
-  const level = usePreview(value, preview);
+  const level = useAssessmentPreview(value.severity, value.likelihood, preview);
 
   function score(next: string | null): RiskScore | null {
     const number = Number(next);

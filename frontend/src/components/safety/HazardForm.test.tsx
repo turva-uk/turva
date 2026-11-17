@@ -15,7 +15,8 @@ import {
   samplePreview,
 } from "@/test/safetyFile";
 
-import HazardForm, { type PreviewAssessment } from "./HazardForm";
+import HazardForm from "./HazardForm";
+import type { PreviewAssessment } from "./useAssessmentPreview";
 
 function renderForm({
   initial = hazardInputFrom(MITIGATED_HAZARD),
