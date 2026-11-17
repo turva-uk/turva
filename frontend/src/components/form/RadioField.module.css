@@ -1,0 +1,52 @@
+.option {
+  padding: var(--mantine-spacing-xs) var(--mantine-spacing-sm);
+  border-radius: var(--mantine-radius-sm);
+  transition: background-color 150ms ease;
+}
+
+.radio:not(:checked) {
+  border-color: var(--mantine-color-gray-5) !important;
+}
+
+.radio:checked {
+  background-color: var(--mantine-color-primary-5) !important;
+  border-color: var(--mantine-color-primary-5) !important;
+}
+
+[data-mantine-color-scheme="dark"] .radio:not(:checked) {
+  background-color: var(--mantine-color-gray-4) !important;
+  border-color: var(--mantine-color-primary-9) !important;
+}
+
+[data-mantine-color-scheme="dark"] .radio:checked {
+  border-color: var(--mantine-color-primary-9) !important;
+}
+
+.option:hover:not([data-disabled]) {
+  background-color: var(--mantine-color-primary-light);
+}
+
+.option[data-disabled] {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/*
+ * On a phone the row's padding moves from the option wrapper into the
+ * label, so the whole 44px row can be tapped rather than only the 22px
+ * line of text in its middle. The radio moves down by the same amount to
+ * stay level with the text.
+ */
+@media (width <= 40em) {
+  .option {
+    padding-block: 0;
+  }
+
+  .label {
+    padding-block: 0.6875rem;
+  }
+
+  .inner {
+    margin-top: 0.6875rem;
+  }
+}

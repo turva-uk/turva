@@ -10,15 +10,18 @@
  * `justify="space-between"` did not: a wrapped item is alone on its line,
  * so there is nothing to space it against and it fell to the left.
  *
- * The page's status messages ("Hazard saved", "Hazard not saved") will
- * come straight after it, once the page message display arrives with the
- * form components, so the title stays the first thing on the page.
+ * The page's status messages ("Hazard saved", "Hazard not saved") come
+ * straight after it, as the next item in the page's stack, so the title
+ * stays the first thing on the page. Only the first header on a page
+ * shows them.
  */
 
 import type { ReactNode } from "react";
 import { Box, Text, Title, VisuallyHidden, useMantineTheme } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { useDocumentTitle } from "@/lib/accessibility/useDocumentTitle";
+import { PageMessageDisplay, usePageMessageSlot } from "@/components/page-message";
+
 import classes from "./PageHeader.module.css";
 
 export interface PageHeaderProps {
@@ -61,6 +64,8 @@ export default function PageHeader({
   const isDesktop = useMediaQuery(`(min-width: ${theme.breakpoints.sm})`);
   // The page's h1 is also its document title (WCAG 2.4.2)
   useDocumentTitle(title);
+  const showsMessages = usePageMessageSlot();
+  const pageMessages = showsMessages ? <PageMessageDisplay /> : null;
 
   const shownTitle = (
     <Title
@@ -83,13 +88,21 @@ export default function PageHeader({
   const heading = visuallyHidden ? <VisuallyHidden>{titleBlock}</VisuallyHidden> : titleBlock;
 
   if (!action) {
-    return <>{visuallyHidden ? heading : <Box>{heading}</Box>}</>;
+    return (
+      <>
+        {visuallyHidden ? heading : <Box>{heading}</Box>}
+        {pageMessages}
+      </>
+    );
   }
 
   return (
-    <Box className={classes.row} data-align={actionAlign}>
-      {heading}
-      <Box className={classes.action}>{action}</Box>
-    </Box>
+    <>
+      <Box className={classes.row} data-align={actionAlign}>
+        {heading}
+        <Box className={classes.action}>{action}</Box>
+      </Box>
+      {pageMessages}
+    </>
   );
 }

@@ -1,0 +1,37 @@
+/*
+ * A group heading in a select's dropdown, drawn as a divider.
+ *
+ * Mantine draws it small, dimmed and left-aligned with a rule to its
+ * right, which on a quick read passes for one more option to choose. So
+ * it is centred between two rules, in navy and bold, at the options' own
+ * size (19px) for readability: clearly a heading between groups, never a
+ * thing to select.
+ *
+ * Shared by SelectField and MultiSelectField, so every grouped dropdown
+ * in the app looks the same.
+ */
+
+.groupLabel {
+  justify-content: center;
+  gap: var(--mantine-spacing-sm);
+  font-size: var(--mantine-font-size-md);
+  font-weight: 700;
+  color: var(--mantine-color-primary-8);
+  text-align: center;
+  padding-block: var(--mantine-spacing-xs);
+}
+
+.groupLabel::before,
+.groupLabel::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  margin: 0;
+  background-color: currentcolor;
+  opacity: 0.4;
+}
+
+/* Brand navy on the dark dropdown would vanish, so a pale navy there */
+[data-mantine-color-scheme="dark"] .groupLabel {
+  color: var(--mantine-color-primary-1);
+}

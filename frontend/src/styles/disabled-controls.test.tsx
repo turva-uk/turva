@@ -5,7 +5,6 @@
  * not load the stylesheet, so these tests guard the other half: that the
  * controls the rule is meant to reach still carry a class and a state it
  * selects, and that the shared buttons do not ask for the sign themselves.
- * The form components add their own cases when they arrive.
  */
 
 import fs from "node:fs";
@@ -22,6 +21,9 @@ import ButtonPairRed from "@/components/button/ButtonPairRed";
 import IconTextButton from "@/components/button/IconTextButton";
 import PreviousNextButton from "@/components/button/PreviousNextButton";
 import PublicButton from "@/components/button/PublicButton";
+import CheckboxField from "@/components/form/CheckboxField";
+import SolidSwitch from "@/components/form/SolidSwitch";
+import TextField from "@/components/form/TextField";
 import { renderWithMantine } from "@/test/test-utils";
 
 /**
@@ -184,5 +186,33 @@ describe("the shared buttons keep the ordinary pointer when disabled", () => {
 
     expect(disabled.length).toBeGreaterThan(0);
     disabled.forEach((button) => expect(button.style.cursor).toBe("default"));
+  });
+});
+
+describe("disabled-controls.css reaches the shared form fields", () => {
+  it("a disabled checkbox field", () => {
+    renderWithMantine(<CheckboxField label="I confirm this declaration" disabled />);
+
+    const input = screen.getByRole("checkbox", { name: "I confirm this declaration" });
+    expect(input).toBeDisabled();
+    expect(ruleReaches(input)).toBe(true);
+  });
+
+  it("a disabled switch, and what is drawn just after it", () => {
+    renderWithMantine(<SolidSwitch aria-label="Email me about changes" disabled />);
+
+    const input = screen.getByRole("switch", { name: "Email me about changes" });
+    const drawn = input.nextElementSibling;
+
+    expect(input).toBeDisabled();
+    expect(drawn !== null && ruleReaches(drawn)).toBe(true);
+  });
+
+  it("a disabled text field", () => {
+    renderWithMantine(<TextField label="Hazard title" disabled />);
+
+    const input = screen.getByLabelText("Hazard title");
+    expect(input).toBeDisabled();
+    expect(ruleReaches(input)).toBe(true);
   });
 });

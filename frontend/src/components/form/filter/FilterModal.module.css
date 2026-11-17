@@ -1,0 +1,39 @@
+.panel {
+  padding: var(--mantine-spacing-sm);
+  width: max-content;
+  min-width: 280px;
+}
+
+:global([data-mantine-color-scheme="dark"]) .panel {
+  background-color: var(--mantine-color-primary-7) !important;
+}
+
+.panel :global(.mantine-PillGroup-group) {
+  flex-flow: column nowrap;
+  align-items: flex-start;
+}
+
+.panel :global(.mantine-MultiSelect-groupLabel) {
+  font-size: 1.1875rem;
+}
+
+.panel :global(.mantine-Pill-root) {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+}
+
+/* WCAG 2.5.8 Target size: at least 24px (1.5rem) in both directions.
+   The pill's remove button and the Reset link were 21px and 23px tall. */
+.panel :global(.mantine-Pill-remove) {
+  min-height: 1.5rem;
+}
+
+.reset {
+  min-height: 1.5rem;
+  color: var(--link-color);
+
+  &:hover {
+    color: var(--link-hover-color);
+  }
+}

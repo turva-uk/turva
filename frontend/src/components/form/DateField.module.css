@@ -1,0 +1,38 @@
+/**
+ * DateField styles
+ *
+ * Mirrors TextField.module.css against DateInput's own class names, so a
+ * date field and a text field share one border, focus and error
+ * treatment in both colour schemes.
+ */
+
+[data-mantine-color-scheme="dark"] .root :global(.mantine-DateInput-input) {
+  border-color: var(--mantine-color-primary-9);
+}
+
+.root :global(.mantine-DateInput-input:focus) {
+  border-color: var(--mantine-color-primary-4) !important;
+}
+
+.root :global(.mantine-DateInput-input[data-disabled]) {
+  background-color: var(--mantine-color-gray-3);
+  color: var(--mantine-color-gray-6);
+  opacity: 1;
+}
+
+[data-mantine-color-scheme="dark"] .root :global(.mantine-DateInput-input[data-disabled]) {
+  background-color: var(--mantine-color-gray-5);
+  color: var(--mantine-color-gray-7);
+}
+
+.root :global(.mantine-DateInput-input[data-error]) {
+  /* Softer than the border, so it still reads as a placeholder */
+  --input-placeholder-color: var(--error-placeholder-color);
+
+  border-width: 2px;
+  border-color: var(--error-color) !important;
+}
+
+.root :global(.mantine-DateInput-input[data-error]:focus) {
+  border-color: var(--error-focus-color) !important;
+}
