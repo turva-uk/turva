@@ -59,8 +59,8 @@ Stories are self-documenting through their structure. Ensure:
 - Each story file has a clear `title` in the meta export
 - All argTypes have clear `description` fields
 - Story names clearly describe what they demonstrate
-- Longer prose about a component goes in a sibling `.mdx` guide, not in a
-  description on the meta
+- Longer prose about a component goes in a sibling `.mdx` guide, as
+  `.claude/rules/components.md` sets out, not in a description on the meta
 - Do NOT add TSDoc comments to individual story objects
 
 ## Tests
