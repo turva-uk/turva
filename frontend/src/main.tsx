@@ -1,4 +1,13 @@
+import "@fontsource-variable/atkinson-hyperlegible-next";
+import "@fontsource-variable/cormorant-garamond";
+import "@fontsource-variable/cormorant-garamond/wght-italic.css";
 import "@mantine/core/styles.css";
+// After Mantine's own stylesheet, so these win on source order. Storybook's
+// preview imports the same four, so a story looks as the app does.
+import "./styles/typography.css";
+import "./styles/dark-overrides.css";
+import "./styles/touch-targets.css";
+import "./styles/disabled-controls.css";
 
 import { MantineProvider } from "@mantine/core";
 import { StrictMode } from "react";

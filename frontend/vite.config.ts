@@ -5,6 +5,9 @@ import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   plugins: [react()],
+  // Reads the `@/` alias from tsconfig.app.json, so the build, the tests and
+  // Storybook (which loads this file) all resolve it the same way.
+  resolve: { tsconfigPaths: true },
   server: {
     // 0.0.0.0 so the dev server is reachable from outside its container.
     host: true,
