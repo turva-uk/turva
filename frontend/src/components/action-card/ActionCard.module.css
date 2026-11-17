@@ -1,0 +1,15 @@
+.card {
+  overflow-wrap: anywhere;
+}
+
+.iconRow {
+  flex-wrap: nowrap;
+}
+
+.iconWrap {
+  flex: 0 0 auto;
+}
+
+.titleWrap {
+  min-width: 0;
+}

@@ -2,6 +2,7 @@ import "@fontsource-variable/atkinson-hyperlegible-next";
 import "@fontsource-variable/cormorant-garamond";
 import "@fontsource-variable/cormorant-garamond/wght-italic.css";
 import "@mantine/core/styles.css";
+import "@mantine/dates/styles.css";
 // After Mantine's own stylesheet, so these win on source order. Storybook's
 // preview imports the same four, so a story looks as the app does.
 import "./styles/typography.css";

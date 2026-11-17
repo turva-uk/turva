@@ -8,6 +8,7 @@
 /* eslint-disable react-refresh/only-export-components */
 
 import { render } from "@testing-library/react";
+import { expect } from "vitest";
 import type { RenderOptions } from "@testing-library/react";
 import { MantineProvider } from "@mantine/core";
 import {
@@ -18,6 +19,8 @@ import {
 } from "react-router";
 import type { ReactElement, ReactNode } from "react";
 import { theme, cssVariablesResolver } from "@/theme";
+import { PageMessageProvider } from "@/components/page-message";
+import PageMessageDisplay from "@/components/page-message/PageMessageDisplay";
 
 /**
  * Render options with all providers
@@ -47,7 +50,10 @@ function RouterAndMantineWrapper({ children }: { children: ReactNode }) {
   return (
     <BrowserRouter>
       <MantineProvider theme={theme} cssVariablesResolver={cssVariablesResolver} env="test">
-        {children}
+        <PageMessageProvider>
+          <PageMessageDisplay fallback />
+          {children}
+        </PageMessageProvider>
       </MantineProvider>
     </BrowserRouter>
   );
@@ -93,7 +99,12 @@ export function renderWithRouter(ui: ReactElement, options?: AllProvidersOptions
       [
         {
           path: routePath,
-          element: ui,
+          element: (
+            <PageMessageProvider>
+              <PageMessageDisplay fallback />
+              {ui}
+            </PageMessageProvider>
+          ),
         },
       ],
       {
@@ -215,4 +226,34 @@ export function remToPx(value: string, rootFontSize = 16): string {
       return `${Number(px.toFixed(5))}px`;
     })
     .join(" ");
+}
+
+/** A CSS property as `element.style` names it, such as `fontSize`. */
+type InlineStyleProperty = {
+  [Key in keyof CSSStyleDeclaration]: CSSStyleDeclaration[Key] extends string ? Key : never;
+}[keyof CSSStyleDeclaration];
+
+/**
+ * Assert an element's inline style, property by property and exactly.
+ *
+ * For a style set to a CSS variable, such as Mantine's
+ * `var(--mantine-font-size-md)`. jsdom resolves only the variables the
+ * theme's resolver defines, so `toHaveStyle` reads Mantine's own variables
+ * as unset; the inline style is what the component actually set.
+ *
+ * @example
+ * expectInlineStyle(label, { fontSize: "var(--mantine-font-size-md)" });
+ */
+export function expectInlineStyle(
+  element: HTMLElement,
+  expected: Partial<Record<InlineStyleProperty, string>>,
+): void {
+  for (const [property, value] of Object.entries(expected)) {
+    expect(element.style.getPropertyValue(toKebabCase(property)), property).toBe(value);
+  }
+}
+
+/** `fontSize` to `font-size`, as `getPropertyValue` wants it. */
+function toKebabCase(property: string): string {
+  return property.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`);
 }
