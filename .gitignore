@@ -224,6 +224,13 @@ site/
 /test-results
 /.claude
 
+# A local reference copy kept beside the personal Claude Code files in
+# .claude-mark/, never committed. Ignored here, not only in
+# .claude-mark/.gitignore, so that it stays ignored on a branch that does not
+# have .claude-mark/ yet, where it would otherwise show as untracked and stop
+# gh stack rebase.
+/.claude-mark/reference-CLAUDE.md
+
 # Intentionally retained local-only work (decks, reports, captures, notes).
 # See https://github.com/pacharanero/house-style/blob/main/private-workspace.md
 /.private
