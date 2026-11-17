@@ -94,8 +94,9 @@
   min-height: 1.5rem;
 }
 
+/* Shade 9: the dark-mode text is 5.5:1 on it, and 3.8:1 on Turva's shade 7. */
 [data-mantine-color-scheme="dark"] .pill {
-  background-color: var(--mantine-color-primary-7) !important;
+  background-color: var(--mantine-color-primary-9) !important;
 }
 
 .option {

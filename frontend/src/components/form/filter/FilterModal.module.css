@@ -5,8 +5,9 @@
   min-width: 0;
 }
 
+/* The theme's dark card surface: dark-mode text is 3.8:1 on purple shade 7. */
 :global([data-mantine-color-scheme="dark"]) .panel {
-  background-color: var(--mantine-color-primary-7) !important;
+  background-color: var(--card-bg) !important;
 }
 
 .panel :global(.mantine-PillGroup-group) {
