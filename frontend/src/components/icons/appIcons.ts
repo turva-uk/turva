@@ -32,6 +32,7 @@ import {
   IconChevronUp,
   IconClock,
   IconDatabase,
+  IconDots,
   IconDownload,
   IconEPassport,
   IconFilePlus,
@@ -54,6 +55,7 @@ import {
   IconShieldCheck,
   IconTrash,
   IconUser,
+  IconUserOff,
   IconUserPlus,
   IconX,
 } from "@tabler/icons-react";
@@ -78,6 +80,7 @@ export {
   IconChevronUp,
   IconClock,
   IconDatabase,
+  IconDots,
   IconDownload,
   IconEPassport,
   IconFilePlus,
@@ -100,6 +103,7 @@ export {
   IconShieldCheck,
   IconTrash,
   IconUser,
+  IconUserOff,
   IconUserPlus,
   IconX,
 };
@@ -128,6 +132,7 @@ export const iconCatalogue = {
   ChevronUp: IconChevronUp,
   Clock: IconClock,
   Database: IconDatabase,
+  Dots: IconDots,
   Download: IconDownload,
   EPassport: IconEPassport,
   FilePlus: IconFilePlus,
@@ -150,6 +155,7 @@ export const iconCatalogue = {
   ShieldCheck: IconShieldCheck,
   Trash: IconTrash,
   User: IconUser,
+  UserOff: IconUserOff,
   UserPlus: IconUserPlus,
   X: IconX,
 } as const;
