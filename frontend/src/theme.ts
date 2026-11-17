@@ -1,4 +1,4 @@
-import { createTheme } from "@mantine/core";
+import { createTheme, DEFAULT_THEME } from "@mantine/core";
 import type { CSSVariablesResolver } from "@mantine/core";
 
 import breakpoints from "./breakpoints.json";
@@ -65,6 +65,11 @@ export const TURVA_YELLOW = [
   "#a18821",
   "#6e5d17",
 ] as const;
+
+/** The two brand scales and Mantine's grey, by the names the shared components use. */
+export const primaryScale = TURVA_PURPLE;
+export const secondaryScale = TURVA_YELLOW;
+export const greyScale = DEFAULT_THEME.colors.gray;
 
 /** The logo purple. Fills that carry white text. */
 export const BRAND = TURVA_PURPLE[6];

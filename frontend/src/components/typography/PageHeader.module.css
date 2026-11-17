@@ -1,0 +1,46 @@
+/*
+ * PageHeader styles
+ *
+ * Responsive page-level heading: 1.875rem mobile → 2.5rem desktop.
+ * Breakpoint controlled by theme.breakpoints.sm via useMediaQuery.
+ */
+
+.smTitle {
+  font-size: 1.875rem !important;
+  color: var(--mantine-color-text);
+}
+
+.lgTitle {
+  font-size: 2.5rem !important;
+  color: var(--mantine-color-text);
+}
+
+/* The title and its subtitle, one block beside any action */
+.titleGroup {
+  margin: 0;
+}
+
+.subtitle {
+  margin-top: var(--mantine-spacing-xs);
+}
+
+/*
+ * Title and action on one row, wrapping on a narrow screen. The action's
+ * auto start margin pushes it right on the title's line and on a line of
+ * its own alike, which `justify-content: space-between` cannot: it has
+ * nothing to space a lone item against.
+ */
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--mantine-spacing-md);
+
+  &[data-align="center"] {
+    align-items: center;
+  }
+}
+
+.action {
+  margin-inline-start: auto;
+}
