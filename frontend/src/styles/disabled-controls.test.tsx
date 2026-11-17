@@ -4,8 +4,8 @@
  * Mantine's static `mantine-…` class names and by state, and jsdom does
  * not load the stylesheet, so these tests guard the other half: that the
  * controls the rule is meant to reach still carry a class and a state it
- * selects. The shared button and form components add their own cases as
- * they arrive.
+ * selects, and that the shared buttons do not ask for the sign themselves.
+ * The form components add their own cases when they arrive.
  */
 
 import fs from "node:fs";
@@ -13,8 +13,15 @@ import path from "node:path";
 
 import { ActionIcon, Button, Checkbox, Group, Switch, TextInput } from "@mantine/core";
 import { screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
+import ActionCardButton from "@/components/button/ActionCardButton";
+import AddButton from "@/components/button/AddButton";
+import ButtonPair from "@/components/button/ButtonPair";
+import ButtonPairRed from "@/components/button/ButtonPairRed";
+import IconTextButton from "@/components/button/IconTextButton";
+import PreviousNextButton from "@/components/button/PreviousNextButton";
+import PublicButton from "@/components/button/PublicButton";
 import { renderWithMantine } from "@/test/test-utils";
 
 /**
@@ -108,5 +115,74 @@ describe("disabled-controls.css selectors", () => {
 
     expect(ruleReaches(screen.getByRole("checkbox", { name: "Agree" }))).toBe(true);
     expect(ruleReaches(screen.getByLabelText("Name"))).toBe(true);
+  });
+});
+
+describe("the shared buttons keep the ordinary pointer when disabled", () => {
+  it("reaches a disabled action card button", () => {
+    renderWithMantine(<ActionCardButton label="Sending…" onClick={vi.fn()} disabled />);
+
+    const button = screen.getByRole("button", { name: "Sending…" });
+    expect(button).toHaveClass("mantine-Button-root");
+    expect(button).toBeDisabled();
+  });
+
+  // Each of these styles its own disabled state, so each could bring the
+  // "no entry" sign back by itself. One case apiece.
+  it("IconTextButton", () => {
+    renderWithMantine(<IconTextButton icon="refresh" label="Sync all" disabled />);
+
+    expect(screen.getByRole("button", { name: "Sync all" }).style.cursor).toBe("default");
+  });
+
+  it("AddButton", () => {
+    renderWithMantine(<AddButton label="Add hazard" onClick={vi.fn()} disabled />);
+
+    expect(screen.getByRole("button", { name: "Add hazard" }).style.cursor).toBe("default");
+  });
+
+  it("PublicButton", () => {
+    renderWithMantine(
+      <PublicButton onClick={vi.fn()} disabled>
+        Send
+      </PublicButton>,
+    );
+
+    expect(screen.getByRole("button", { name: "Send" }).style.cursor).toBe("default");
+  });
+
+  it("ButtonPair", () => {
+    renderWithMantine(<ButtonPair onAccept={vi.fn()} onCancel={vi.fn()} acceptDisabled />);
+
+    const disabled = screen
+      .getAllByRole("button")
+      .filter((button) => button.getAttribute("aria-disabled") === "true");
+
+    expect(disabled.length).toBeGreaterThan(0);
+    disabled.forEach((button) => expect(button.style.cursor).toBe("default"));
+  });
+
+  it("ButtonPairRed", () => {
+    renderWithMantine(<ButtonPairRed onAccept={vi.fn()} onCancel={vi.fn()} acceptDisabled />);
+
+    const disabled = screen
+      .getAllByRole("button")
+      .filter((button) => button.getAttribute("aria-disabled") === "true");
+
+    expect(disabled.length).toBeGreaterThan(0);
+    disabled.forEach((button) => expect(button.style.cursor).toBe("default"));
+  });
+
+  it("PreviousNextButton", () => {
+    renderWithMantine(
+      <PreviousNextButton onPrevious={vi.fn()} onNext={vi.fn()} nextDisabled />,
+    );
+
+    const disabled = screen
+      .getAllByRole("button")
+      .filter((button) => button.getAttribute("aria-disabled") === "true");
+
+    expect(disabled.length).toBeGreaterThan(0);
+    disabled.forEach((button) => expect(button.style.cursor).toBe("default"));
   });
 });

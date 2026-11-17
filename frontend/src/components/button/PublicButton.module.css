@@ -1,0 +1,39 @@
+.filled.filled {
+  background-color: var(--mantine-color-secondary-5);
+  color: var(--button-text-dark);
+  border: none;
+}
+
+.filled.filled:disabled {
+  background-color: var(--mantine-color-secondary-5);
+  opacity: 0.5;
+}
+
+.filled.filled:hover:not(:disabled) {
+  background-color: var(--mantine-color-secondary-6);
+  color: var(--button-text-dark);
+}
+
+.filled.filled:active:not(:disabled) {
+  background-color: var(--button-active-bg);
+  color: var(--button-text-dark);
+}
+
+.outline.outline {
+  background-color: transparent;
+  color: var(--mantine-color-secondary-5);
+  border: 1px solid var(--mantine-color-secondary-5);
+}
+
+.outline.outline:disabled {
+  opacity: 0.5;
+}
+
+.outline.outline:hover:not(:disabled) {
+  background-color: rgb(200 150 62 / 10%);
+  color: var(--button-outline-hover-text);
+}
+
+.outline.outline:active:not(:disabled) {
+  background-color: rgb(200 150 62 / 20%);
+}

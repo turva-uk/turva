@@ -1,0 +1,17 @@
+/*
+ * A word longer than the card breaks inside itself.
+ *
+ * A card often shows something nobody chose the length of: an address, a
+ * file name, a release id. With nowhere to wrap, it ran out of the side
+ * of the card on a phone. `anywhere`, not `break-word`, because it also
+ * lets a flex child go narrower than its longest word, and most of what
+ * sits in a card is in a Stack or a Group.
+ *
+ * The property is inherited, so it reaches every piece of text in the
+ * card. Text that fits is drawn exactly as before. The cost is in a row
+ * of things side by side, where text may be squeezed narrow before its
+ * neighbour gives way: readable, where running off the screen is not.
+ */
+.card[data-wrap-long-words] {
+  overflow-wrap: anywhere;
+}
