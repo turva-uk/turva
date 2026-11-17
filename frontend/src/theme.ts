@@ -195,6 +195,28 @@ export const BODY_FONT = "'Atkinson Hyperlegible Next Variable', sans-serif";
 export const DISPLAY_FONT = "'Cormorant Garamond Variable', serif";
 
 /**
+ * Link colours for each colour scheme. Mantine's `Anchor` reads
+ * `--mantine-color-anchor`, which points at `--link-color`.
+ *
+ * Shared with `legacyTheme.ts`, so the existing pages and the shared
+ * components cannot drift apart on links. In light mode it is `BRAND_TEXT`,
+ * as before. In dark mode it is purple shade 1, with shade 0 on hover, which
+ * are light enough to read on Mantine's dark body; `BRAND_TEXT` was 2.1:1 there.
+ */
+export const linkColourVariables = {
+  light: {
+    "--link-color": BRAND_TEXT,
+    "--link-hover-color": TURVA_PURPLE[9],
+    "--mantine-color-anchor": "var(--link-color)",
+  },
+  dark: {
+    "--link-color": TURVA_PURPLE[1],
+    "--link-hover-color": TURVA_PURPLE[0],
+    "--mantine-color-anchor": "var(--link-color)",
+  },
+} as const;
+
+/**
  * Turva's CSS variables, layered on Mantine's.
  *
  * The shared components read these by name. Each value is a Turva brand
@@ -240,9 +262,7 @@ export const cssVariablesResolver: CSSVariablesResolver = (theme) => ({
     "--mantine-color-error": "var(--error-color)",
     "--error-color": "#c4320a",
     "--error-focus-color": "#ffb3b3",
-    "--link-color": BRAND_TEXT,
-    "--link-hover-color": TURVA_PURPLE[9],
-    "--mantine-color-anchor": "var(--link-color)",
+    ...linkColourVariables.light,
     "--card-bg": "var(--mantine-color-white)",
     "--card-border": "var(--mantine-color-gray-3)",
     "--card-border-color": "var(--mantine-color-gray-3)",
@@ -257,10 +277,7 @@ export const cssVariablesResolver: CSSVariablesResolver = (theme) => ({
     "--mantine-color-error": "var(--error-color)",
     "--error-color": "#ff8a65",
     "--error-focus-color": "#ffb3b3",
-    // Purple shade 1 and 0 are light enough to read on Mantine's dark body.
-    "--link-color": TURVA_PURPLE[1],
-    "--link-hover-color": TURVA_PURPLE[0],
-    "--mantine-color-anchor": "var(--link-color)",
+    ...linkColourVariables.dark,
     "--card-bg": "var(--mantine-color-dark-6)",
     "--card-border": "var(--mantine-color-dark-4)",
     "--card-border-color": "transparent",
