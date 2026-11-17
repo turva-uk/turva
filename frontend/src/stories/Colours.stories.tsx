@@ -6,9 +6,10 @@
  * scheme to see the ones that change in dark mode.
  */
 
-import { Box, Group, Stack, Text, Title } from "@mantine/core";
+import { Box, Group, Stack } from "@mantine/core";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
+import { BodyText, Heading } from "@/components/typography";
 import { StoryNote } from "@/stories/variants";
 import {
   statusColours,
@@ -35,7 +36,7 @@ function Swatch({ colour, label }: { colour: string; label: string }) {
   return (
     <Stack gap={4} w={88}>
       <Box h={48} style={{ background: colour }} />
-      <Text size="xs">{label}</Text>
+      <StoryNote mt={0}>{label}</StoryNote>
     </Stack>
   );
 }
@@ -44,7 +45,7 @@ function Swatch({ colour, label }: { colour: string; label: string }) {
 function Scale({ name, shades }: { name: string; shades: readonly string[] }) {
   return (
     <Stack gap="xs">
-      <Title order={3}>{name}</Title>
+      <Heading>{name}</Heading>
       <Group gap={4} align="flex-start">
         {shades.map((shade, index) => (
           <Swatch key={shade} colour={shade} label={`${index} ${shade}`} />
@@ -75,13 +76,11 @@ export const Status: Story = {
             py={6}
             style={{ background: statusColours[name].bg, color: statusTextColour(name) }}
           >
-            <Text c="inherit" fw={700}>
-              {name}
-            </Text>
+            <BodyText c="inherit">{name}</BodyText>
           </Box>
-          <Text c={statusColours[name].fg} fw={700} w={120}>
-            {name}
-          </Text>
+          <Box w={120}>
+            <BodyText c={statusColours[name].fg}>{name}</BodyText>
+          </Box>
           <StoryNote mt={0}>{statusColours[name].usage}</StoryNote>
         </Group>
       ))}
@@ -95,9 +94,7 @@ export const TextColours: Story = {
     <Stack gap="md">
       {Object.entries(textColours).map(([name, colour]) => (
         <Stack key={name} gap={0}>
-          <Text c={colour.value} fw={500}>
-            {name}: the quick brown fox
-          </Text>
+          <BodyText c={colour.value}>{name}: the quick brown fox</BodyText>
           <StoryNote mt={0}>{colour.usage}</StoryNote>
         </Stack>
       ))}

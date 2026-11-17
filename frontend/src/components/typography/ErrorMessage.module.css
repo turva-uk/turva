@@ -1,0 +1,12 @@
+.icon {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+}
+
+@media (width >= 40em) {
+  .icon {
+    width: 28px;
+    height: 28px;
+  }
+}

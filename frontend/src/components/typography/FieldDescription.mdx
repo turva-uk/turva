@@ -1,0 +1,45 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+
+<Meta title="Foundations/Typography/FieldDescription/Guide" />
+
+# FieldDescription
+
+`FieldDescription` is a secondary text component used beneath form field labels to provide supplementary guidance or context. It renders in the theme's muted colour (`dimmed`) at body text weight to visually distinguish it from the label itself. `dimmed` is `gray.7` in light mode and `primary.1` in dark, both above the WCAG AA 4.5:1 contrast minimum; it used to be `gray.6`, which is 3.3:1 on white.
+
+## When to use
+
+Use `FieldDescription` whenever a form field needs additional explanation beyond its label.
+
+- **Clarifying expected input** - e.g. "Must be at least 8 characters"
+- **Providing context** - e.g. "Choose how you would like to be contacted"
+- **Format hints** - e.g. "DD/MM/YYYY"
+- **Constraint information** - e.g. "Maximum 500 characters"
+
+## When NOT to use
+
+- **Error messages** - use `ErrorMessage` instead (red, appears after validation failure)
+- **Standalone body copy** - use `BodyText` or `BodyTextInline`
+- **Headings or labels** - use `Heading` or the field's `label` prop
+
+## Which form components support it?
+
+All form field components accept a `description` prop that renders `FieldDescription` automatically:
+
+| Component       | Prop          |
+| --------------- | ------------- |
+| `TextField`     | `description` |
+| `TextAreaField` | `description` |
+| `SelectField`   | `description` |
+| `RadioField`    | `description` |
+| `SolidSwitch`   | `description` |
+| `EmailField`    | `description` |
+
+You should never need to use `FieldDescription` directly - pass the `description` prop to the form field instead.
+
+## Styling
+
+| Property    | Value          |
+| ----------- | -------------- |
+| Font size   | `lg` (20→24px) |
+| Font weight | `500` (body)   |
+| Colour      | `dimmed`       |
