@@ -1,0 +1,37 @@
+/*
+ * Turva's belt spinner. The animation is the image itself, so the only
+ * motion this stylesheet adds is a gentle fade for somebody who has asked
+ * for less motion, who sees the still first frame instead.
+ */
+.spinner {
+  display: block;
+}
+
+.still,
+.picture,
+.image {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.image {
+  object-fit: contain;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .still {
+    animation: pulse 1.6s ease-in-out infinite;
+  }
+}

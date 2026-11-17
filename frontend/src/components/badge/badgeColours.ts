@@ -31,7 +31,7 @@ export type BadgeColourConfig = {
  * - info: blue - upcoming, amended, admin, unread
  * - neutral: yellow - staff, default
  * - accent: violet - incomplete, special states
- * - alert: red - no-show, patient, attention needed
+ * - alert: red - attention needed
  */
 export const badgeColours: Record<BadgeColour, BadgeColourConfig> = {
   success: { bg: "var(--success-color)", text: "white" },
