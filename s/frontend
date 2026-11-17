@@ -7,6 +7,7 @@
 #   ./s/frontend lint        eslint
 #   ./s/frontend test:ci     vitest, once
 #   ./s/frontend build       production bundle
+#   ./s/frontend storybook   Storybook, the shared component catalogue
 #
 # With no arguments, runs the whole gate CI runs, in CI's order.
 #
@@ -38,6 +39,8 @@ if [ "$#" -eq 0 ]; then
 	npm run test:ci
 	echo "==> build"
 	npm run build
+	echo "==> storybook build"
+	npm run build-storybook
 	exit 0
 fi
 

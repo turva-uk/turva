@@ -1,0 +1,52 @@
+/**
+ * Touch targets
+ *
+ * Below the sm breakpoint (40em) the md button, the size used throughout
+ * the app, is drawn 48px tall rather than Mantine's 42px, clearing the
+ * 44px touch target of WCAG 2.5.5 and the NHS service manual. Only the
+ * height changes: the label stays centred, with the same font size and
+ * side padding.
+ *
+ * The xs and sm buttons, used for row actions in tables and on messages,
+ * are drawn 44px tall rather than 30px and 36px. They stay 4px shorter
+ * than the md button, and keep their smaller text and padding, so they
+ * still read as secondary.
+ *
+ * The md close button, Mantine's default and the ✕ on every modal,
+ * drawer, notification and FormStatus message, is drawn 44px rather than
+ * 28px. Its ✕ grows from 20px to 24px rather than keeping Mantine's 70%,
+ * which at 44px would be a heavy 31px. The clear ✕ of a clearable select
+ * is a different component, InputClearButton, and is left alone: it shares
+ * the input's right section with the chevron.
+ *
+ * The md text input, used by every form field component, is drawn 44px
+ * tall rather than 42px, and the section at its right end, where the
+ * password eye and the close-search ✕ sit, is as wide as the input is
+ * tall rather than 2px narrower. The password eye then fills that 44px
+ * square instead of sitting at 28px inside it. Its icon stays 22px.
+ *
+ * Mantine sets its size variables on each component's own class, so these
+ * override them there; this file loads after Mantine's stylesheet and wins
+ * on source order at equal specificity.
+ */
+@media (width <= 40em) {
+  .mantine-Button-root {
+    --button-height-xs: calc(2.75rem * var(--mantine-scale));
+    --button-height-sm: calc(2.75rem * var(--mantine-scale));
+    --button-height-md: calc(3rem * var(--mantine-scale));
+  }
+
+  .mantine-CloseButton-root {
+    --cb-size-md: calc(2.75rem * var(--mantine-scale));
+    --cb-icon-size: calc(1.5rem * var(--mantine-scale));
+  }
+
+  .mantine-Input-wrapper {
+    --input-height-md: calc(2.75rem * var(--mantine-scale));
+    --input-right-section-width: var(--input-height);
+  }
+
+  .mantine-PasswordInput-visibilityToggle {
+    --psi-button-size: var(--input-height);
+  }
+}
