@@ -31,6 +31,8 @@ This plan brings across the foundations of that catalogue: Storybook itself, the
 - [x] **What does the run do if the editor's round-trip test shows content lost, not just reformatted?** Turva's safety files use HTML comments, which Tiptap may drop. No page saves through the editor in this plan. - Record it and carry on: a test pins what is lost, the pull request lists it, and the plan notes that the later plan must fix it before any page saves through the editor. Answered in `/g`, 17 November 2026.
 - [x] **Is `previewAssessment` a required prop, or does it default to calling Turva's API?** Quill's safety components never fetch. - It defaults to the API call, in both `HazardForm` and `ExtractionReview`. Stories and tests pass a fake, so none of them reaches the network. Answered in `/g`, 17 November 2026.
 
+- [x] **Does this stack stay on #82?** #82 (`feature/claude-components-rule`) committed `components.md` and `pages.md` before the components they describe existed. - Yes, but #82 now holds only the line accepting `I` and `IMPLEMENT` in upper case, in `.claude-personal/mark/CLAUDE.md`. The rule files and the in-code-documentation skill's pointer come out of it and stay on disk, untracked and ignored through `.git/info/exclude`, until Phase 15 commits them. Keeping #82 as #83's base means GitHub never has to change it. The stack was first moved onto #81, then back onto the smaller #82 once that was pushed. Decided by Mark, 17 November 2026, instead of closing #82.
+
 ## Before running /f
 
 - [x] **Install Node 26 or newer on the dev box.** `./s/frontend` asks for it, and the host had Node 24.22.1. Done 17 November 2026: Node 26.13.1, with npm 11.20.0, from NodeSource's `node_26.x` repository.
@@ -151,9 +153,18 @@ As built:
 
 ## Phase 12: Safety components Turva's API backs
 
-- [ ] Create `frontend/src/test/safetyFile.ts`, the sample safety file the stories and tests share, in Turva's shape: a `SafetyFileDetail` with hazards, mitigations and history, written as Turva safety file content rather than Quill's. Its risk levels are ones the server would derive, taken from Turva's own risk matrix, never invented.
+- [x] Create `frontend/src/test/safetyFile.ts`, the sample safety file the stories and tests share, in Turva's shape: a `SafetyFileDetail` with hazards, mitigations and history, written as Turva safety file content rather than Quill's. Its risk levels are ones the server would derive, taken from Turva's own risk matrix, never invented.
 - [ ] Turva's existing `RiskLevel`, `HazardLog`, `MitigationList`, `HistoryTable` and `PDFDownload` in `frontend/src/components/` stay as they are, since the existing pages use them and are left alone until a later plan. Bring across `RiskScoreBadge`, `HazardTable`, `HazardDetail`, `HazardForm` and `SafetyCaseTable` from `turva-port-quill/frontend/src/components/safety/` into `frontend/src/components/safety/`, with their stories and tests, rewritten to Turva's types: `risk_label` for `risk_level_label`, `short_sha` for `sha`, `organisation` for the org unit, and `slug` where Quill used the file's id. `SafetyCaseTable` lists Turva's `SafetyFile`, which has no status, so its status column goes. `HazardForm` shows the risk level from a `previewAssessment` prop, which defaults to `previewAssessment` from `lib/safety/api.ts`, and never sends a level. Every story and test passes a fake, so none reaches the network; a test checks the default is the API function. The `HazardDetail` component shares its name with the `HazardDetail` type, so files that need both import the type under another name.
-- [ ] Check: `./s/frontend` passes, with the Storybook build, `./s/lint` passes, and `npm run test-storybook:ci` passes every story in light and dark mode. A test on `HazardForm` checks that its submitted values hold severity and likelihood and no risk level.
+- [x] Check: `./s/frontend` passes, with the Storybook build, `./s/lint` passes, and `npm run test-storybook:ci` passes every story in light and dark mode. A test on `HazardForm` checks that its submitted values hold severity and likelihood and no risk level. As run on 17 November 2026: `./s/frontend` passed (968 tests, and the Storybook build), the story check passed all 360 stories on port 6106, and `./s/test -k sample_risk_matrix` passed. Changing one cell of the sample matrix made it fail.
+
+As built:
+
+- **The sample file keeps a copy of Turva's matrix, for sample data only.** `samplePreview` stands in for `previewAssessment` in every story and test, and a story lets anyone pick any pair, so it needs all 25 cells. `app/config/tests/test_sample_risk_matrix.py` reads the copy and checks every cell and label against `safety_file/risk.py`. The app never reads it.
+- **`HazardForm` takes `options`**, what `hazard-options/` serves, for the scores' words and the statuses, and an `Owner's email` field, which Turva's write requires. It has no mitigations select: Turva's hazard write refuses `mitigations`, and a mitigation names its hazards instead.
+- **The level is shown only for the scores now chosen.** A new pair aborts the request for the old one, and while the answer is on its way the form shows a `BrandSpinner` saying it is working the level out. If the server cannot be asked, it says so and that the level is worked out again on saving.
+- **`HazardDetail` takes `options` too**, to put words to each score. Turva's `Assessment` carries the level's words but not the scores', so without `options` a score shows as its number.
+- **`HazardTable` shows a status Turva does not know as it came**, in the neutral colour, since Turva sends the status as a string.
+- **The sample hazards are named** (`MITIGATED_HAZARD`, `BLOCKING_HAZARD`, `CLOSED_HAZARD`) so the stories and tests need no index that strict TypeScript reads as possibly missing. A closed one was added, so the table shows every status.
 
 ## Phase 13: Safety components ahead of Turva's API
 
@@ -169,6 +180,15 @@ These are ahead of Turva's API too, and their stories open with "Not yet in Turv
 - [ ] Bring across `SignOffPanel`, `OfficerList`, `AssignmentTable`, `AssignMitigationForm`, `AssignmentEvidenceForm` and `WorkshopForm`, with their stories and tests, on the Phase 11 types. `SignOffPanel` uses `CodeConfirmModal` from #88.
 - [ ] Bring across the `SafetyLayout` stories, which show the components together on a page. Quill wraps them in its `MainLayout`, which needs Quill's navigation, ribbons and inbox, so these stories use `PageHeader` and a plain Mantine `Stack` instead.
 - [ ] Check: `./s/frontend` passes, with the Storybook build, `./s/lint` passes, and `npm run test-storybook:ci` passes every story in light and dark mode.
+
+## Phase 15: Rules for the components as ported
+
+`.claude-personal/mark/rules/components.md` and `pages.md` were written for Quill's catalogue and committed in #82, before Turva had the components. #82 now holds only the upper-case `I` line, so the two files sit on disk untracked, ignored through `.git/info/exclude`, until this phase commits them. Step 49 of the Claude set-up port plan is finished by it.
+
+- [ ] Rewrite `components.md` and `pages.md` to match the components this plan actually ported, as they stand at the top of the stack: the folder names, the props, the helpers (`renderWithMantine`, `StoryNote`, `hazardRows`), the colour tokens in `theme.ts` and `semanticColours.ts`, and the lint exceptions in `eslint.config.js`. Take out anything that names a Quill component Turva did not bring across, such as `MainLayout` and `useNavCollapsed()`, and say how the existing pages, on `legacyTheme.ts`, differ until they move across. Remove the two lines for them from `.git/info/exclude`, so git sees them again.
+- [ ] Put back the in-code-documentation skill's pointer to `components.md`, in `.claude-personal/mark/skills/in-code-documentation/SKILL.md`, as #82 had it.
+- [ ] Bring step 49 of `plans/2026-11-16-claude-setup-port-plan.md` up to date, then tick it. Its second sentence says the two rules "were kept out of #69 ... and come in a pull request of their own at the top of the stack instead". Rewrite that part to say what happened: the rules were held back from the Claude stack, kept on disk and ignored through `.git/info/exclude` while the Storybook components were built, then rewritten for the ported components and committed in the last branch of the Storybook stack, with the in-code-documentation skill's pointer to `components.md`. Keep the rest of the step as it is, the `frontend/src/components/**` and `frontend/src/pages/**` paths included. Doing it in this branch means nothing on the Claude stack, #69 or above, is rebased. Asked for by Mark through turva-4b, 17 November 2026.
+- [ ] Check: `./s/lint` passes, cspell included. Every path, component and helper the two rules name exists in `frontend/src/`, checked with a short script that greps for each one.
 
 ## Decisions
 
