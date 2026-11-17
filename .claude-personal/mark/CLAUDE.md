@@ -26,6 +26,9 @@ The word counts only when it stands alone, in one of two ways:
   implement
   ```
 
+Upper case counts too, either way: `I` and `IMPLEMENT` are the same
+instruction.
+
 Anything else is not the instruction, however much it sounds like one.
 "Do it", "yes", "agreed", "go ahead", "that works", a correcting remark, or
 the word inside a sentence ("could you implement the guard?") all leave the
