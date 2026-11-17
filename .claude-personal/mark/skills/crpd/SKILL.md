@@ -72,8 +72,8 @@ These hold on every run.
   the permission layer too - if a block stops you, that is the rule working,
   not an obstacle to route around.
 - **Never commit or push to `main` directly.** Every unit of work goes on
-  its own branch and through a pull request, even though `main` does not
-  enforce it.
+  its own branch and through a pull request, as `AGENTS.md` requires, even
+  though GitHub does not enforce it yet.
 - **Never run `git rebase` yourself.** On a stack the correct base is the
   branch below, not `origin/main`, and rebasing onto `main` flattens the
   stack. `gh stack rebase` cascades through the stack, and step 6 checks its

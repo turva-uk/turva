@@ -101,8 +101,9 @@ TL;DR.
 
 ## Git and pull requests
 
-This is stricter than the Git Workflow in `AGENTS.md`, which allows direct
-commits to `main` and asks agents to commit each finished parcel.
+This is stricter than the Git Workflow in `AGENTS.md`, which already rules out
+committing to `main` directly but asks agents to commit and push each finished
+parcel.
 
 - **Never commit or push unless asked.** `/crpd` is the usual way, and a
   plain request in the person's own words is the other. Finishing a piece of
