@@ -164,6 +164,41 @@ jobs:
       - name: Build Storybook
         run: npm run build-storybook
 
+  storybook-a11y:
+    name: Storybook accessibility (WCAG 2.2 AA, light and dark)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "26"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --no-fund --no-audit
+
+      # The browser the test-runner drives, at the version the lockfile's
+      # Playwright expects, with the system libraries it needs.
+      - name: Install Chromium for Playwright
+        run: npx playwright install --with-deps chromium
+
+      - name: Build Storybook
+        run: npm run build-storybook
+
+      # Serves the static build and visits every story. axe checks each one
+      # against WCAG 2.2 AA in light mode, then again in dark
+      # (.storybook/a11y-dark-mode.ts). Any violation fails the job.
+      - name: Check every story with axe
+        run: npm run test-storybook:ci
+
   locks:
     name: Dependency locks are reproducible
     runs-on: ubuntu-latest

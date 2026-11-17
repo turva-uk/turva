@@ -249,6 +249,10 @@ export const cssVariablesResolver: CSSVariablesResolver = (theme) => ({
     ...statusTextVariables(statusTextColourValues.light),
   },
   dark: {
+    // Muted text (`c="dimmed"`, and every StoryNote). Mantine's dark.2 is
+    // 4.1:1 on its dark body, under AA; dark.1 is 7.9:1 there and 7.1:1 on
+    // the card surface, dark.6.
+    "--mantine-color-dimmed": theme.colors.dark[1],
     // A light coral in dark mode, where the light-mode red is too dark.
     "--mantine-color-error": "var(--error-color)",
     "--error-color": "#ff8a65",
@@ -296,7 +300,9 @@ export const theme = createTheme({
     // Semantic alert fills still distinguish warnings/errors, but their small
     // headings need normal text contrast (the default yellow heading fails AA).
     Alert: { styles: { title: { color: "var(--mantine-color-text)" } } },
-    Anchor: { defaultProps: { c: BRAND_TEXT } },
+    // No fixed colour on Anchor: `--mantine-color-anchor` is `--link-color`,
+    // BRAND_TEXT in light mode and a pale purple in dark, where BRAND_TEXT
+    // would be 2.1:1 on the dark body.
     Button: { defaultProps: { radius: 0 } },
     TextInput: { defaultProps: { radius: 0 } },
     Select: { defaultProps: { radius: 0 } },

@@ -11,7 +11,7 @@ const meta = {
     (Story) => (
       <div
         style={{
-          background: "var(--brand-primary)",
+          background: "var(--mantine-color-primary-9)",
           minHeight: "100vh",
           padding: "var(--mantine-spacing-xl)",
         }}

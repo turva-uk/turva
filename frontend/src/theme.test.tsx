@@ -110,6 +110,26 @@ describe("shared component tokens", () => {
     expect(resolved.dark["--success-text-color"]).toBe(statusTextColourValues.dark.success);
   });
 
+  it("gives dimmed text at least 4.5:1 on the dark body and card in dark mode", () => {
+    const merged = mergeMantineTheme(DEFAULT_THEME, theme);
+    const dimmed = cssVariablesResolver(merged).dark["--mantine-color-dimmed"] ?? "";
+
+    expect(contrast(dimmed, merged.colors.dark[7] ?? "")).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(dimmed, merged.colors.dark[6] ?? "")).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it("leaves links to the scheme's link colour, readable in dark mode", () => {
+    const merged = mergeMantineTheme(DEFAULT_THEME, theme);
+    const resolved = cssVariablesResolver(merged);
+
+    expect(theme.components?.["Anchor"]).toBeUndefined();
+    expect(resolved.light["--mantine-color-anchor"]).toBe("var(--link-color)");
+    expect(resolved.dark["--mantine-color-anchor"]).toBe("var(--link-color)");
+    expect(
+      contrast(resolved.dark["--link-color"] ?? "", merged.colors.dark[7] ?? ""),
+    ).toBeGreaterThanOrEqual(4.5);
+  });
+
   it("never cuts a badge short", () => {
     render(
       <MantineProvider theme={theme}>
