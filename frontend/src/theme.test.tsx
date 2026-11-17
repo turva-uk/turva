@@ -1,4 +1,11 @@
-import { Alert, DEFAULT_THEME, MantineProvider, Modal, mergeMantineTheme } from "@mantine/core";
+import {
+  Alert,
+  Badge,
+  DEFAULT_THEME,
+  MantineProvider,
+  Modal,
+  mergeMantineTheme,
+} from "@mantine/core";
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
@@ -101,6 +108,19 @@ describe("shared component tokens", () => {
     expect(resolved.variables["--brand-primary"]).toBe(BRAND);
     expect(resolved.light["--success-text-color"]).toBe(statusTextColourValues.light.success);
     expect(resolved.dark["--success-text-color"]).toBe(statusTextColourValues.dark.success);
+  });
+
+  it("never cuts a badge short", () => {
+    render(
+      <MantineProvider theme={theme}>
+        <Badge>Awaiting sign-off</Badge>
+      </MantineProvider>,
+    );
+
+    const label = screen.getByText("Awaiting sign-off");
+    expect(label.style.whiteSpace).toBe("nowrap");
+    expect(label.style.textOverflow).toBe("clip");
+    expect(label.closest<HTMLElement>(".mantine-Badge-root")?.style.flexShrink).toBe("0");
   });
 
   it("names the modal close button", () => {
