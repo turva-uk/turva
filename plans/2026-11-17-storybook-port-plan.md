@@ -170,8 +170,15 @@ As built:
 
 These show features Turva's API does not have yet. Each story's description says so in its first line, "Not yet in Turva's API: ...", so nobody reads the catalogue as a list of what Turva does.
 
-- [ ] Bring across `SafetyStatusBadge`, `DocumentTable`, `SafetyDocumentSheet`, `ExtractionReview`, `NextStepCard` and `ProcessStepTable`, with their stories and tests, on the Phase 11 types. `ExtractionReview` takes its levels from a `previewAssessment` prop that defaults to the API call, as `HazardForm` does, instead of `riskMatrix`; its stories and tests pass a fake.
-- [ ] Check: `./s/frontend` passes, with the Storybook build, `./s/lint` passes, and `npm run test-storybook:ci` passes every story in light and dark mode.
+- [x] Bring across `SafetyStatusBadge`, `DocumentTable`, `SafetyDocumentSheet`, `ExtractionReview`, `NextStepCard` and `ProcessStepTable`, with their stories and tests, on the Phase 11 types. `ExtractionReview` takes its levels from a `previewAssessment` prop that defaults to the API call, as `HazardForm` does, instead of `riskMatrix`; its stories and tests pass a fake.
+- [x] Check: `./s/frontend` passes, with the Storybook build, `./s/lint` passes, and `npm run test-storybook:ci` passes every story in light and dark mode. As run on 17 November 2026: `./s/frontend` passed (994 tests, and the Storybook build), and the story check passed all 378 stories on port 6106.
+
+As built:
+
+- **"Not yet in Turva's API" shows in Storybook, not only in a comment.** `src/stories/aheadOfTheApi.tsx` is a decorator that puts the line under every story in the file, and each of the six stories files opens with it too. Each component's own comment says the same. Take the decorator off when the route is written.
+- **`HazardForm`'s preview logic moved into `useAssessmentPreview.ts`**, so `ExtractionReview` shares it. It asks nothing for a row without both scores, such as a note in the supplier's table.
+- **`ExtractionReview` takes `previewAssessment`, which defaults to the API call, instead of `template`.** `ExtractionRow` carries no level, so the review asks the server for each row's.
+- **The sample documents, extraction and process were added to `src/test/safetyFile.ts`**, under a heading marking them as not yet in Turva's API.
 
 ## Phase 14: Sign-off, assignments and workshops
 

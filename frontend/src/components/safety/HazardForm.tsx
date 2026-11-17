@@ -22,7 +22,7 @@
  */
 
 import { Alert, Button, Fieldset, SimpleGrid, Stack } from "@mantine/core";
-import { useEffect, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 
 import BaseCard from "@/components/base-card/BaseCard";
 import ButtonPair from "@/components/button/ButtonPair";
@@ -37,7 +37,6 @@ import {
   isHazardStatus,
   isRiskScore,
   previewAssessment as askTheServer,
-  type Assessment,
   type AssessmentDraft,
   type Hazard,
   type HazardDraft,
@@ -47,79 +46,11 @@ import {
 } from "@/lib/safety";
 
 import RiskScoreBadge from "./RiskScoreBadge";
-
-/** Asks for the level the server derives from a severity and likelihood. */
-export type PreviewAssessment = (
-  severity: RiskScore,
-  likelihood: RiskScore,
-  signal?: AbortSignal,
-) => Promise<Assessment>;
+import { useAssessmentPreview, type PreviewAssessment } from "./useAssessmentPreview";
 
 /** "transferred" as "Transferred", for the status select. */
 function statusLabel(status: string): string {
   return status.charAt(0).toUpperCase() + status.slice(1);
-}
-
-type Preview =
-  | { state: "none" }
-  | { state: "working" }
-  | { state: "ready"; assessment: Assessment }
-  | { state: "failed" };
-
-/**
- * The level the server gives the scores now chosen. A new pair cancels
- * the request for the old one, so an answer that arrives late is never
- * shown against scores it was not for.
- */
-function usePreview(value: AssessmentDraft, preview: PreviewAssessment): Preview {
-  const { severity, likelihood } = value;
-  const [result, setResult] = useState<{
-    key: string;
-    source: PreviewAssessment | null;
-    preview: Preview;
-  }>({
-    key: "",
-    source: null,
-    preview: { state: "working" },
-  });
-  const key = `${severity},${likelihood}`;
-
-  useEffect(() => {
-    if (severity === null || likelihood === null) return;
-    const controller = new AbortController();
-
-    void Promise.resolve()
-      .then(() => preview(severity, likelihood, controller.signal))
-      .then(
-        (assessment) => {
-          if (!controller.signal.aborted) {
-            const matches =
-              assessment &&
-              assessment.severity === severity &&
-              assessment.likelihood === likelihood &&
-              isRiskScore(assessment.risk_level) &&
-              typeof assessment.risk_label === "string" &&
-              assessment.risk_label.trim().length > 0;
-            setResult({
-              key,
-              source: preview,
-              preview: matches ? { state: "ready", assessment } : { state: "failed" },
-            });
-          }
-        },
-        () => {
-          if (!controller.signal.aborted)
-            setResult({ key, source: preview, preview: { state: "failed" } });
-        },
-      );
-
-    return () => controller.abort();
-  }, [key, severity, likelihood, preview]);
-
-  if (severity === null || likelihood === null) return { state: "none" };
-  return result.key === key && result.source === preview
-    ? result.preview
-    : { state: "working" };
 }
 
 function AssessmentFields({
@@ -139,7 +70,7 @@ function AssessmentFields({
   tried: boolean;
   readOnly: boolean;
 }) {
-  const level = usePreview(value, preview);
+  const level = useAssessmentPreview(value.severity, value.likelihood, preview);
 
   function score(next: string | null): RiskScore | null {
     const number = Number(next);

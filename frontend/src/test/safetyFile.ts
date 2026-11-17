@@ -14,6 +14,8 @@
 import type {
   Assessment,
   Commit,
+  DocumentRef,
+  Extraction,
   Hazard,
   HazardOptions,
   Mitigation,
@@ -21,6 +23,7 @@ import type {
   RiskScore,
   SafetyFile,
   SafetyFileDetail,
+  SafetyProcess,
 } from "@/lib/safety";
 
 /**
@@ -217,3 +220,107 @@ export const SAMPLE_MITIGATION_OPTIONS: MitigationOptions = {
 export function samplePreview(severity: RiskScore, likelihood: RiskScore): Promise<Assessment> {
   return Promise.resolve(assessment(severity, likelihood));
 }
+
+/* ------------------------------------------------------------------ */
+/*  Not yet in Turva's API                                             */
+/* ------------------------------------------------------------------ */
+
+/** The prose documents a DCB0160 file holds. Not yet in Turva's API. */
+export const SAMPLE_DOCUMENTS: DocumentRef[] = [
+  { path: "docs/index.md", title: "BP@Home remote blood pressure monitoring" },
+  { path: "docs/clinical-risk-management-plan.md", title: "Clinical Risk Management Plan" },
+  { path: "docs/clinical-safety-case-report.md", title: "Clinical Safety Case Report" },
+];
+
+/**
+ * A supplier's table as an extraction would read it: one hazard and a
+ * note. Not yet in Turva's API. No row carries a risk level: the review
+ * asks the server for it.
+ */
+export const SAMPLE_EXTRACTION: Extraction = {
+  source: "growth-charts.docx",
+  headers: ["Hazard number", "Hazard name", "Cause", "Severity", "Likelihood"],
+  column_map: {
+    supplier_id: 0,
+    title: 1,
+    cause: 2,
+    effect: null,
+    harm: null,
+    controls: null,
+    severity: 3,
+    likelihood: 4,
+  },
+  rows: [
+    {
+      row: 1,
+      cells: [
+        "dGC-49",
+        "The API returns an incorrect centile",
+        "A fault in the calculation library.",
+        "Major",
+        "Very low",
+      ],
+      supplier_id: "dGC-49",
+      title: "The API returns an incorrect centile",
+      cause: "A fault in the calculation library.",
+      effect: "",
+      harm: "",
+      controls: "",
+      severity: 4,
+      likelihood: 1,
+      problems: [],
+    },
+    {
+      row: 2,
+      cells: ["Note", "Rows below are still being triaged.", "", "", ""],
+      supplier_id: "Note",
+      title: "Rows below are still being triaged.",
+      cause: "",
+      effect: "",
+      harm: "",
+      controls: "",
+      severity: null,
+      likelihood: null,
+      problems: ["no severity", "no likelihood"],
+    },
+  ],
+};
+
+/** A process part-way through: the supplier onboarded, no workshop yet. Not yet in Turva's API. */
+export const SAMPLE_PROCESS: SafetyProcess = {
+  next_step: "hold-a-hazard-workshop",
+  steps: [
+    {
+      id: "describe-the-system",
+      title: "Describe the system and its intended use",
+      guide: "docs/guide/describe-the-system.md",
+      cites: ["4.2.1", "4.2.2", "4.2.3"],
+      done: true,
+      reasons: [],
+    },
+    {
+      id: "onboard-the-supplier",
+      title: "Onboard the supplier's safety case",
+      guide: "docs/guide/onboard-the-supplier.md",
+      cites: ["2.5.1"],
+      done: true,
+      reasons: [],
+    },
+    {
+      id: "hold-a-hazard-workshop",
+      title: "Hold a hazard workshop",
+      guide: "docs/guide/hold-a-hazard-workshop.md",
+      cites: ["4.1.2", "4.3.1"],
+      done: false,
+      reasons: ["no hazard workshop has been recorded"],
+    },
+    {
+      id: "approve-the-safety-case",
+      title: "The Clinical Safety Officer approves the safety case",
+      guide: "docs/guide/approve-the-safety-case.md",
+      cites: ["3.3.2", "3.5.2"],
+      done: false,
+      reasons: ["the safety case is not yet approved"],
+    },
+  ],
+};
