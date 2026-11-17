@@ -1,0 +1,39 @@
+.group {
+  flex-direction: column;
+}
+
+.group > button {
+  width: 100%;
+}
+
+@media (width >= 40em) {
+  .group {
+    flex-direction: row;
+  }
+
+  .group > button {
+    width: auto;
+  }
+}
+
+.fullWidth {
+  flex-direction: column;
+}
+
+.fullWidth > button {
+  width: 100%;
+}
+
+/*
+ * Kept at the foot of the scrolling area, with the page's background
+ * behind it and a line above, so text scrolling under it neither shows
+ * through nor runs into the buttons. How far down it sits is set in
+ * ButtonPair.tsx, from the layout's padding.
+ */
+.sticky {
+  position: sticky;
+  z-index: 2;
+  padding-block: var(--mantine-spacing-sm);
+  border-top: 0.0625rem solid var(--mantine-color-default-border);
+  background: var(--mantine-color-body);
+}
