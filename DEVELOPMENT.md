@@ -46,6 +46,23 @@ The dev server runs in Docker as part of `./s/up`, so `./s/frontend` is for the 
 | `postgres` | Index and operational state (users, sessions, permissions) | 5433 → 5432 |
 | `caddy`    | Reverse proxy, passes the whole URL space to the API       | 80, 443     |
 
+### Running a second stack from another worktree
+
+Each git worktree can run its own stack, alongside the one in your main checkout. Compose names the containers after the worktree's folder, so they do not clash. The published ports do, so move them in the second worktree:
+
+```bash
+export TURVA_WEB_PORT=8010
+export TURVA_FRONTEND_PORT=5183
+export TURVA_POSTGRES_PORT=5443
+export TURVA_HTTP_PORT=8081
+export TURVA_HTTPS_PORT=8444
+./s/up -d
+./s/test
+./s/down
+```
+
+Any free ports will do. Keep the variables set in the shell you use for that worktree's stack, since `./s/up` and a rebuild both read them. The second stack has its own database and its own `.turva-data/`, so nothing it does reaches the first.
+
 ## Where the safety files live
 
 Each Clinical Safety Management File is a Git repository under

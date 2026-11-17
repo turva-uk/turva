@@ -28,11 +28,16 @@
 # Set TURVA_WEB_PORT when another local service owns port 8000, for example:
 #   TURVA_WEB_PORT=8010 ./s/up -d
 # The React URL and its internal API proxy do not change.
+#
+# TURVA_FRONTEND_PORT, TURVA_POSTGRES_PORT, TURVA_HTTP_PORT and
+# TURVA_HTTPS_PORT move the other published ports the same way, so a second
+# worktree can run its own stack beside the first (see DEVELOPMENT.md). The
+# browser opens on TURVA_FRONTEND_PORT.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-URL=${TURVA_URL:-http://localhost:5173}
+URL=${TURVA_URL:-http://localhost:${TURVA_FRONTEND_PORT:-5173}}
 
 # The safety file repositories are bind-mounted from here. Create the directory
 # first: Docker creates a missing bind-mount source as root, which the container

@@ -1,6 +1,9 @@
+# No service sets `container_name`. Compose then names each container after
+# the project, which is the folder name, so a second worktree runs its own
+# stack beside the first. Every published port reads a TURVA_*_PORT variable
+# for the same reason; see DEVELOPMENT.md.
 services:
   web:
-    container_name: "turva-web"
     build:
       # Context is the repository root: the image needs both the Django project
       # and the safety_file library as sibling packages.
@@ -20,6 +23,10 @@ services:
       # different colours - so the comparison needs to run somewhere, and this
       # is where the suite already runs.
       - ./frontend/src:/srv/frontend/src:ro
+      # Read-only, and only so a test can check that two worktrees can each
+      # run this stack: no fixed container names, and every published port
+      # read from the environment.
+      - ./docker-compose.yml:/srv/docker-compose.yml:ro
       # Safety file repositories - the system of record.
       #
       # A bind mount, not a named volume, so the repositories are visible on the
@@ -67,7 +74,6 @@ services:
       start_period: 5s
 
   frontend:
-    container_name: "turva-frontend"
     build:
       context: ./frontend
       dockerfile: Dockerfile
@@ -80,7 +86,7 @@ services:
       # different architecture breaks the container silently.
       - /srv/frontend/node_modules
     ports:
-      - "5173:5173"
+      - "${TURVA_FRONTEND_PORT:-5173}:5173"
     environment:
       # Vite proxies /api to Django, so the browser sees one origin and the
       # session and CSRF cookies behave exactly as they will in deployment.
@@ -90,11 +96,10 @@ services:
         condition: service_healthy
 
   caddy:
-    container_name: "turva-caddy"
     image: caddy:2.11.7-alpine
     ports:
-      - "80:80"
-      - "443:443"
+      - "${TURVA_HTTP_PORT:-80}:80"
+      - "${TURVA_HTTPS_PORT:-443}:443"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile
       - caddy_data:/data
@@ -103,7 +108,6 @@ services:
       - web
 
   postgres:
-    container_name: "turva-postgres"
     # Pinned deliberately. PGDATA includes the major version
     # (/var/lib/postgresql/18/docker) while the volume is mounted one level up,
     # so a floating tag would silently initialise an empty database inside the
@@ -115,7 +119,7 @@ services:
       POSTGRES_PASSWORD: thisismypassword
       POSTGRES_DB: postgres
     ports:
-      - "5433:5432"
+      - "${TURVA_POSTGRES_PORT:-5433}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql
     healthcheck:
