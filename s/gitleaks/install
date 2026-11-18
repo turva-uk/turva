@@ -1,0 +1,74 @@
+#!/usr/bin/env bash
+# Downloads the gitleaks release the pre-commit hook pins, checks it against
+# gitleaks' published checksums, and installs it into a folder.
+#
+# Usage: s/gitleaks/install <folder>
+#
+# CI uses it before s/gitleaks/scan-commits. The version is read from the
+# gitleaks `rev` in .pre-commit-config.yaml, so the hook and CI scan with the
+# same release, and Dependabot's pre-commit updates bump both at once.
+#
+# Safe to run twice: it overwrites the copy it installed before.
+set -euo pipefail
+
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+
+# The version after `rev: v` on the line below the gitleaks repository in
+# .pre-commit-config.yaml, such as 8.30.1.
+pinned_version() {
+	local config="${root}/.pre-commit-config.yaml"
+	local version
+
+	version="$(awk '
+		/repo: https:\/\/github.com\/gitleaks\/gitleaks$/ { found = 1; next }
+		found && /rev:/ { sub(/.*rev: *v?/, ""); print; exit }
+	' "${config}")"
+
+	if [ -z "${version}" ]; then
+		echo "Could not read the gitleaks rev from ${config}." >&2
+		return 1
+	fi
+
+	echo "${version}"
+}
+
+main() {
+	local folder="${1:-}"
+	local version
+	local base_url
+	local archive
+	local checksums
+	local work
+
+	if [ -z "${folder}" ]; then
+		echo "No folder given. Usage: s/gitleaks/install <folder>" >&2
+		exit 1
+	fi
+
+	version="$(pinned_version)"
+	base_url="https://github.com/gitleaks/gitleaks/releases/download/v${version}"
+	archive="gitleaks_${version}_linux_x64.tar.gz"
+	checksums="gitleaks_${version}_checksums.txt"
+	work="$(mktemp -d)"
+	# shellcheck disable=SC2064
+	trap "rm -rf '${work}'" EXIT
+
+	echo "Downloading gitleaks ${version}"
+	curl -fsSL --retry 1 --retry-delay 30 -o "${work}/${archive}" "${base_url}/${archive}"
+	curl -fsSL --retry 1 --retry-delay 30 -o "${work}/${checksums}" "${base_url}/${checksums}"
+
+	if ! (cd "${work}" && grep " ${archive}\$" "${checksums}" | sha256sum -c - >/dev/null); then
+		echo "The download of ${archive} does not match gitleaks' published checksum." >&2
+		exit 1
+	fi
+
+	tar -xzf "${work}/${archive}" -C "${work}" gitleaks
+	mkdir -p "${folder}"
+	install -m 0755 "${work}/gitleaks" "${folder}/gitleaks"
+
+	echo "Installed gitleaks ${version} in ${folder}"
+}
+
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+	main "$@"
+fi

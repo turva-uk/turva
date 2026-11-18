@@ -1,0 +1,97 @@
+#!/usr/bin/env bash
+# Scans the commits a branch adds for secrets, after proving the scan works.
+#
+# Usage: s/gitleaks/scan-commits <base-ref>
+#
+# <base-ref> is what the branch is measured against, such as origin/main.
+# Every commit reachable from HEAD and not from it is scanned, so the
+# checkout needs the full history (fetch-depth: 0 in CI).
+#
+# The pre-commit hook scans what is staged, on the machine that commits. A
+# commit made where the hook is not switched on, or with --no-verify, never
+# meets it. This is the same scan, run in CI where every commit must pass.
+#
+# It proves itself first. gitleaks exits 0 when it finds nothing, and it
+# finds nothing when it has no rules. So before the real scan, it writes a
+# made-up key into a scratch folder and checks that gitleaks reports it. If
+# gitleaks does not, the scan fails without scanning, because a scan that
+# cannot find a planted key has not shown that the commits are clean.
+set -euo pipefail
+
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+config="${root}/.gitleaks.toml"
+
+# Write a file holding a made-up GitHub personal access token into a folder.
+# A GitHub token is a secret Turva's developers really hold, for the
+# Terraform that manages the repository's settings. Its shape is what
+# gitleaks' github-pat rule looks for: the ghp_ prefix and 36 letters and
+# digits. It is built from two halves so that this script does not hold a
+# whole token for the scan to find.
+plant_canary() {
+	local folder="$1"
+	local prefix="ghp_"
+	local body="Q7zXn2MhR5tB3wLk9PvC4dYs8JgF6eKa1UxN"
+
+	echo "GITHUB_TOKEN = \"${prefix}${body}\"" >"${folder}/settings.ini"
+}
+
+# Check that gitleaks reports the planted key with this repository's rules.
+prove_the_rules_fire() {
+	local scratch
+	local status=0
+
+	scratch="$(mktemp -d)"
+	plant_canary "${scratch}"
+
+	gitleaks dir --config "${config}" --redact --no-banner "${scratch}" >/dev/null 2>&1 || status=$?
+	rm -rf "${scratch}"
+
+	if [ "${status}" -eq 0 ]; then
+		echo "gitleaks did not report a planted key, so its rules are not firing. Check that .gitleaks.toml still has '[extend] useDefault = true'. Nothing was scanned." >&2
+		return 1
+	fi
+
+	echo "gitleaks reported the planted key, so its rules are firing"
+}
+
+# Scan every commit on this branch that the base does not have.
+scan_commits() {
+	local base_ref="$1"
+	local count
+
+	count="$(git -C "${root}" rev-list --count "${base_ref}..HEAD")"
+	echo "Scanning ${count} commit(s) not on ${base_ref}"
+
+	if ! gitleaks git --config "${config}" --redact --no-banner --log-opts="${base_ref}..HEAD" "${root}"; then
+		echo "gitleaks found something that looks like a secret in these commits. If it is real, treat it as leaked: rotate it, then remove it from the commit. If it is not, add a narrow entry to .gitleaks.toml saying what it is." >&2
+		return 1
+	fi
+
+	echo "No secrets found in ${count} commit(s)"
+}
+
+main() {
+	local base_ref="${1:-}"
+
+	if [ -z "${base_ref}" ]; then
+		echo "No base ref given. Usage: s/gitleaks/scan-commits <base-ref>" >&2
+		exit 1
+	fi
+
+	if [ ! -f "${config}" ]; then
+		echo ".gitleaks.toml is missing, so gitleaks has no rules to scan with." >&2
+		exit 1
+	fi
+
+	if ! git -C "${root}" rev-parse --verify --quiet "${base_ref}^{commit}" >/dev/null; then
+		echo "${base_ref} is not a commit this checkout has. CI needs fetch-depth: 0." >&2
+		exit 1
+	fi
+
+	prove_the_rules_fire
+	scan_commits "${base_ref}"
+}
+
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+	main "$@"
+fi

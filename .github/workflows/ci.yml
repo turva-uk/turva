@@ -88,6 +88,34 @@ jobs:
           . .venv/bin/activate
           pre-commit run --all-files --show-diff-on-failure --color=always
 
+  # The gitleaks pre-commit hook scans staged files, and the styling job's
+  # pre-commit run has nothing staged, so it scans nothing here. This job
+  # scans every commit the branch adds instead, so a commit made without the
+  # hook still meets it. The version is the hook's, read from
+  # .pre-commit-config.yaml by s/gitleaks/install.
+  secrets:
+    name: Secret scan (gitleaks)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Install gitleaks
+        run: |
+          bash s/gitleaks/install "$RUNNER_TEMP/gitleaks"
+          echo "$RUNNER_TEMP/gitleaks" >>"$GITHUB_PATH"
+
+      # A pull request is measured against its base branch, and a push to
+      # main against the commit main was at before the push. A manual run
+      # falls back to main.
+      - name: Scan this branch's commits
+        env:
+          BASE_REF: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || github.event.before || 'origin/main' }}
+        run: bash s/gitleaks/scan-commits "$BASE_REF"
+
   safety-file:
     name: Safety file storage layer
     runs-on: ubuntu-latest
