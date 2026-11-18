@@ -31,6 +31,8 @@ interface ButtonPairRedProps {
   onCancel: () => void;
   /** Disables the accept button (aria-disabled, stays focusable) */
   acceptDisabled?: boolean;
+  /** Blocks cancellation after a caller has started an irreversible action. */
+  cancelDisabled?: boolean;
   /** Blocks acceptance and shows a spinner with submittingLabel or acceptLabel */
   acceptLoading?: boolean;
   /** HTML button type for the accept button (defaults to "button") */
@@ -46,6 +48,7 @@ export default function ButtonPairRed({
   onAccept,
   onCancel,
   acceptDisabled = false,
+  cancelDisabled = false,
   acceptLoading = false,
   acceptType = "button",
   justify = "flex-end",
@@ -78,7 +81,14 @@ export default function ButtonPairRed({
           acceptLabel
         )}
       </Button>
-      <Button variant="outline" onClick={onCancel} size="md">
+      <Button
+        type="button"
+        variant="outline"
+        onClick={cancelDisabled ? (event) => event.preventDefault() : onCancel}
+        aria-disabled={cancelDisabled || undefined}
+        styles={{ root: cancelDisabled ? { opacity: 0.6, cursor: "default" } : undefined }}
+        size="md"
+      >
         {cancelLabel}
       </Button>
     </Group>

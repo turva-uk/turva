@@ -19,9 +19,9 @@
  * ```
  */
 
-import { Box, Modal, Stack } from "@mantine/core";
+import { Box, Modal, Stack, VisuallyHidden } from "@mantine/core";
 import type { ReactElement, ReactNode } from "react";
-import { useCallback, useState } from "react";
+import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import ButtonPair from "@/components/button/ButtonPair";
 import ButtonPairRed from "@/components/button/ButtonPairRed";
 import Heading from "@/components/typography/Heading";
@@ -39,6 +39,8 @@ export interface ConfirmModalProps {
   children: ReactNode;
   /** Bold centred heading between icon and message */
   title?: string;
+  /** Accessible name when no visible title is supplied. */
+  "aria-label"?: string;
   /** Red action button label */
   acceptLabel?: string;
   /** Label shown on accept button during async operation (e.g. "Booking…") */
@@ -62,6 +64,7 @@ export default function ConfirmModal({
   onAccept,
   children,
   title,
+  "aria-label": ariaLabel = "Confirm action",
   acceptLabel = "Confirm",
   submittingLabel = "Confirming\u2026",
   cancelLabel = "Cancel",
@@ -69,23 +72,55 @@ export default function ConfirmModal({
   destructive = true,
   field,
 }: ConfirmModalProps) {
-  const [loading, setLoading] = useState(false);
+  const [phase, setPhase] = useState<"idle" | "pending" | "accepted">("idle");
+  const loading = phase !== "idle";
+  const inFlightRef = useRef(false);
+  const sessionRef = useRef(0);
+  const mountedRef = useRef(false);
+
+  // A parent can close/reopen the instance or unmount it while a request is
+  // pending. Its completion belongs to the original opening only. Keep the
+  // pending gate until it settles, even across an external close/reopen.
+  useLayoutEffect(() => {
+    mountedRef.current = true;
+    sessionRef.current += 1;
+    return () => {
+      mountedRef.current = false;
+      sessionRef.current += 1;
+    };
+  }, [opened]);
 
   const handleAccept = useCallback(async () => {
-    setLoading(true);
+    if (!opened || loading || inFlightRef.current) return;
+    inFlightRef.current = true;
+    const session = sessionRef.current;
+    setPhase("pending");
+    let succeeded = false;
     try {
       await onAccept();
-      onClose();
+      succeeded = true;
     } catch {
       // Stay open - caller handles error display
-      setLoading(false);
+    } finally {
+      inFlightRef.current = false;
     }
-  }, [onAccept, onClose]);
+    if (!mountedRef.current) return;
+    if (!succeeded || session !== sessionRef.current) {
+      setPhase("idle");
+      return;
+    }
+    setPhase("accepted");
+    onClose();
+  }, [opened, loading, onAccept, onClose]);
+
+  const handleClose = useCallback(() => {
+    if (!loading && !inFlightRef.current) onClose();
+  }, [loading, onClose]);
 
   // `loading` is left on after a successful accept, so the button does not
   // flick back to its resting label while the modal fades out. It must be
-  // off again by the next time the modal opens, and the same instance is
-  // usually reused: its parent keeps it mounted and only flips `opened`.
+  // off again by the next time the modal opens, unless an earlier request
+  // is still pending. The parent usually keeps the same instance mounted.
   //
   // Two resets, because the first has been missed before. This used to
   // hang off `onTransitionEnd`, which Mantine's Modal does not have: it
@@ -94,20 +129,24 @@ export default function ConfirmModal({
   // won, or there was no animation at all (reduced motion), nothing
   // cleared `loading` and the button came back disabled, reading
   // "Confirming…", until the page was left.
-  const handleExited = useCallback(() => setLoading(false), []);
+  const handleExited = useCallback(() => {
+    if (!inFlightRef.current) setPhase("idle");
+  }, []);
 
   // Adjusted during render rather than in an effect, so the modal never
   // paints open with the stale state.
   const [wasOpened, setWasOpened] = useState(opened);
   if (opened !== wasOpened) {
     setWasOpened(opened);
-    if (opened) setLoading(false);
+    if (opened && phase === "accepted") setPhase("idle");
   }
+
+  const hasTitle = !!title?.trim();
 
   return (
     <Modal
       opened={opened}
-      onClose={onClose}
+      onClose={handleClose}
       closeOnClickOutside={false}
       closeOnEscape={!loading}
       withCloseButton={false}
@@ -125,34 +164,44 @@ export default function ConfirmModal({
           Mantine's modal title, so the dialog is named by it
           (`aria-labelledby`) and a screen reader announces "Delete site,
           dialog" rather than an unnamed dialog. Drawn as a plain wrapper
-          round our own heading, which stays the h2.
+          round our own heading, which stays the h2. A title-free dialog
+          still needs this association: aria-label on Modal names its root
+          wrapper, not the section with role="dialog".
         */}
-        {title && (
-          <Modal.Title renderRoot={(props) => <div {...props} />}>
+        <Modal.Title
+          renderRoot={(props) =>
+            hasTitle ? <div {...props} /> : <VisuallyHidden {...props} />
+          }
+        >
+          {hasTitle ? (
             <Heading justify="centre">{title}</Heading>
-          </Modal.Title>
-        )}
+          ) : (
+            ariaLabel.trim() || "Confirm action"
+          )}
+        </Modal.Title>
         <BodyText justify="centre">{children}</BodyText>
         {field}
         {destructive ? (
           <ButtonPairRed
             onAccept={handleAccept}
-            onCancel={onClose}
+            onCancel={handleClose}
             acceptLabel={acceptLabel}
             submittingLabel={submittingLabel}
             cancelLabel={cancelLabel}
             acceptDisabled={loading}
             acceptLoading={loading}
+            cancelDisabled={loading}
             justify="center"
           />
         ) : (
           <ButtonPair
             onAccept={handleAccept}
-            onCancel={onClose}
+            onCancel={handleClose}
             acceptLabel={acceptLabel}
             cancelLabel={cancelLabel}
             acceptLoading={loading}
             acceptDisabled={loading}
+            cancelDisabled={loading}
             justify="center"
           />
         )}

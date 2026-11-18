@@ -6,6 +6,7 @@
 
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { Badge, Box, Stack } from "@mantine/core";
+import { expect } from "storybook/test";
 import { badgeColours, BADGE_VARIANT, type BadgeColour } from "./badgeColours";
 import BadgeSkeleton from "./BadgeSkeleton";
 import ActiveStatusBadge from "./ActiveStatusBadge";
@@ -45,9 +46,8 @@ export const Loading: Story = {
 };
 
 /**
- * A badge in a container narrower than its text stays whole: one line,
- * its usual size, no ellipsis. It runs past the container rather than
- * shrinking to fit it.
+ * Long labels stay complete at the same font size, wrapping within the
+ * container instead of overflowing it or being replaced by an ellipsis.
  */
 export const NarrowContainer: Story = {
   render: () => (
@@ -72,6 +72,27 @@ export const NarrowContainer: Story = {
       </Stack>
     </Box>
   ),
+  play: async ({ canvasElement }) => {
+    for (const badge of canvasElement.querySelectorAll<HTMLElement>(".mantine-Badge-root")) {
+      const bounds = badge.getBoundingClientRect();
+      const container = badge.parentElement!.getBoundingClientRect();
+      await expect(bounds.right).toBeLessThanOrEqual(container.right + 1);
+      await expect(badge.scrollWidth).toBeLessThanOrEqual(badge.clientWidth + 1);
+    }
+  },
+};
+
+export const UnbrokenLabel: Story = {
+  render: () => (
+    <Box w={160}>
+      <Badge>DCB0160DeploymentSafetyCaseReview</Badge>
+    </Box>
+  ),
+  play: async ({ canvasElement }) => {
+    const badge = canvasElement.querySelector<HTMLElement>(".mantine-Badge-root")!;
+    await expect(badge.getBoundingClientRect().width).toBeLessThanOrEqual(160);
+    await expect(badge.scrollWidth).toBeLessThanOrEqual(badge.clientWidth + 1);
+  },
 };
 
 export const DarkMode: Story = {

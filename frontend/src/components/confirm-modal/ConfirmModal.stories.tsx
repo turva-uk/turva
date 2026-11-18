@@ -9,7 +9,7 @@
  * - Interactive demo with async handler
  */
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { fn } from "storybook/test";
+import { expect, fn, userEvent, within } from "storybook/test";
 import { IconAlertTriangle } from "@tabler/icons-react";
 import { useState } from "react";
 import { Stack } from "@mantine/core";
@@ -55,10 +55,55 @@ export const TitleOnly: Story = {
 /** Icon and message only (no title) */
 export const IconOnly: Story = {
   args: {
+    "aria-label": "Discard unsaved changes",
     icon: <IconAlertTriangle />,
     acceptLabel: "Leave",
     cancelLabel: "Stay",
     children: "You have unsaved changes that will be lost.",
+  },
+  play: async () => {
+    await expect(
+      await within(document.body).findByRole("dialog", { name: "Discard unsaved changes" }),
+    ).toBeVisible();
+  },
+};
+
+/** A started action cannot be cancelled or accepted again. */
+export const PendingDestructive: Story = {
+  args: { ...Default.args, onAccept: () => new Promise<void>(() => {}) },
+  play: async () => {
+    const body = within(document.body);
+    await userEvent.click(body.getByRole("button", { name: "Delete" }));
+    await expect(body.getByRole("button", { name: "Deleting…" })).toHaveAttribute(
+      "aria-disabled",
+      "true",
+    );
+    await expect(body.getByRole("button", { name: "Cancel" })).toHaveAttribute(
+      "aria-disabled",
+      "true",
+    );
+  },
+};
+
+export const PendingNonDestructive: Story = {
+  args: {
+    title: "Save changes",
+    children: "The changes are being saved.",
+    destructive: false,
+    acceptLabel: "Save",
+    onAccept: () => new Promise<void>(() => {}),
+  },
+  play: async () => {
+    const body = within(document.body);
+    await userEvent.click(body.getByRole("button", { name: "Save" }));
+    await expect(body.getByRole("button", { name: "Save" })).toHaveAttribute(
+      "aria-disabled",
+      "true",
+    );
+    await expect(body.getByRole("button", { name: "Cancel" })).toHaveAttribute(
+      "aria-disabled",
+      "true",
+    );
   },
 };
 

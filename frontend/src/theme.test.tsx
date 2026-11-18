@@ -110,7 +110,7 @@ describe("shared component tokens", () => {
     expect(resolved.dark["--success-text-color"]).toBe(statusTextColourValues.dark.success);
   });
 
-  it("never cuts a badge short", () => {
+  it("keeps complete badge labels and allows wrapping within a narrow container", () => {
     render(
       <MantineProvider theme={theme}>
         <Badge>Awaiting sign-off</Badge>
@@ -118,9 +118,13 @@ describe("shared component tokens", () => {
     );
 
     const label = screen.getByText("Awaiting sign-off");
-    expect(label.style.whiteSpace).toBe("nowrap");
+    expect(label.style.whiteSpace).toBe("normal");
+    expect(label.style.overflowWrap).toBe("anywhere");
     expect(label.style.textOverflow).toBe("clip");
-    expect(label.closest<HTMLElement>(".mantine-Badge-root")?.style.flexShrink).toBe("0");
+    const badge = label.closest<HTMLElement>(".mantine-Badge-root");
+    expect(badge?.style.maxWidth).toBe("100%");
+    expect(badge?.style.height).toBe("auto");
+    expect(badge?.style.minWidth).not.toBe("max-content");
   });
 
   it("names the modal close button", () => {

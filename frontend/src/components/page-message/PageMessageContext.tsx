@@ -122,6 +122,7 @@ export function PageMessageProvider({ children }: PageMessageProviderProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const prevPathnameRef = useRef(location.pathname);
+  const consumedFlashKeyRef = useRef<string | null>(null);
 
   // Ids only need to be unique within this provider, so a counter will do.
   // Not crypto.randomUUID(): browsers offer it only over HTTPS or on
@@ -153,24 +154,34 @@ export function PageMessageProvider({ children }: PageMessageProviderProps) {
     } | null;
     const flash = state?.flash;
 
-    if (flash) {
+    if (flash && consumedFlashKeyRef.current !== location.key) {
+      // Strict Mode replays the effect before the replacement navigation can
+      // commit. Consume each history entry once, not each effect invocation.
+      consumedFlashKeyRef.current = location.key;
       const msg: PageMessage = {
         id: nextId(),
         variant: flash.variant ?? "success",
         title: flash.title,
         description: flash.description,
       };
-      /* eslint-disable react-hooks/set-state-in-effect -- legitimate navigation side effect: ingesting flash state from router */
       setMessages((prev) => [...prev, msg]);
-      /* eslint-enable react-hooks/set-state-in-effect */
 
-      // Clear flash from history state to prevent ghost on back-nav
-      void navigate(location.pathname + location.search, {
-        replace: true,
-        state: {},
-      });
+      // Remove only flash, retaining the resource fragment and other callers'
+      // navigation context. Replace rather than add a history entry.
+      const remainingState = { ...state };
+      delete remainingState.flash;
+      const target = [location.pathname, location.search, location.hash].join("");
+      void navigate(target, { replace: true, state: remainingState });
     }
-  }, [location.state, navigate, location.pathname, location.search, nextId]);
+  }, [
+    location.key,
+    location.state,
+    navigate,
+    location.pathname,
+    location.search,
+    location.hash,
+    nextId,
+  ]);
 
   const showMessage = useCallback(
     (msg: Omit<PageMessage, "id">) => {

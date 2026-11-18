@@ -307,17 +307,24 @@ export const theme = createTheme({
     // dialog" rather than "Close", so it differs from a text button that
     // says "Close" in the same modal.
     Modal: { defaultProps: { closeButtonProps: { "aria-label": "Close dialog" } } },
-    // A badge is never cut short and never changes to fit. Mantine lets it
-    // shrink below its text and end in an ellipsis, and a status reading
-    // "Awaiting sig…" tells nobody anything. So a badge is as wide as its
-    // text, on one line, at 19px: the layout around it gives way instead.
+    // Keep full status labels at 19px. Short badges keep their usual size;
+    // long labels wrap rather than truncating or widening a narrow page.
     Badge: {
       defaultProps: { size: "lg" },
       styles: {
-        root: { minWidth: "max-content", flexShrink: 0, overflow: "visible" },
+        root: {
+          minWidth: 0,
+          maxWidth: "100%",
+          flexShrink: 0,
+          height: "auto",
+          minHeight: "var(--badge-height)",
+          lineHeight: 1.2,
+          overflow: "visible",
+        },
         label: {
           fontSize: typographyTokens.fontSizes.md,
-          whiteSpace: "nowrap",
+          whiteSpace: "normal",
+          overflowWrap: "anywhere",
           overflow: "visible",
           textOverflow: "clip",
         },

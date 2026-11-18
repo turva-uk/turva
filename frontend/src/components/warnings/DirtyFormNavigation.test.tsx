@@ -8,6 +8,7 @@ import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { renderWithMantine } from "@/test/test-utils";
 import type { Blocker, Location } from "react-router";
+import { createMemoryRouter, Link, RouterProvider, useBlocker } from "react-router";
 import DirtyFormNavigation from "./DirtyFormNavigation";
 
 const mockLocation: Location = {
@@ -28,6 +29,8 @@ describe("DirtyFormNavigation", () => {
     };
 
     renderWithMantine(<DirtyFormNavigation blocker={blocker} />);
+
+    expect(screen.getByRole("dialog", { name: "Leave this page?" })).toBeInTheDocument();
 
     expect(
       screen.getByText("You have unsaved changes. Are you sure you want to leave this page?"),
@@ -129,6 +132,56 @@ describe("DirtyFormNavigation", () => {
 
     expect(onProceed).toHaveBeenCalledTimes(1);
     expect(blocker.proceed).toHaveBeenCalledTimes(1);
+  });
+
+  it("can stay after a failed pre-navigation callback", async () => {
+    const user = userEvent.setup();
+    const blocker: Blocker = {
+      state: "blocked",
+      reset: vi.fn(),
+      proceed: vi.fn(),
+      location: mockLocation,
+    };
+    renderWithMantine(
+      <DirtyFormNavigation
+        blocker={blocker}
+        onProceed={() => {
+          throw new Error("Could not prepare navigation");
+        }}
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: "Leave page" }));
+    expect(blocker.proceed).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: "Stay" }));
+    expect(blocker.reset).toHaveBeenCalledOnce();
+  });
+
+  it("can stay on a second blocked attempt after proceeding through the first", async () => {
+    const user = userEvent.setup();
+    function Navigation() {
+      const blocker = useBlocker(
+        ({ currentLocation, nextLocation }) =>
+          currentLocation.pathname !== nextLocation.pathname,
+      );
+      return (
+        <>
+          <Link to="/second">Second page</Link>
+          <Link to="/third">Third page</Link>
+          <DirtyFormNavigation blocker={blocker} />
+        </>
+      );
+    }
+    const router = createMemoryRouter([{ path: "*", element: <Navigation /> }], {
+      initialEntries: ["/first"],
+    });
+    renderWithMantine(<RouterProvider router={router} />);
+    await user.click(screen.getByRole("link", { name: "Second page" }));
+    await user.click(screen.getByRole("button", { name: "Leave page" }));
+    expect(router.state.location.pathname).toBe("/second");
+    await user.click(screen.getByRole("link", { name: "Third page" }));
+    await user.click(screen.getByRole("button", { name: "Stay" }));
+    expect(router.state.location.pathname).toBe("/second");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
   it("handles blocker without reset or proceed functions", () => {

@@ -9,7 +9,7 @@
 
 import { IconAlertTriangle } from "@/components/icons/appIcons";
 import type { Blocker } from "react-router";
-import { useRef } from "react";
+import { useLayoutEffect, useRef } from "react";
 import type { ReactNode } from "react";
 import { ConfirmModal } from "@/components/confirm-modal";
 
@@ -66,12 +66,23 @@ export default function DirtyFormNavigation({
 }: DirtyFormNavigationProps) {
   const proceededRef = useRef(false);
 
+  // A completed navigation may close the modal before its async completion
+  // calls onClose. A later blocked attempt must still be cancellable.
+  useLayoutEffect(() => {
+    if (blocker.state === "blocked") proceededRef.current = false;
+  }, [blocker.state]);
+
   function handleProceed() {
-    proceededRef.current = true;
     if (onProceed) {
       onProceed();
     }
-    blocker.proceed?.();
+    proceededRef.current = true;
+    try {
+      blocker.proceed?.();
+    } catch (error) {
+      proceededRef.current = false;
+      throw error;
+    }
   }
 
   function handleClose() {
@@ -86,6 +97,7 @@ export default function DirtyFormNavigation({
   return (
     <ConfirmModal
       opened={blocker.state === "blocked"}
+      aria-label="Leave this page?"
       onClose={handleClose}
       onAccept={handleProceed}
       acceptLabel={acceptLabel}

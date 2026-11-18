@@ -7,6 +7,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
 import type { Location } from "react-router";
+import { expect, fn, within } from "storybook/test";
 import ActionCardButton from "@/components/button/ActionCardButton";
 import { StoryNote } from "@/stories/variants";
 import DirtyFormNavigation from "./DirtyFormNavigation";
@@ -36,6 +37,16 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+/** Kept open so automated checks inspect the warning, not only its trigger. */
+export const Blocked: Story = {
+  args: { blocker: { state: "blocked", reset: fn(), proceed: fn(), location: mockLocation } },
+  play: async () => {
+    await expect(
+      await within(document.body).findByRole("dialog", { name: "Leave this page?" }),
+    ).toBeVisible();
+  },
+};
+
 /**
  * Interactive story showing the modal when navigation is blocked.
  * Click "Leave dirty form" to trigger the modal.
@@ -64,7 +75,7 @@ export const Interactive: Story = {
           Click the button below to simulate attempting to navigate away from a form with
           unsaved changes.
         </StoryNote>
-        <div style={{ width: 300 }}>
+        <div style={{ width: "100%", maxWidth: 300 }}>
           <ActionCardButton label="Leave dirty form" onClick={() => setIsBlocked(true)} />
         </div>
         <DirtyFormNavigation blocker={blocker} />
@@ -104,7 +115,7 @@ export const CustomMessage: Story = {
         <StoryNote>
           The same modal, blocking on an upload in flight rather than an unsaved form.
         </StoryNote>
-        <div style={{ width: 300 }}>
+        <div style={{ width: "100%", maxWidth: 300 }}>
           <ActionCardButton label="Leave during upload" onClick={() => setIsBlocked(true)} />
         </div>
         <DirtyFormNavigation
