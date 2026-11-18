@@ -113,6 +113,23 @@ jobs:
       - name: Run tests
         run: python -m pytest safety_file -q
 
+  scripts:
+    name: Script tests (bats)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # The scripts in s/ are tested with stand-ins for docker and curl, so
+      # this job needs no container and no network beyond installing bats.
+      - name: Install bats
+        run: sudo apt-get update && sudo apt-get install -y bats
+
+      - name: Run tests
+        run: bats s/tests
+
   frontend:
     name: Frontend (lint, types, tests, build)
     runs-on: ubuntu-latest

@@ -57,3 +57,14 @@ repos:
       - id: ruff-check
         args: [--fix]
       - id: ruff-format
+
+  # Terraform's own formatter, for terraform/github/. It runs in the same
+  # pinned image as ./s/terraform, which reads the pin from here, so CI and a
+  # developer's machine need Docker but not Terraform.
+  - repo: local
+    hooks:
+      - id: terraform-fmt
+        name: Terraform format check
+        language: docker_image
+        entry: hashicorp/terraform:1.17.2@sha256:6e9c1e647c31a960dc9b59e13272f9111d90010c10b717f77ffb324767660475 fmt -check -diff
+        files: \.tf$

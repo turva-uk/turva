@@ -240,3 +240,11 @@ site/
 
 # Storybook static build (npm run build-storybook)
 storybook-static/
+
+# Terraform for terraform/github/: its working folder and the state. The state
+# stays local; ./s/terraform imports existing settings from GitHub before each
+# plan, so it never needs sharing. The provider lock, .terraform.lock.hcl, is
+# committed.
+/terraform/github/.terraform/
+/terraform/github/*.tfstate
+/terraform/github/*.tfstate.*

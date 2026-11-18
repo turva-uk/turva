@@ -64,6 +64,7 @@ Scheduled overnight runs must also follow [the overnight instructions](specifica
 ./s/lock       # regenerate dependency locks after editing a .in file
 ./s/docs       # serve the docs site locally
 ./s/seed-demo  # build the demo safety file, with an account to sign in as
+./s/terraform  # GitHub repository settings, as code; see docs/docs/github-settings.md
 ```
 
 ## Before Every Commit

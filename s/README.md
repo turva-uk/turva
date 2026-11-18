@@ -61,21 +61,23 @@ Safety file repositories under `.turva-data/` are deliberately left alone: they 
 
 ### `./s/test`
 
-Runs the test suites. There are two, because they need different environments:
+Runs the test suites. There are three, because they need different environments:
 
 | Suite          | Environment                                                                  |
 | -------------- | ---------------------------------------------------------------------------- |
 | `safety_file/` | pure Python, no database or container. Runs on the host in about two seconds |
+| `s/tests/`     | bats tests for the `s/` scripts. Run on the host and need `bats`             |
 | `app/`         | needs PostgreSQL and the application container                               |
 
 ```bash
-./s/test                       # both suites
+./s/test                       # all three suites
 ./s/test safety_file           # host suite only
 ./s/test safety_file -k risk   # host suite, filtered
+./s/test s/tests               # script tests only
 ./s/test -k login              # container suite, filtered
 ```
 
-An argument naming the `safety_file` package routes to the host; anything else goes to the container.
+An argument naming the `safety_file` package or `s/tests` routes to the host; anything else goes to the container.
 
 ### `./s/lint`
 
@@ -126,6 +128,16 @@ The database is only an index over the safety file repositories and is rebuildab
 
 Serves the documentation site with hot reload at <http://localhost:8001>.
 
+### `./s/terraform`
+
+Runs Terraform for Turva's GitHub repository settings in `terraform/github/`, in a pinned container, so only Docker is needed. `plan` and `apply` need a token in `GITHUB_TOKEN`; see `docs/docs/github-settings.md`.
+
+```bash
+./s/terraform init
+./s/terraform plan      # what would change on GitHub; changes nothing
+./s/terraform apply     # an admin, after the pull request merges
+```
+
 ### `./s/seed-demo`
 
 Builds the demo safety file into `.turva-data/safety-files/demo-bp-at-home`, then creates an account to sign in as and indexes the file so it appears in the interface.
@@ -141,3 +153,15 @@ The build goes through the production storage layer and imports no framework, so
 The account is the demo's Clinical Safety Officer, `a.patel@riverbank.example.nhs.uk`, with the same name its commits are attributed to. Its password comes from `TURVA_DEMO_PASSWORD`, defaulting to `turva-demo-local`, and the command prints whichever it used. It is not a staff account unless you pass `--staff`: the admin is the only place a professional registration can be marked as verified, and a known-password account should not reach that without being asked for.
 
 The seeding step refuses to run with `DEBUG` off. It creates an account whose password is written down here and gives it ownership of a safety file, which is right for a laptop and wrong everywhere else.
+
+## Shared helpers
+
+`s/utils/` holds helpers that scripts source rather than commands to type.
+
+- **`s/utils/logging.sh`** - `log` and `error`, each printing the script's name in front, such as `[terraform] ERROR: ...`. Errors go to standard error, in red only in a terminal. Source it straight after the `set` line at the top, and always pass the name:
+
+  ```bash
+  source "$(dirname "${BASH_SOURCE[0]}")/utils/logging.sh" "<script-name>"
+  ```
+
+  Its tests are in `s/tests/logging.bats`.
