@@ -36,7 +36,7 @@ DEMO_SLUG = "demo-bp-at-home"
 # Overridable, because a password in a repository is a password everyone has.
 # Local-only and guarded by DEBUG, but there is no reason to make someone keep
 # the published one.
-DEFAULT_PASSWORD = "turva-demo-local"
+DEFAULT_PASSWORD = "turva-demo-local"  # nosec B105
 
 
 class Command(BaseCommand):
