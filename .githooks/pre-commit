@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Git's pre-commit hook: runs the pre-commit checks on the staged files, then
 # lint-staged when frontend files are staged, and stops the commit if any of
-# them fails.
+# them fails. Once they pass, it recommends filling this machine's dev-details
+# denylist while that is empty, without stopping the commit.
 #
 # Usage: git runs it before each commit, once `just setup` has pointed
 # core.hooksPath at .githooks. Run by hand, it checks what is staged now.
@@ -54,6 +55,7 @@ run_lint_staged() {
 
 main() {
 	local pre_commit
+	local dev_details="${root}/s/checks/check-dev-details"
 
 	if ! pre_commit="$(find_pre_commit)"; then
 		echo "pre-commit not found, so the commit was stopped. Install it with:" >&2
@@ -65,6 +67,10 @@ main() {
 
 	if frontend_staged; then
 		run_lint_staged
+	fi
+
+	if [ -x "${dev_details}" ]; then
+		"${dev_details}" --warn-if-empty
 	fi
 }
 

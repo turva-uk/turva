@@ -38,11 +38,11 @@ Branch `feature/pre-commit-gitleaks`.
 
 Branch `feature/pre-commit-dev-details`.
 
-- [ ] Add `s/checks/check-dev-details`, which refuses private network addresses and device MAC addresses in tracked files, plus the literals in a developer's own denylist, such as a hostname or a VPN network's name. It reports a match as `path:line` and the rule's name, never the matched text, because CI logs are as public as the files.
-- [ ] Name its private list `local/dev-details-denylist`, and add `/local/` to `.gitignore`. The script makes the file, with a header explaining it, the first time it runs outside CI in a clone that has none. CI runs only the patterns, never the list.
-- [ ] Add it to `.pre-commit-config.yaml` as a `local` hook over `types: [text]`.
-- [ ] Add `s/tests/check-dev-details.bats`, with every made-up address and name obviously fake.
-- [ ] Run it over every tracked file before turning it on. Remove any real detail it finds, and widen the patterns' exceptions only for a value that names nothing, such as a documentation address range.
+- [x] Add `s/checks/check-dev-details`, which refuses private network addresses and device MAC addresses in tracked files, plus the literals in a developer's own denylist, such as a hostname or a VPN network's name. It reports a match as `path:line` and the rule's name, never the matched text, because CI logs are as public as the files.
+- [x] Name its private list `local/dev-details-denylist`, and add `/local/` to `.gitignore`. The script makes the file, with a header explaining it, the first time it runs outside CI in a clone that has none. CI runs only the patterns, never the list.
+- [x] Add it to `.pre-commit-config.yaml` as a `local` hook over `types: [text]`.
+- [x] Add `s/tests/check-dev-details.bats`, with every made-up address and name obviously fake.
+- [x] Run it over every tracked file before turning it on. Remove any real detail it finds, and widen the patterns' exceptions only for a value that names nothing, such as a documentation address range. Ran on 18 November 2026: every tracked file passed, with the patterns and with the denylist, so nothing needed removing.
 
 ## Phase 4: Zizmor as a pre-commit hook
 

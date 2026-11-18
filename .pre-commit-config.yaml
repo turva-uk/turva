@@ -67,3 +67,15 @@ repos:
       - id: ruff-check
         args: [--fix]
       - id: ruff-format
+
+  - repo: local
+    hooks:
+      # The repository is public, so a private network address or a MAC
+      # address must not reach it. CI runs the patterns; a developer's
+      # machine also refuses the literals in local/dev-details-denylist,
+      # such as a hostname or a VPN network's name.
+      - id: check-dev-details
+        name: Check for home and dev set-up details
+        entry: s/checks/check-dev-details
+        language: system
+        types: [text]

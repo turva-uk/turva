@@ -245,3 +245,7 @@ site/
 
 # Storybook static build (npm run build-storybook)
 storybook-static/
+
+# Files kept on one machine only, such as local/dev-details-denylist, which
+# s/checks/check-dev-details reads. Never committed.
+/local/

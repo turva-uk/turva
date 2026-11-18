@@ -177,3 +177,48 @@ stage() {
 
 	run ! git -C "${repo}" rev-parse --verify -q HEAD
 }
+
+# A stand-in for s/checks/check-dev-details that logs its call and prints
+# the warning, as it does while this machine's denylist is empty.
+write_dev_details_stand_in() {
+	mkdir -p "${repo}/s/checks"
+	cat >"${repo}/s/checks/check-dev-details" <<'EOF'
+#!/usr/bin/env bash
+echo "dev-details: $*" >>"${BATS_TEST_TMPDIR}/calls.log"
+echo "Strongly recommended: fill the denylist" >&2
+EOF
+	chmod +x "${repo}/s/checks/check-dev-details"
+}
+
+@test "recommends filling the dev-details denylist after the checks pass" {
+	write_dev_details_stand_in
+	stage file.txt
+
+	run "${hook}"
+
+	[ "$status" -eq 0 ]
+	[ "$(sed -n 2p "${calls}")" = "dev-details: --warn-if-empty" ]
+	[[ "$output" == *"Strongly recommended"* ]]
+}
+
+@test "git still commits while the dev-details denylist is empty" {
+	write_dev_details_stand_in
+	stage file.txt
+
+	run git -C "${repo}" commit -q -m "add file"
+
+	[ "$status" -eq 0 ]
+	[[ "$output" == *"Strongly recommended"* ]]
+	git -C "${repo}" rev-parse --verify -q HEAD
+}
+
+@test "gives no recommendation when a check stops the commit" {
+	export PRE_COMMIT_STATUS=1
+	write_dev_details_stand_in
+	stage file.txt
+
+	run "${hook}"
+
+	[ "$status" -eq 1 ]
+	run ! grep -q "dev-details" "${calls}"
+}
