@@ -141,6 +141,7 @@
     "scannable",
     "Semgrep",
     "shareability",
+    "shellcheck",
     "slugify",
     "SMTP",
     "Starlette",

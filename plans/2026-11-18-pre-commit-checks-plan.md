@@ -2,7 +2,7 @@
 
 Turva's `.pre-commit-config.yaml` checks formatting, spelling, Markdown and Python style in CI. Local hooks from #109 and #110 are optional, enabled deliberately with `./s/install-hooks`; CI still checks changes made without them. This plan adds secret scanning, network-detail checks, Python type checking and security linting, and brings the existing Zizmor audit into the hook configuration.
 
-Each check has its own branch in the `pre-commit` stack above #110: `check-toml`, gitleaks, the dev-details check, Zizmor as a hook, mypy and bandit. Each phase must pass before merging. Fix real findings; document and justify any deliberate scope limit or narrowly identified false positive rather than weakening a check to get a green result.
+Each check has its own branch in the `pre-commit` stack above #110: `check-toml`, gitleaks, the dev-details check, Zizmor as a hook, mypy, bandit and ShellCheck. Each phase must pass before merging. Fix real findings; document and justify any deliberate scope limit or narrowly identified false positive rather than weakening a check to get a green result.
 
 ## Agreed boundaries
 
@@ -66,6 +66,14 @@ Branch `feature/pre-commit-bandit`.
 - [x] Add the `bandit` hook from `https://github.com/PyCQA/bandit`, with `language_version: python3.14`, and its settings in a `[tool.bandit]` block in `pyproject.toml`. Departed from the plan: the settings went in the hook instead, because bandit ignores `exclude_dirs` for files that pre-commit names one by one.
 - [x] Decide whether Turva needs a bandit wrapper that checks the scan really covered the code. A review probe demonstrated Bandit returning success while skipping a syntax-invalid requested file. The configured hook now requires a bounded report with no errors and metrics for exactly the requested sources, consistent counts and status. Real-hook probes reject that skip, an unsafe assertion and a shell command; a complete baseline and genuinely empty source pass.
 - [x] If a finding touches permissions, the audit trail or the risk matrix, update `SAFETY.md` in the same commit, as `AGENTS.md` requires. The seven source Python changes are narrowly justified suppression comments with identical runtime ASTs. No safety rule or evidence behaviour changes, so no runtime update to `SAFETY.md` is needed; the hazards remain open.
+
+## Phase 7: ShellCheck
+
+Branch `feature/pre-commit-shellcheck`. Added on 18 November 2026, after the first six phases had landed. Turva runs ShellCheck as a hook, so it checks each script at commit time, and CI's `Styling (pre-commit)` job runs it on every file, so a commit made with `--no-verify` is still caught.
+
+- [x] Run ShellCheck once over every shell file, using the hook's own copy through `pre-commit run shellcheck --all-files`, and triage what it reports. Ran on 18 November 2026: the 20 scripts in `s/` and `.githooks/` all passed. The findings were all in three bats tests: one `cd` without a fallback, fixed, and two kinds of false alarm, each turned off with a comment saying why.
+- [x] Add the `shellcheck` hook from `https://github.com/shellcheck-py/shellcheck-py` at `v0.11.0.1`, which installs its own ShellCheck, so nobody needs it on their machine.
+- [x] Confirm that the hook sees every script. pre-commit recognises a file with no extension as shell only when it is executable and starts with a shell shebang. Every script in `s/` and `.githooks/` is, and the bats tests are recognised by their `.bats` extension. No other shell scripts are tracked.
 
 ## Decisions
 

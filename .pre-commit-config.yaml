@@ -82,6 +82,16 @@ repos:
         # That fixed policy lives in the wrapper; its arguments are filenames.
         args: []
 
+  # ShellCheck finds the mistakes that are easy to make in shell: an unquoted
+  # variable, a failure nobody notices, a cd that may not happen. It checks
+  # every file pre-commit tags as shell, by extension or by shebang, so the
+  # scripts in s/ and .githooks/ and the bats tests. CI's styling job runs
+  # it too, so a commit made with --no-verify is still caught.
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.11.0.1
+    hooks:
+      - id: shellcheck
+
   - repo: https://github.com/streetsidesoftware/cspell-cli
     rev: v10.4.0
     hooks:
