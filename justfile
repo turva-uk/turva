@@ -260,3 +260,9 @@ tmux-window NUMBER="":
     fi
 
     exec tmux attach -t "=${name}"
+
+
+alias sb := storybook
+# Start Storybook, the catalogue of shared components, on port 6006
+storybook:
+    @./s/frontend storybook

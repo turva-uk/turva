@@ -1,16 +1,18 @@
 // Mantine's PostCSS preset converts its `rem()` helper and responsive mixins.
 // Without it, Mantine's own stylesheets render with unprocessed custom syntax.
+//
+// The `$mantine-breakpoint-*` variables come from src/breakpoints.json, the
+// same file the Mantine theme reads, so a CSS module and a component cannot
+// name different widths for the same breakpoint. Storybook reads this file too.
+const breakpoints = require("./src/breakpoints.json");
+
+const breakpointVariables = Object.fromEntries(
+  Object.entries(breakpoints).map(([name, width]) => [`mantine-breakpoint-${name}`, width]),
+);
+
 module.exports = {
   plugins: {
     "postcss-preset-mantine": {},
-    "postcss-simple-vars": {
-      variables: {
-        "mantine-breakpoint-xs": "36em",
-        "mantine-breakpoint-sm": "48em",
-        "mantine-breakpoint-md": "62em",
-        "mantine-breakpoint-lg": "75em",
-        "mantine-breakpoint-xl": "88em",
-      },
-    },
+    "postcss-simple-vars": { variables: breakpointVariables },
   },
 };

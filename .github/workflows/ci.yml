@@ -158,6 +158,11 @@ jobs:
       - name: Build
         run: npm run build
 
+      # Every story must build, so a story broken by a component change fails
+      # here rather than when somebody next opens Storybook.
+      - name: Build Storybook
+        run: npm run build-storybook
+
   locks:
     name: Dependency locks are reproducible
     runs-on: ubuntu-latest
