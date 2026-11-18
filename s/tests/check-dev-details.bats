@@ -16,7 +16,7 @@ setup() {
 
 	denylist="$(cd -P "${repo}" && pwd)/local/dev-details-denylist"
 
-	cd "${repo}"
+	cd "${repo}" || return 1
 }
 
 # Run the check as it runs on a developer's machine.

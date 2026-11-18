@@ -2,7 +2,7 @@
 
 Turva's `.pre-commit-config.yaml` checks formatting, spelling, Markdown and Python style, and since #109 and #110 it runs on every commit as well as in CI. It does not look for the mistakes that hurt most in a public, safety-critical repository: a committed secret, a home network address or device name, an unsafe GitHub Actions workflow, a Python type error, or a known-insecure Python pattern. Each has a well-tried pre-commit hook, so Turva can adopt checks that are known to work rather than design them afresh.
 
-This plan adds those checks one at a time, each as its own branch in the `pre-commit` stack on top of `feature/pre-commit-lint-staged` (#110): `check-toml`, gitleaks, the dev-details check, Zizmor as a hook, mypy and bandit. Each phase lands green: where a new check finds problems in the existing code, the phase either fixes them or narrows the check's scope, and says which in its pull request. The order puts the cheapest and most valuable checks first, so stopping early still leaves Turva better protected.
+This plan adds those checks one at a time, each as its own branch in the `pre-commit` stack on top of `feature/pre-commit-lint-staged` (#110): `check-toml`, gitleaks, the dev-details check, Zizmor as a hook, mypy, bandit and ShellCheck. Each phase lands green: where a new check finds problems in the existing code, the phase either fixes them or narrows the check's scope, and says which in its pull request. The order puts the cheapest and most valuable checks first, so stopping early still leaves Turva better protected.
 
 ## Open questions
 
@@ -70,6 +70,14 @@ Branch `feature/pre-commit-bandit`.
 - [x] Add the `bandit` hook from `https://github.com/PyCQA/bandit`, with `language_version: python3.14`, and its settings in a `[tool.bandit]` block in `pyproject.toml`. Departed from the plan: the settings went in the hook instead, because bandit ignores `exclude_dirs` for files that pre-commit names one by one.
 - [x] Decide whether Turva needs a bandit wrapper that checks the scan really covered the code. Bandit silently skips a file it cannot parse, so add the wrapper if a file is skipped on the first run. Not needed: the first run skipped no files.
 - [x] If a finding touches permissions, the audit trail or the risk matrix, update `SAFETY.md` in the same commit, as `AGENTS.md` requires.
+
+## Phase 7: ShellCheck
+
+Branch `feature/pre-commit-shellcheck`. Added on 18 November 2026, after the first six phases had landed. Turva runs ShellCheck as a hook, so it checks each script at commit time, and CI's `Styling (pre-commit)` job runs it on every file, so a commit made with `--no-verify` is still caught.
+
+- [x] Run ShellCheck once over every shell file, using the hook's own copy through `pre-commit run shellcheck --all-files`, and triage what it reports. Ran on 18 November 2026: the 20 scripts in `s/` and `.githooks/` all passed. The findings were all in three bats tests: one `cd` without a fallback, fixed, and two kinds of false alarm, each turned off with a comment saying why.
+- [x] Add the `shellcheck` hook from `https://github.com/shellcheck-py/shellcheck-py` at `v0.11.0.1`, which installs its own ShellCheck, so nobody needs it on their machine.
+- [x] Confirm that the hook sees every script. pre-commit recognises a file with no extension as shell only when it is executable and starts with a shell shebang. Every script in `s/` and `.githooks/` is, and the bats tests are recognised by their `.bats` extension. No other shell scripts are tracked.
 
 ## Decisions
 

@@ -44,5 +44,7 @@ setup() {
 	chmod 755 "${repo}/frontend/node_modules"
 	[ "$status" -eq 1 ]
 	[[ "$output" == *"frontend/node_modules is not writable"* ]]
+	# The message shows $USER for the reader to type, so it must not expand.
+	# shellcheck disable=SC2016
 	[[ "$output" == *'sudo chown "$USER:$USER" frontend/node_modules'* ]]
 }
