@@ -42,7 +42,7 @@ export const Default: Story = {
   args: {
     icon: <IconUserPlus />,
     title: "Add User",
-    subtitle: "Create a new user account with competencies and permissions",
+    subtitle: "Invite a colleague to the organisation",
     buttonLabel: "Add New User",
     buttonUrl: "/admin/users/new",
   },
@@ -80,15 +80,14 @@ export const DisabledWithReason: Story = {
     onClick: () => undefined,
     disabled: true,
     disabledReason:
-      "This account holds access you cannot grant, such as a clinician passport the person pays for themselves, so you cannot deactivate or reactivate it.",
+      "Only an organisation administrator can manage this account. Organisation administration does not grant access to its safety evidence.",
   },
 };
 
 /**
  * Without subtitle
  *
- * The title and the action say enough, as on the passport specialty card,
- * whose field carries its own helper text.
+ * The title and the action say enough without another explanatory line.
  */
 export const WithoutSubtitle: Story = {
   args: {
@@ -109,7 +108,7 @@ export const LongContent: Story = {
     icon: <IconUserPlus />,
     title: "Add User Account with Extended Permissions",
     subtitle:
-      "Create a new user account with customizable competencies, system permissions, and role-based access control settings for your organisation",
+      "Invite a colleague to your organisation. Reading or editing private evidence also requires a current CSO appointment and a named file-team grant.",
     buttonLabel: "Create New User Account",
     buttonUrl: "/admin/users/new",
   },

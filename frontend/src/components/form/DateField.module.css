@@ -36,3 +36,16 @@
 .root :global(.mantine-DateInput-input[data-error]:focus) {
   border-color: var(--error-focus-color) !important;
 }
+
+/* Keep a whole calendar visible at 320 CSS pixels, including its popover. */
+@media (width < 40em) {
+  .day {
+    --day-size: 2.25rem !important;
+  }
+  .pickerControl {
+    --dpc-size: 2.25rem !important;
+  }
+  .calendarHeader {
+    --dch-control-size: 2.25rem !important;
+  }
+}

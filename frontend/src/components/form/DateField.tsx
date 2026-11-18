@@ -7,13 +7,12 @@
  *
  * **Values are `YYYY-MM-DD` strings, never `Date` objects.** Mantine 9's
  * DateInput works in strings natively, and so does every date the backend
- * sends or accepts - `observed_on`, `performed_on`, `awarded_on`. Passing
+ * sends or accepts. Passing
  * `Date` through would mean parsing and re-serialising at both ends,
  * which is where a timezone silently shifts a clinical date by a day.
  *
- * A date here carries no time of day, deliberately. Nobody recalls
- * whether a procedure was at 09:30 or 11:00 when logging five of them on
- * a Friday evening.
+ * A date here carries no time of day, deliberately: a review date is not
+ * a timestamp or a patient encounter.
  *
  * @example
  * ```tsx
@@ -31,6 +30,7 @@ import { DateInput, type DateInputProps } from "@mantine/dates";
 import { ErrorMessage } from "@/components/typography";
 import FieldDescription from "@/components/typography/FieldDescription";
 import classes from "./DateField.module.css";
+import { parseDateInput } from "./parseDateInput";
 
 const fieldStyles = {
   label: {
@@ -52,6 +52,9 @@ export default function DateField({
   valueFormat = "D MMMM YYYY",
   placeholder = "DD/MM/YYYY",
   clearButtonProps,
+  dateParser,
+  previousLabel = "Previous calendar period",
+  nextLabel = "Next calendar period",
   ...props
 }: DateInputProps) {
   return (
@@ -59,6 +62,13 @@ export default function DateField({
       {...props}
       // British reading order, matching the rest of the interface.
       valueFormat={valueFormat}
+      dateParser={
+        dateParser ??
+        ((value) =>
+          parseDateInput(value, typeof valueFormat === "string" ? valueFormat : undefined))
+      }
+      previousLabel={previousLabel}
+      nextLabel={nextLabel}
       placeholder={placeholder}
       // Mantine's clear button is an icon with no name, so a screen
       // reader announces only "button".
@@ -67,7 +77,13 @@ export default function DateField({
       error={error ? <ErrorMessage>{error}</ErrorMessage> : undefined}
       size="md"
       styles={fieldStyles}
-      classNames={{ root: classes.root }}
+      classNames={{
+        root: classes.root,
+        day: classes.day,
+        monthsListControl: classes.pickerControl,
+        yearsListControl: classes.pickerControl,
+        calendarHeader: classes.calendarHeader,
+      }}
     />
   );
 }

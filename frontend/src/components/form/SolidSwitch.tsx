@@ -16,7 +16,8 @@ import {
   type SwitchProps,
 } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
-import { useState } from "react";
+import { useId } from "react";
+import { useUncontrolled } from "@mantine/hooks";
 import type { ReactNode } from "react";
 import { FieldDescription, ErrorMessage } from "@/components/typography";
 import classes from "./SolidSwitch.module.css";
@@ -39,6 +40,8 @@ export default function SolidSwitch({
   description,
   error,
   checked: controlledChecked,
+  defaultChecked,
+  id: suppliedId,
   onChange,
   classNames,
   size: sizeProp,
@@ -46,9 +49,13 @@ export default function SolidSwitch({
   offLabel = "No",
   ...rest
 }: SolidSwitchProps) {
-  const isControlled = controlledChecked !== undefined;
-  const [internalChecked, setInternalChecked] = useState(false);
-  const checked = isControlled ? controlledChecked : internalChecked;
+  const generatedId = useId();
+  const id = suppliedId ?? generatedId;
+  const [checked, setChecked] = useUncontrolled({
+    value: controlledChecked,
+    defaultValue: defaultChecked,
+    finalValue: false,
+  });
   const isDark = useComputedColorScheme("light") === "dark";
   const theme = useMantineTheme();
   const isMobile = useMediaQuery(`(max-width: ${theme.breakpoints.sm})`);
@@ -66,18 +73,32 @@ export default function SolidSwitch({
   );
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
-    if (!isControlled) {
-      setInternalChecked(e.currentTarget.checked);
-    }
+    setChecked(e.currentTarget.checked);
     onChange?.(e);
   }
 
   return (
     <div>
-      {label && <Input.Label className={classes.topLabel}>{label}</Input.Label>}
-      {description && <FieldDescription>{description}</FieldDescription>}
+      {label && (
+        <Input.Label id={`${id}-label`} htmlFor={id} className={classes.topLabel}>
+          {label}
+        </Input.Label>
+      )}
+      {description && (
+        <div id={`${id}-description`}>
+          <FieldDescription>{description}</FieldDescription>
+        </div>
+      )}
       <Switch
         {...rest}
+        id={id}
+        aria-labelledby={rest["aria-labelledby"] ?? (label ? `${id}-label` : undefined)}
+        aria-describedby={
+          [rest["aria-describedby"], description && `${id}-description`, error && `${id}-error`]
+            .filter(Boolean)
+            .join(" ") || undefined
+        }
+        aria-invalid={!!error || undefined}
         checked={checked}
         onChange={handleChange}
         size={size}
@@ -107,7 +128,11 @@ export default function SolidSwitch({
             : undefined,
         }}
       />
-      {error && <ErrorMessage>{error}</ErrorMessage>}
+      {error && (
+        <div id={`${id}-error`}>
+          <ErrorMessage>{error}</ErrorMessage>
+        </div>
+      )}
     </div>
   );
 }

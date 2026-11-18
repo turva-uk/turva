@@ -66,6 +66,34 @@
   font-weight: 500 !important;
 }
 
+.pill,
+.disabledPill {
+  height: auto;
+  /* Mantine's flex: 0 has a zero basis. Once labels can wrap, that
+     compresses them to one character even on a wide screen. */
+  flex: 0 1 auto;
+  min-height: var(--pill-height-md);
+  max-width: 100%;
+  align-items: flex-start;
+  border-radius: var(--mantine-radius-md);
+  padding-block: 2px;
+}
+
+.pill :global(.mantine-Pill-label),
+.disabledPill :global(.mantine-Pill-label) {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  height: auto;
+  min-width: 0;
+  text-overflow: clip;
+  line-height: 1.4;
+}
+
+.pill :global(.mantine-Pill-remove) {
+  flex-shrink: 0;
+  min-height: 1.5rem;
+}
+
 [data-mantine-color-scheme="dark"] .pill {
   background-color: var(--mantine-color-primary-7) !important;
 }

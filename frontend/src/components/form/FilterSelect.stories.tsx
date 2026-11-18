@@ -9,6 +9,7 @@ import { useState } from "react";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { Group } from "@mantine/core";
 import FilterSelect from "./FilterSelect";
+import { userEvent, within } from "storybook/test";
 
 const meta: Meta<typeof FilterSelect> = {
   title: "Tables/Filter select",
@@ -64,6 +65,20 @@ export const Default: Story = {
 
 export const WithActiveFilters: Story = {
   render: () => <InteractiveFilterSelect preselected={["trust:leeds", "lead:morton"]} />,
+};
+
+/** Exercise nested options, not only the closed trigger. */
+export const OpenFilters: Story = {
+  ...WithActiveFilters,
+  play: async ({ canvasElement }) => {
+    await userEvent.click(
+      within(canvasElement).getByRole("button", { name: "Filter delegates" }),
+    );
+    within(canvasElement.ownerDocument.body)
+      .getByRole("combobox", { name: "Filter delegates" })
+      .focus();
+    await userEvent.keyboard("{ArrowDown}");
+  },
 };
 
 /** Shows the count indicator at each value from 0 through 9+ */

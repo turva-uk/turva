@@ -76,9 +76,10 @@ export default function RadioField({
       value={value ?? ""}
       onChange={onChange}
       required={required}
+      description={description ? <FieldDescription>{description}</FieldDescription> : undefined}
+      error={error ? <ErrorMessage>{error}</ErrorMessage> : undefined}
       styles={fieldStyles}
     >
-      {description && <FieldDescription>{description}</FieldDescription>}
       <Stack gap="sm" mt={label ? "xs" : undefined}>
         {options.map((opt) => (
           <div key={opt.value} className={classes.option} data-disabled={disabled || undefined}>
@@ -96,7 +97,6 @@ export default function RadioField({
           </div>
         ))}
       </Stack>
-      {error && <ErrorMessage>{error}</ErrorMessage>}
     </Radio.Group>
   );
 }

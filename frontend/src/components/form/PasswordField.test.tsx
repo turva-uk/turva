@@ -2,17 +2,13 @@ import { describe, it, expect } from "vitest";
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { renderWithMantine, expectInlineStyle } from "@/test/test-utils";
-import { MAX_PASSWORD } from "@/lib/fieldLimits";
 import PasswordField from "./PasswordField";
 
 describe("PasswordField", () => {
-  it("stops at the most characters the backend takes", () => {
+  it("does not truncate existing credentials without a matching API limit", () => {
     renderWithMantine(<PasswordField label="Password" />);
 
-    expect(screen.getByLabelText("Password")).toHaveAttribute(
-      "maxlength",
-      String(MAX_PASSWORD),
-    );
+    expect(screen.getByLabelText("Password")).not.toHaveAttribute("maxlength");
   });
 
   it("takes a shorter limit when one is given", () => {

@@ -13,13 +13,24 @@ import "./styles/disabled-controls.css";
 import { MantineProvider } from "@mantine/core";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { BrowserRouter } from "react-router";
+import { createBrowserRouter, RouterProvider } from "react-router";
 
 import { App } from "./App";
 import { SessionProvider } from "./auth/SessionProvider";
 import { cssVariablesResolver, theme } from "./theme";
 
 const root = document.getElementById("root");
+// Shared dirty-form protection needs a data router, not BrowserRouter.
+const router = createBrowserRouter([
+  {
+    path: "*",
+    element: (
+      <SessionProvider>
+        <App />
+      </SessionProvider>
+    ),
+  },
+]);
 if (!root) {
   throw new Error("No #root element: index.html and this entry point disagree.");
 }
@@ -31,11 +42,7 @@ createRoot(root).render(
       cssVariablesResolver={cssVariablesResolver}
       defaultColorScheme="light"
     >
-      <BrowserRouter>
-        <SessionProvider>
-          <App />
-        </SessionProvider>
-      </BrowserRouter>
+      <RouterProvider router={router} />
     </MantineProvider>
   </StrictMode>,
 );

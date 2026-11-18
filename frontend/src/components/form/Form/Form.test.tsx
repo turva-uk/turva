@@ -135,7 +135,7 @@ describe("Form", () => {
         state: "partial_success",
         message: {
           title: "Partially saved",
-          description: "GP delivery pending.",
+          description: "Notification pending.",
         },
       });
 

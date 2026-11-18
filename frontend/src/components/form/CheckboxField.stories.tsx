@@ -14,9 +14,9 @@ export default meta;
 type Story = StoryObj<typeof CheckboxField>;
 
 const DECLARATION =
-  "I confirm that I have assessed this person against this competency, " +
-  "that the record above reflects what I observed or reviewed, and that " +
-  "I accept professional accountability for this judgement.";
+  "I confirm that I have reviewed the evidence shown above and recorded " +
+  "the reasons for this draft assessment. This acknowledgement does not " +
+  "approve deployment or verify my competence.";
 
 export const Default: Story = {
   args: {
@@ -55,7 +55,7 @@ export const Disabled: Story = {
 };
 
 /**
- * How an assessor confirms a sign-off - the reason this component exists.
+ * A deliberate acknowledgement, distinct from clinical approval.
  */
 export const AsAnAttestation: Story = {
   render: function AsAnAttestationStory() {
@@ -71,10 +71,8 @@ export const AsAnAttestation: Story = {
           required
         />
         <StoryNote>
-          Unticked by default and never pre-ticked: the deliberate act is the whole point, and
-          the API refuses a sign-off without it. This is what NES Turas, Kaizen and the RCP
-          ePortfolio do for workplace-based assessment - a drawn signature would look more
-          official and prove less, since anyone can draw anyone&rsquo;s name.
+          Illustrative wording only. The box starts unticked. A deliberate tick records an
+          acknowledgement; it does not verify competence or approve a safety case.
         </StoryNote>
       </Stack>
     );

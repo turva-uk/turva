@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { Stack } from "@mantine/core";
 import BaseCard from "@/components/base-card/BaseCard";
 import MultiSelectField from "./MultiSelectField";
+import { expect, within } from "storybook/test";
 
 const meta: Meta<typeof MultiSelectField> = {
   title: "Form/Multi select field",
@@ -12,20 +13,20 @@ const meta: Meta<typeof MultiSelectField> = {
 export default meta;
 type Story = StoryObj<typeof MultiSelectField>;
 
-/** Options in groups, as the competency picker has them. */
+/** Control types grouped by the kind of mitigation. */
 const groupedData = [
   {
-    group: "Oncology",
+    group: "Design",
     items: [
-      { value: "prescribe_sact", label: "Prescribe SACT" },
-      { value: "assess_sact_toxicity", label: "Assess SACT toxicity" },
+      { value: "elimination", label: "Eliminate the hazard" },
+      { value: "technical", label: "Technical control" },
     ],
   },
   {
-    group: "Others",
+    group: "Process",
     items: [
-      { value: "take_informed_consent", label: "Take informed consent" },
-      { value: "request_plain_xray", label: "Request plain X-rays" },
+      { value: "warning", label: "Warning or alert" },
+      { value: "procedural", label: "Procedural control" },
     ],
   },
 ];
@@ -115,6 +116,33 @@ export const ManySelected: Story = {
   },
 };
 
+const longHazards = [
+  "HAZ-001 - Delayed discharge summary omits critical medication changes",
+  "HAZ-002 - An incomplete safety case is presented as complete",
+];
+
+/** Wrapping must not turn a long selected value into a one-character column. */
+export const LongHazardLabels: Story = {
+  args: { label: "Related hazards", data: longHazards, defaultValue: longHazards },
+  render: (args) => (
+    <Stack maw={320}>
+      <MultiSelectField {...args} />
+    </Stack>
+  ),
+  play: async ({ canvasElement }) => {
+    const label = within(canvasElement).getByText(longHazards[0]!);
+    const bounds = label.getBoundingClientRect();
+    await expect(bounds.width).toBeGreaterThan(120);
+    await expect(bounds.height).toBeLessThan(150);
+    await expect(label.scrollWidth).toBeLessThanOrEqual(label.clientWidth + 1);
+  },
+};
+
+export const DisabledLongHazardLabels: Story = {
+  ...LongHazardLabels,
+  args: { ...LongHazardLabels.args, disabled: true },
+};
+
 export const Disabled: Story = {
   args: {
     label: "Participants",
@@ -177,8 +205,8 @@ export const DarkMode: Story = {
  */
 export const Grouped: Story = {
   args: {
-    label: "Competency",
-    placeholder: "Search competencies",
+    label: "Control types",
+    placeholder: "Choose control types",
     data: groupedData,
     defaultDropdownOpened: true,
     // Tall enough to show every group without scrolling. At Mantine's

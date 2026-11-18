@@ -5,14 +5,13 @@
  * Includes a visibility toggle button and enforces consistent font sizing,
  * label styling, and error display across the application.
  *
- * Stops at `MAX_PASSWORD` characters, the most the backend takes, unless
- * a `maxLength` is passed.
+ * Never silently truncates an existing credential. The API has no matching
+ * plaintext limit; the model's 128 characters store the hash, not the password.
  */
 
 import { PasswordInput, type PasswordInputProps } from "@mantine/core";
 import { ErrorMessage } from "@/components/typography";
 import FieldDescription from "@/components/typography/FieldDescription";
-import { MAX_PASSWORD } from "@/lib/fieldLimits";
 import classes from "./PasswordField.module.css";
 
 const fieldStyles = {
@@ -33,7 +32,6 @@ const fieldStyles = {
 export default function PasswordField({ description, error, ...props }: PasswordInputProps) {
   return (
     <PasswordInput
-      maxLength={MAX_PASSWORD}
       {...props}
       description={description ? <FieldDescription>{description}</FieldDescription> : undefined}
       error={error ? <ErrorMessage>{error}</ErrorMessage> : undefined}

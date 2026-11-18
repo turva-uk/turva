@@ -5,21 +5,8 @@
  * Builds on React Hook Form and extends it with Turva-specific states
  * (partial_success, timeout) and composite outcome modelling.
  *
- * @example
- * ```tsx
- * <Form
- *   onSubmit={async (data) => {
- *     await api.put("/settings", data);
- *     return { state: "success", message: { title: "Saved" } };
- *   }}
- *   submitLabel="Save"
- *   submittingLabel="Saving…"
- * >
- *   <FormStatus />
- *   <TextField {...} />
- *   <SubmitButton />
- * </Form>
- * ```
+ * See Form.mdx for registered fields, API error handling and the opened-version
+ * contract. This wrapper does not itself save evidence or approve a safety case.
  */
 
 import {
@@ -27,6 +14,7 @@ import {
   type ReactNode,
   useCallback,
   useContext,
+  useEffect,
   useRef,
   useState,
 } from "react";
@@ -74,7 +62,12 @@ export interface FormProps<T extends FieldValues> {
   /** Default form values */
   defaultValues?: DefaultValues<T>;
   /** Submit handler, sync or async: receives validated data, returns result */
-  onSubmit: (data: T) => FormSubmitResult | Promise<FormSubmitResult>;
+  onSubmit: (
+    data: T,
+    context: { signal: AbortSignal },
+  ) => FormSubmitResult | Promise<FormSubmitResult>;
+  /** Synchronous navigation after full success, only when no newer edits exist. */
+  onSuccess?: (data: T) => void;
   /** Label for the submit button (defaults to "Save") */
   submitLabel?: string;
   /** Label shown during submission (defaults to "Saving…") */
@@ -95,32 +88,45 @@ export interface FormProps<T extends FieldValues> {
  * Internal component that blocks navigation when the form is dirty.
  * Must be rendered inside FormProvider to access form state.
  * Only activates when rendered inside a React Router context.
- * Does NOT block during submission or after success (the onSubmit
- * handler may navigate before Form calls reset).
+ * Dirty values and unresolved requests remain protected regardless of the
+ * last status message. Only the explicit onSuccess callback may bypass it.
  */
 function FormNavigationBlocker<T extends FieldValues>({
   control,
   onProceed,
-  formState,
+  pending,
+  allowNavigation,
+  hasPendingOperation,
 }: {
   control: Control<T>;
   onProceed: () => void;
-  formState: FormState;
+  pending: boolean;
+  allowNavigation: () => boolean;
+  hasPendingOperation: () => boolean;
 }) {
   const { isDirty } = useFormState({ control });
 
-  const shouldBlock =
-    isDirty &&
-    formState !== "submitting" &&
-    formState !== "success" &&
-    formState !== "partial_success";
+  const shouldBlock = isDirty || pending;
 
   const blocker = useBlocker(
     ({ currentLocation, nextLocation }) =>
-      shouldBlock && currentLocation.pathname !== nextLocation.pathname,
+      (shouldBlock || hasPendingOperation()) &&
+      !allowNavigation() &&
+      (currentLocation.pathname !== nextLocation.pathname ||
+        currentLocation.search !== nextLocation.search),
   );
 
-  return <DirtyFormNavigation blocker={blocker} onProceed={onProceed} />;
+  return (
+    <DirtyFormNavigation
+      blocker={blocker}
+      onProceed={onProceed}
+      message={
+        pending
+          ? "A save is still in progress. Leaving does not cancel it, and any newer unsaved edits will be lost. Check the recorded version before submitting again. Leave this page?"
+          : undefined
+      }
+    />
+  );
 }
 
 /**
@@ -131,12 +137,43 @@ function FormNavigationBlocker<T extends FieldValues>({
 function MaybeFormNavigationBlocker<T extends FieldValues>(props: {
   control: Control<T>;
   onProceed: () => void;
-  formState: FormState;
+  pending: boolean;
+  allowNavigation: () => boolean;
+  hasPendingOperation: () => boolean;
 }) {
   const hasRouter = useInRouterContext();
   const dataRouterContext = useContext(UNSAFE_DataRouterContext);
-  if (!hasRouter || !dataRouterContext) return null;
+  if (hasRouter && !dataRouterContext) {
+    throw new Error(
+      "Form navigation protection requires a data router (createBrowserRouter/createMemoryRouter).",
+    );
+  }
+  if (!hasRouter) return null;
   return <FormNavigationBlocker {...props} />;
+}
+
+function NativeDepartureWarning<T extends FieldValues>({
+  control,
+  pending,
+  hasPendingOperation,
+  allowNavigation,
+}: {
+  control: Control<T>;
+  pending: boolean;
+  hasPendingOperation: () => boolean;
+  allowNavigation: () => boolean;
+}) {
+  const { isDirty } = useFormState({ control });
+  useEffect(() => {
+    function warn(event: BeforeUnloadEvent) {
+      if (allowNavigation() || (!isDirty && !pending && !hasPendingOperation())) return;
+      event.preventDefault();
+      event.returnValue = "";
+    }
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [isDirty, pending, hasPendingOperation, allowNavigation]);
+  return null;
 }
 
 /**
@@ -145,6 +182,7 @@ function MaybeFormNavigationBlocker<T extends FieldValues>(props: {
 export default function Form<T extends FieldValues>({
   defaultValues,
   onSubmit,
+  onSuccess,
   submitLabel = "Save",
   submittingLabel = "Saving\u2026",
   timeoutMs = 30_000,
@@ -157,8 +195,34 @@ export default function Form<T extends FieldValues>({
   const [formState, setFormState] = useState<FormState>("idle");
   const [statusMessage, setStatusMessage] = useState<FormStatusMessage | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const busyRef = useRef(false);
+  const mountedRef = useRef(false);
+  const revisionRef = useRef(0);
+  const submittedRevisionRef = useRef(0);
+  const navigationRef = useRef(false);
+  const [submissionPending, setSubmissionPending] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const pendingDataRef = useRef<T | null>(null);
+
+  useEffect(
+    () =>
+      methods.subscribe({
+        formState: { values: true },
+        callback: () => {
+          revisionRef.current += 1;
+        },
+      }),
+    [methods],
+  );
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      abortRef.current?.abort();
+    };
+  }, []);
+  const allowNavigation = useCallback(() => navigationRef.current, []);
+  const hasPendingOperation = useCallback(() => busyRef.current, []);
 
   const dismissStatus = useCallback(() => {
     setStatusMessage(null);
@@ -176,33 +240,57 @@ export default function Form<T extends FieldValues>({
   const handleSubmit = useCallback(
     async (data: T) => {
       setFormState("submitting");
+      setSubmissionPending(true);
       setStatusMessage(null);
 
       const controller = new AbortController();
       abortRef.current = controller;
 
+      let timedOut = false;
       const timeoutId = setTimeout(() => {
+        timedOut = true;
         controller.abort();
+        if (!mountedRef.current) return;
+        setFormState("timeout");
+        setStatusMessage({
+          title: "Request timed out",
+          description:
+            "Turva has not confirmed the outcome. Your entries are still here. The request may have saved; wait for it to finish and check the recorded version before retrying.",
+        });
       }, timeoutMs);
 
       try {
-        const result = await Promise.race([
-          onSubmit(data),
-          new Promise<never>((_, reject) => {
-            controller.signal.addEventListener("abort", () => {
-              reject(new DOMException("Aborted", "AbortError"));
-            });
-          }),
-        ]);
+        const result = await onSubmit(data, { signal: controller.signal });
 
         clearTimeout(timeoutId);
+        // A late answer cannot turn an uncertain outcome into a fresh save.
+        if (!mountedRef.current || timedOut) return;
+        const newerEdits = revisionRef.current !== submittedRevisionRef.current;
         setFormState(result.state);
         setStatusMessage(result.message);
         if (result.state === "success" || result.state === "partial_success") {
-          methods.reset(data);
+          const currentValues = methods.getValues();
+          methods.reset(data, { keepValues: true });
+          methods.reset(currentValues, { keepDefaultValues: true });
+        }
+        if (result.state === "success" && !newerEdits && onSuccess) {
+          navigationRef.current = true;
+          try {
+            onSuccess(data);
+          } catch {
+            setFormState("partial_success");
+            setStatusMessage({
+              title: "Saved, but could not open the next page",
+              description:
+                "Your submitted entries were saved. You can navigate manually; do not resubmit them to open the page.",
+            });
+          } finally {
+            navigationRef.current = false;
+          }
         }
       } catch (err) {
         clearTimeout(timeoutId);
+        if (!mountedRef.current || timedOut) return;
         if (err instanceof DOMException && err.name === "AbortError") {
           setFormState("timeout");
           setStatusMessage({
@@ -218,13 +306,17 @@ export default function Form<T extends FieldValues>({
           });
         }
       } finally {
+        clearTimeout(timeoutId);
         abortRef.current = null;
+        busyRef.current = false;
+        if (mountedRef.current) setSubmissionPending(false);
       }
     },
-    [onSubmit, timeoutMs, methods],
+    [onSubmit, onSuccess, timeoutMs, methods],
   );
 
   const handleInvalid = useCallback((errors: FieldErrors<T>) => {
+    busyRef.current = false;
     const count = Object.keys(errors).length;
     setFormState("validation_error");
     setStatusMessage({
@@ -235,9 +327,14 @@ export default function Form<T extends FieldValues>({
 
   const handleValidated = useCallback(
     (data: T) => {
+      if (!mountedRef.current) {
+        busyRef.current = false;
+        return;
+      }
       if (confirm) {
         pendingDataRef.current = data;
         setConfirmOpen(true);
+        setFormState("idle");
       } else {
         void handleSubmit(data);
       }
@@ -256,6 +353,8 @@ export default function Form<T extends FieldValues>({
   const handleConfirmClose = useCallback(() => {
     setConfirmOpen(false);
     pendingDataRef.current = null;
+    // ConfirmModal's completion also calls this; never unlock an active write.
+    if (!abortRef.current) busyRef.current = false;
   }, []);
 
   const contextValue: FormContextValue = {
@@ -266,29 +365,53 @@ export default function Form<T extends FieldValues>({
     submitLabel,
     submittingLabel,
     disableWhenClean,
+    submissionPending,
   };
 
   return (
     <FormContext.Provider value={contextValue}>
       <FormProvider {...methods}>
         <form
-          /*
-            eslint-disable-next-line react-hooks/refs -- `handleSubmit`
-            registers the callback rather than calling it: `handleValidated`
-            runs on submit, and the ref it writes is never touched during
-            render. The rule analyses one function at a time and cannot see
-            the deferral.
-          */
-          onSubmit={methods.handleSubmit(handleValidated, handleInvalid)}
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (busyRef.current) return;
+            busyRef.current = true;
+            submittedRevisionRef.current = revisionRef.current;
+            setFormState("validating");
+            void methods
+              .handleSubmit(
+                handleValidated,
+                handleInvalid,
+              )(event)
+              .catch(() => {
+                busyRef.current = false;
+                if (!mountedRef.current) return;
+                setFormState("error");
+                setStatusMessage({
+                  title: "Could not validate the form",
+                  description: "Your entries are still here. Please try again.",
+                });
+              });
+          }}
           noValidate
         >
           {children}
         </form>
         {blockNavigation && (
+          <NativeDepartureWarning
+            control={methods.control}
+            pending={submissionPending || formState === "validating" || confirmOpen}
+            hasPendingOperation={hasPendingOperation}
+            allowNavigation={allowNavigation}
+          />
+        )}
+        {blockNavigation && (
           <MaybeFormNavigationBlocker
             control={methods.control}
             onProceed={() => methods.reset()}
-            formState={formState}
+            pending={submissionPending || formState === "validating" || confirmOpen}
+            allowNavigation={allowNavigation}
+            hasPendingOperation={hasPendingOperation}
           />
         )}
         {confirm && (

@@ -4,311 +4,106 @@ import { Meta } from "@storybook/addon-docs/blocks";
 
 # Form
 
-The `<Form>` component is the **standard wrapper for all single-page forms** in the application. It owns the submission lifecycle - loading state, success/error feedback, timeout handling - so individual pages don't need to reimplement this boilerplate.
+`Form` is the shared single-page form wrapper. It registers values through React Hook Form and owns validation, request feedback, confirmation and departure warnings. It does not save evidence itself or confer clinical approval.
 
-## When to use
+Existing application pages still use `@mantine/form` and their tested submission adapters. Keeping both libraries is a temporary migration boundary, not permission to mix them within one form. Migrate a page separately, with tests for its API errors, retained drafts, permissions and version preconditions; remove the old dependency only after its last caller moves.
 
-Use `<Form>` by default for any page or modal that collects data and submits it to an API.
+## A registered profile field
 
-This includes:
-
-- Admin settings pages
-- User profile / account forms
-- Login, registration, forgot password
-- Patient data entry
-- Messaging compose flows
-- Any single-page save/send workflow
-
-## When NOT to use
-
-- **Multi-step forms** - use `MultiStepForm` instead. It has its own step navigation, per-step validation, and confirmation step pattern that don't fit the `<Form>` model.
-- **Teaching assessments** - these have timer-driven flows, multi-question navigation, and scoring logic that require custom state management.
-- **Inline toggles** - single-field saves (e.g. a live status switch) where a full FormStatus card would be overkill.
-
-## Four submission patterns
-
-Form supports four submission patterns - confirm is orthogonal to stay/navigate:
-
-| #   | Pattern                    | Components                                   | Feedback location               |
-| --- | -------------------------- | -------------------------------------------- | ------------------------------- |
-| 1   | Submit, stay on page       | `<Form>` + `<FormStatus>`                    | Status card on same page        |
-| 2   | Submit + confirm, stay     | `<Form>` + `<ConfirmModal>` + `<FormStatus>` | Status card on same page        |
-| 3   | Submit, navigate away      | `<Form>` + `PageMessage` (centralised)       | Status card on destination page |
-| 4   | Submit + confirm, navigate | `<Form>` + `<ConfirmModal>` + `PageMessage`  | Status card on destination page |
-
-## Architecture
-
-Form manages a state machine with seven states:
-
-```
-idle → submitting → success
-                  → partial_success
-                  → error
-                  → timeout
-     → validation_error (client-side validation failed)
-```
-
-- **idle** - no submission attempted
-- **submitting** - request in flight (button shows spinner + submitting label)
-- **success** - full success
-- **partial_success** - composite write where some layers succeeded (e.g. letter saved but GP delivery pending)
-- **error** - server rejected or handler threw
-- **validation_error** - client-side validation failed; uses amber/warning severity to avoid alert fatigue. Shows "Please check the highlighted fields" with a count of fields needing attention
-- **timeout** - request exceeded the configured timeout (default 30 seconds)
-
-The state is exposed to child components via React context. `FormStatus` and `SubmitButton` subscribe to this context automatically - no prop threading needed.
-
-## Basic usage (§2 - stay on form)
+Fields must be registered. Merely placing a `TextField` inside `Form` does not connect its value to submission.
 
 ```tsx
-import { Form, FormStatus, SubmitButton } from "@/components/form/Form";
-import { TextField, SelectField } from "@/components/form";
+import { Stack } from "@mantine/core";
+import { request, ApiError } from "@/api/client";
+import type { User } from "@/api/types";
+import { Form, FormStatus, SubmitButton, useFormContext } from "@/components/form/Form";
+import type { FormSubmitResult } from "@/components/form/Form/Form";
+import TextField from "@/components/form/TextField";
 
-function SettingsPage() {
-  const handleSubmit = async (data) => {
-    await api.put("/api/settings", data);
-    return {
-      state: "success",
-      message: { title: "Settings saved" },
-    };
-  };
+type Values = { job_role: string };
 
+function ProfileFields() {
+  const { methods } = useFormContext<Values>();
   return (
-    <Form
-      defaultValues={{ name: "", role: "staff" }}
-      onSubmit={handleSubmit}
-      submitLabel="Save"
-      submittingLabel="Saving…"
-    >
-      <Stack gap="md">
-        <FormStatus />
-        <TextField label="Name" />
-        <SelectField label="Role" data={["staff", "admin"]} />
-        <SubmitButton />
-      </Stack>
-    </Form>
+    <TextField
+      label="Job role"
+      {...methods.register("job_role")}
+      error={methods.formState.errors.job_role?.message}
+    />
   );
 }
-```
 
-## Destructive actions (§1 - confirm modal)
-
-For destructive or irreversible actions, use the `confirm` prop on `<Form>` to gate submission behind a confirmation modal. The modal manages its own async loading state - the form stays idle until the user confirms.
-
-```tsx
-import { IconAlertTriangle } from "@tabler/icons-react";
-
-function PermissionsPage() {
-  const handleSubmit = async () => {
-    await api.delete("/api/permissions/123");
-    return {
-      state: "success",
-      message: { title: "Permissions deleted" },
-    };
-  };
-
-  return (
-    <Form
-      onSubmit={handleSubmit}
-      submitLabel="Delete permissions"
-      submittingLabel="Deleting…"
-      confirm={{
-        title: "Delete system permissions",
-        acceptLabel: "Delete",
-        submittingLabel: "Deleting…",
-        icon: <IconAlertTriangle />,
-        children:
-          "This will permanently delete all permissions. This action cannot be undone.",
-      }}
-    >
-      <Stack gap="md">
-        <FormStatus />
-        {/* ... fields ... */}
-        <SubmitButton />
-      </Stack>
-    </Form>
-  );
-}
-```
-
-### ConfirmModal features
-
-- `onAccept` can be sync or async - spinner shows on the accept button while the promise is pending
-- Both buttons disabled during loading (prevents double-submit)
-- Button width is locked during loading to prevent layout shift
-- On success: calls `onClose` automatically, loading state persists through the close animation (no flash)
-- On error: stays open, caller handles error display
-- `closeOnClickOutside={false}` - prevents accidental dismissal
-- No close button - forces conscious dismissal via Cancel or confirm
-
-## Navigate away on success (§3)
-
-For forms that navigate to a different page on success, pass a flash payload via React Router state. The centralised `PageMessageProvider` (in `MainLayout`) picks it up automatically and displays the message on the destination page - no per-page component needed.
-
-```tsx
-import { useNavigate } from "react-router";
-
-function SendLetterPage() {
-  const navigate = useNavigate();
-
-  const handleSubmit = async (data) => {
-    const result = await api.post("/api/letters", data);
-    navigate("/patients/123/letters", {
-      state: {
-        flash: {
-          title: "Letter sent",
-          description: `ID #${result.id}`,
-        },
-      },
-    });
-    return { state: "success", message: { title: "" } };
-  };
-
-  return (
-    <Form
-      onSubmit={handleSubmit}
-      submitLabel="Send letter"
-      submittingLabel="Sending…"
-    >
-      <Stack gap="md">
-        <FormStatus />
-        {/* ... fields ... */}
-        <SubmitButton />
-      </Stack>
-    </Form>
-  );
-}
-```
-
-On the destination page, the message appears automatically - no extra component needed.
-The `PageMessageProvider` reads `location.state.flash` and renders it above the page content.
-
-For imperative page-level messages (e.g. after a delete action outside a `<Form>`), use
-the `usePageMessage` hook:
-
-```tsx
-import { usePageMessage } from "@/components/page-message";
-
-function OrganisationsPage() {
-  const { showMessage } = usePageMessage();
-
-  async function handleDelete(org) {
-    await api.del(`/organizations/${org.id}`);
-    showMessage({
-      variant: "success",
-      title: "Organisation removed",
-      description: `${org.name} has been removed`,
-    });
+export function JobRoleForm({ jobRole }: { jobRole: string }) {
+  async function save(
+    data: Values,
+    { signal }: { signal: AbortSignal },
+  ): Promise<FormSubmitResult> {
+    try {
+      await request<User>("/profile/", { method: "PATCH", body: data, signal });
+      return { state: "success", message: { title: "Job role saved" } };
+    } catch (error) {
+      if (!(error instanceof ApiError)) throw error;
+      return {
+        state: "error",
+        message: { title: "Job role not saved", description: error.message },
+      };
+    }
   }
-
   return (
-    <Container size="lg" py="xl">
-      {/* PageMessageDisplay is rendered by MainLayout - no import needed */}
-      <OrgList onDelete={handleDelete} />
-    </Container>
+    <Form<Values> defaultValues={{ job_role: jobRole }} onSubmit={save} disableWhenClean>
+      <Stack>
+        <FormStatus />
+        <ProfileFields />
+        <SubmitButton />
+      </Stack>
+    </Form>
   );
 }
 ```
 
-## Components
+Use the existing API client: it supplies session credentials and CSRF and throws `ApiError` on non-success responses. It returns decoded data, not a `Response` with an `ok` property. Page adapters can map its dotted `fieldErrors` to `methods.setError`; never replace a stale-version or permission refusal with success.
 
-### `<Form>`
+For controlled Mantine fields, use RHF's `Controller`, or `watch` and `setValue` with `shouldDirty` and `shouldValidate`. Give each resource its own keyed form instance so changing files cannot reuse another file's draft.
 
-The outer wrapper. Accepts `defaultValues`, an async `onSubmit` handler that returns a
-`FormSubmitResult`, and optional `submitLabel`, `submittingLabel`, `timeoutMs`,
-`disableWhenClean`, and `confirm` props.
+## Save and departure contract
 
-When `disableWhenClean` is true, the submit button is disabled until the user changes a field value.
-
-When `confirm` is provided, a `<ConfirmModal>` gates submission - the form validates first, then shows the modal. On confirm, the `onSubmit` handler runs.
-
-### `<FormStatus />`
-
-Displays a status card when the form is in a result state (success, error, partial_success, timeout, validation_error).
-Renders nothing during idle/submitting. Place it at the top of your form layout.
-
-- Uses `role="status"` for success/partial success, `role="alert"` for errors/timeout/validation
-- Scrolls the page to the top when it appears
-- Dismissible by the user, never auto-dismissed
-- Can also be used standalone with manual props: `<FormStatus variant="success" title="Done" />`
-
-### `<SubmitButton />`
-
-Subscribes to form context for label and loading state. Uses `aria-disabled` (not `disabled`)
-so it remains focusable for screen readers during submission. Shows a spinner alongside the
-submitting label during submission, with the button width locked to prevent layout shift.
-
-Optional `onCancel` prop adds a cancel button in a ButtonPair-style layout.
-
-### `<ConfirmModal />`
-
-A standalone confirmation modal for destructive or irreversible actions. Lives in
-`components/confirm-modal/` and can be used both inside and outside `<Form>`.
-
-Props: `opened`, `onClose`, `onAccept` (async-aware), `children`, `title?`, `acceptLabel?`,
-`submittingLabel?`, `cancelLabel?`, `icon?`.
-
-## Handling errors
-
-Your `onSubmit` handler should return a `FormSubmitResult` for both success and expected errors:
+- Submission is single-flight, including validation and confirmation. Disabling a button alone is not the duplicate guard.
+- Success acknowledges only the submitted values. Newer edits stay visible and dirty. Error, validation failure and timeout never reset the draft.
+- `blockNavigation` defaults to true. SPA protection requires `createBrowserRouter` or `createMemoryRouter`; a legacy router fails visibly rather than silently dropping the guard. The application uses a data router. Standalone forms also warn on refresh/tab departure while dirty or pending.
+- A pending write and any unsaved values remain protected regardless of the last status message. Leaving deliberately does not cancel a server operation or undo a commit.
+- Use synchronous `onSuccess` for post-save navigation, not navigation inside `onSubmit`. It runs only after full success with no edits made since submission. Partial success never automatically navigates.
 
 ```tsx
-const handleSubmit = async (data) => {
-  const res = await api.put("/api/settings", data);
-  if (!res.ok) {
-    return {
-      state: "error",
-      message: {
-        title: "Failed to save",
-        description: "The server returned an error. Please try again.",
-      },
-    };
-  }
-  return {
-    state: "success",
-    message: { title: "Settings saved" },
-  };
-};
+const navigate = useNavigate();
+<Form
+  defaultValues={openedValues}
+  onSubmit={save}
+  onSuccess={() => {
+    void navigate(destination, {
+      state: { flash: { variant: "success", title: "Hazard saved" } },
+    });
+  }}
+>
+  {/* Registered fields, FormStatus and SubmitButton */}
+</Form>;
 ```
 
-If your handler throws an unexpected error, Form catches it and shows a generic error message.
-If the request exceeds `timeoutMs`, Form aborts and shows a timeout message automatically.
+`PageMessageProvider` consumes the flash once. The first `PageHeader` shows it beneath the title; the layout's fallback shows it when there is no header. Messages are dismissed by the person, not a timer.
 
-## Partial success
+### Timeouts are uncertain outcomes
 
-For composite writes (e.g. saving a letter and sending to a GP), use `partial_success`
-when some operations succeeded but others failed:
+After `timeoutMs` (30 seconds by default), the wrapper signals the optional transport cancellation and shows uncertainty. An abort signal cannot prove that the server did not commit. The duplicate guard stays held until the original handler's promise settles, even if it ignores the signal. A late result cannot reset the draft or navigate. Once settled, a deliberate retry uses the original version precondition; inspect the recorded version first.
 
-```tsx
-return {
-  state: "partial_success",
-  message: {
-    title: "Partially saved",
-    description:
-      "Letter saved to patient record. Delivery to GP is still pending.",
-  },
-};
-```
+For evidence writes, capture `expected_head` when the form opens and keep it through failures and retries. Never fetch a newer HEAD to make a stale judgement save. Retain the draft on conflict and offer comparison separately. The backend's service, repository lock and attributed Git commit remain authoritative. The wrapper provides neither request idempotency nor clinical sign-off.
 
-## Field components
+### Partial success
 
-All existing form field components work inside `<Form>` as children:
-`TextField`, `SelectField`, `TextAreaField`, `MultiSelectField`, `PasswordField`,
-`SolidSwitch`, `RadioField`.
+Use `partial_success` only when all submitted form values were saved but an ancillary operation failed, for example a notification. It establishes that submitted baseline while retaining newer edits. If some form values were not saved, return `error` and retain the whole draft instead. An unsigned safety case is not a partially saved form; saving and clinical approval are separate outcomes.
 
-## Stories
+## Confirmation and status
 
-The Form stories demonstrate all four submission patterns:
+`confirm` gates the request after validation. Cancelling it submits nothing. Password/code confirmations use the same hardened modal but collect the extra credential separately. Only the backend can verify identity or grant authority.
 
-| Story                  | Pattern | Description                                           |
-| ---------------------- | ------- | ----------------------------------------------------- |
-| Success submission     | 1       | Standard save with success card                       |
-| Error submission       | 1       | Server error with error card                          |
-| Unexpected error       | 1       | Handler throws, generic fallback                      |
-| Partial success        | 1       | Composite write with mixed outcomes                   |
-| Timeout                | 1       | Request exceeds timeout                               |
-| Validation error       | 1       | Client-side validation with field errors              |
-| Confirm and stay       | 2       | Destructive action with ConfirmModal, stays on page   |
-| Confirm and navigate   | 4       | ConfirmModal then navigates to destination with flash |
-| Submit and navigate    | 3       | Direct submit then navigates with flash               |
-| Dirty state playground | 1       | All field types with disableWhenClean                 |
+`FormStatus` announces success/partial success politely and errors/validation/timeouts assertively. It scrolls when shown, without smooth motion when reduced motion is requested. `SubmitButton` retains its label width and uses an enforced `aria-disabled` state while unavailable. An optional `onCancel` renders the accompanying cancel button; attempted navigation still passes through departure protection.
+
+Use a separate, specified workflow for multi-step authoring. Turva does not collect patient data or send clinical letters.

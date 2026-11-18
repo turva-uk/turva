@@ -28,6 +28,7 @@ import type { ReactElement, ReactNode } from "react";
 import { useState } from "react";
 import ConfirmModal from "./ConfirmModal";
 import PasswordField from "@/components/form/PasswordField";
+import useConfirmationSession from "./useConfirmationSession";
 
 export interface PasswordConfirmModalProps {
   /** Controls modal visibility */
@@ -63,17 +64,16 @@ export default function PasswordConfirmModal({
 }: PasswordConfirmModalProps) {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | undefined>();
+  const captureSession = useConfirmationSession(opened);
 
-  // Cleared each time it opens, so a password never waits in a closed
+  // Cleared on opening and closing, so a password never waits in a closed
   // modal for the next person to use it. Adjusted during render, as
   // ConfirmModal does, so it never paints open with the old one.
   const [wasOpened, setWasOpened] = useState(opened);
   if (opened !== wasOpened) {
     setWasOpened(opened);
-    if (opened) {
-      setPassword("");
-      setError(undefined);
-    }
+    setPassword("");
+    setError(undefined);
   }
 
   async function handleAccept(): Promise<void> {
@@ -83,11 +83,12 @@ export default function PasswordConfirmModal({
     }
 
     setError(undefined);
+    const isCurrent = captureSession();
 
     try {
       await onConfirm(password);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "That did not work");
+      if (isCurrent()) setError(err instanceof Error ? err.message : "That did not work");
       throw err;
     }
   }

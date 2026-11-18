@@ -29,6 +29,7 @@ import type { ReactElement, ReactNode } from "react";
 import { useState } from "react";
 import ConfirmModal from "./ConfirmModal";
 import TextField from "@/components/form/TextField";
+import useConfirmationSession from "./useConfirmationSession";
 
 export interface CodeConfirmModalProps {
   /** Controls modal visibility */
@@ -64,16 +65,15 @@ export default function CodeConfirmModal({
 }: CodeConfirmModalProps) {
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | undefined>();
+  const captureSession = useConfirmationSession(opened);
 
-  // Cleared each time it opens, so a code never waits in a closed modal.
+  // Cleared on opening and closing, so a code never waits in a closed modal.
   // Adjusted during render, as PasswordConfirmModal does.
   const [wasOpened, setWasOpened] = useState(opened);
   if (opened !== wasOpened) {
     setWasOpened(opened);
-    if (opened) {
-      setCode("");
-      setError(undefined);
-    }
+    setCode("");
+    setError(undefined);
   }
 
   async function handleAccept(): Promise<void> {
@@ -83,11 +83,12 @@ export default function CodeConfirmModal({
     }
 
     setError(undefined);
+    const isCurrent = captureSession();
 
     try {
       await onConfirm(code);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "That did not work");
+      if (isCurrent()) setError(err instanceof Error ? err.message : "That did not work");
       throw err;
     }
   }

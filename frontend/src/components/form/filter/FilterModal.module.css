@@ -1,7 +1,8 @@
 .panel {
   padding: var(--mantine-spacing-sm);
-  width: max-content;
-  min-width: 280px;
+  width: min(24rem, calc(100vw - 2rem));
+  max-width: 100%;
+  min-width: 0;
 }
 
 :global([data-mantine-color-scheme="dark"]) .panel {

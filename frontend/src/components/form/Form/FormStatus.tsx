@@ -22,6 +22,7 @@
 import type { ReactNode } from "react";
 import { useEffect, useRef } from "react";
 import { Box, CloseButton, Group, Stack } from "@mantine/core";
+import { useReducedMotion } from "@mantine/hooks";
 import {
   IconAlertCircle,
   IconAlertTriangle,
@@ -117,14 +118,18 @@ function FormStatusCard({
 }) {
   const config = VARIANT_CONFIG[variant];
   const ref = useRef<HTMLDivElement>(null);
+  const reducedMotion = useReducedMotion();
 
   // Scroll into view whenever the card appears (mounts) or the message changes
   useEffect(() => {
     const id = requestAnimationFrame(() => {
-      ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      ref.current?.scrollIntoView({
+        behavior: reducedMotion ? "instant" : "smooth",
+        block: "start",
+      });
     });
     return () => cancelAnimationFrame(id);
-  }, []);
+  }, [reducedMotion]);
 
   return (
     <div ref={ref} style={{ scrollMarginTop: 20 }}>

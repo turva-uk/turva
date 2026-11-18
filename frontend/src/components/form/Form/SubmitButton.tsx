@@ -34,12 +34,19 @@ export default function SubmitButton({
   cancelLabel,
   disabled = false,
 }: SubmitButtonProps) {
-  const { formState, submitLabel, submittingLabel, disableWhenClean, methods } =
-    useFormContext();
+  const {
+    formState,
+    submitLabel,
+    submittingLabel,
+    disableWhenClean,
+    methods,
+    submissionPending,
+  } = useFormContext();
 
   const { isDirty, isValid } = useFormState({ control: methods.control });
   const isDisabled =
     disabled ||
+    submissionPending ||
     !isValid ||
     formState === "validating" ||
     formState === "submitting" ||

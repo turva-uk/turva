@@ -12,20 +12,20 @@ const meta: Meta<typeof SelectField> = {
 export default meta;
 type Story = StoryObj<typeof SelectField>;
 
-/** Options in groups, as the competency picker has them. */
+/** Control types grouped by the kind of mitigation. */
 const groupedData = [
   {
-    group: "Oncology",
+    group: "Design",
     items: [
-      { value: "prescribe_sact", label: "Prescribe SACT" },
-      { value: "assess_sact_toxicity", label: "Assess SACT toxicity" },
+      { value: "elimination", label: "Eliminate the hazard" },
+      { value: "technical", label: "Technical control" },
     ],
   },
   {
-    group: "Others",
+    group: "Process",
     items: [
-      { value: "take_informed_consent", label: "Take informed consent" },
-      { value: "request_plain_xray", label: "Request plain X-rays" },
+      { value: "warning", label: "Warning or alert" },
+      { value: "procedural", label: "Procedural control" },
     ],
   },
 ];
@@ -127,8 +127,8 @@ export const DarkMode: Story = {
  */
 export const Grouped: Story = {
   args: {
-    label: "Competency",
-    placeholder: "Search competencies",
+    label: "Control type",
+    placeholder: "Choose a control type",
     data: groupedData,
     defaultDropdownOpened: true,
     // Tall enough to show every group without scrolling. At Mantine's

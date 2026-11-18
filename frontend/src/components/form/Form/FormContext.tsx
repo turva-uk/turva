@@ -2,7 +2,7 @@
  * Form Context
  *
  * Provides form submission state to child components via React context.
- * Extends React Hook Form with Quill-specific states:
+ * Extends React Hook Form with Turva-specific states:
  * partial_success, timeout, and composite outcome modelling.
  */
 
@@ -54,6 +54,8 @@ export interface FormContextValue<T extends FieldValues = FieldValues> {
   submittingLabel: string;
   /** When true, submit button is disabled until the form is dirty */
   disableWhenClean: boolean;
+  /** A request remains pending after a UI timeout until its promise settles. */
+  submissionPending: boolean;
 }
 
 const FormContext = createContext<FormContextValue | null>(null);

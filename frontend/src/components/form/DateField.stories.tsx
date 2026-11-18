@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { Stack } from "@mantine/core";
 import DateField from "./DateField";
 import { StoryNote } from "@/stories/variants";
+import { userEvent, within } from "storybook/test";
 
 const meta: Meta<typeof DateField> = {
   title: "Form/Date field",
@@ -22,6 +23,14 @@ export const WithValue: Story = {
   args: {
     label: "Observed on",
     defaultValue: "2026-03-12",
+  },
+};
+
+/** Keep popup controls in browser accessibility and narrow-layout coverage. */
+export const OpenCalendar: Story = {
+  args: { label: "Review date", defaultValue: "2026-04-03" },
+  play: async ({ canvasElement }) => {
+    await userEvent.click(within(canvasElement).getByRole("textbox", { name: "Review date" }));
   },
 };
 

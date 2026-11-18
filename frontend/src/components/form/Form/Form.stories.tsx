@@ -46,11 +46,11 @@ interface DemoFormValues {
   role: string;
 }
 
-interface LetterFormValues {
-  patientName: string;
-  hospitalNumber: string;
-  dateOfBirth: string;
-  letterContents: string;
+interface HazardDraftValues {
+  title: string;
+  owner: string;
+  reviewDate: string;
+  evidence: string;
 }
 
 interface PermissionFormValues {
@@ -207,7 +207,7 @@ export const PartialSuccessSubmission: Story = {
         state: "partial_success",
         message: {
           title: "Partially saved",
-          description: "Letter saved to patient record. Delivery to GP is still pending.",
+          description: "Hazard saved. The notification could not be sent.",
         },
       };
     };
@@ -239,7 +239,7 @@ export const PartialSuccessSubmission: Story = {
 export const TimeoutSubmission: Story = {
   render: function TimeoutStory() {
     const handleSubmit = async (): Promise<FormSubmitResult> => {
-      // This will be aborted by the 2s timeout
+      // Deliberately ignores cancellation: the UI timeout cannot stop this work.
       await delay(60_000);
       return {
         state: "success",
@@ -451,7 +451,6 @@ export const ConfirmThenNavigate: Story = {
         title: "Staff member removed",
         description: `${data.username} has been removed from the organisation.`,
       });
-      setPage("destination");
       return { state: "success", message: { title: "" } };
     };
 
@@ -459,6 +458,7 @@ export const ConfirmThenNavigate: Story = {
       <Form<StaffRemovalFormValues>
         defaultValues={{ username: "Dr Smith" }}
         onSubmit={handleSubmit}
+        onSuccess={() => setPage("destination")}
         submitLabel="Remove staff member"
         submittingLabel="Removing…"
         confirm={{
@@ -497,7 +497,7 @@ export const SubmitAndNavigate: Story = {
       return (
         <Stack gap="md">
           <InjectFlash flash={flash} />
-          <StoryNote>Patient letters list (destination page)</StoryNote>
+          <StoryNote>Hazard log (simulated destination page)</StoryNote>
           <StoryNote>
             The flash message above was passed via React Router navigation state and rendered by
             the centralised PageMessage system.
@@ -509,34 +509,34 @@ export const SubmitAndNavigate: Story = {
     const handleSubmit = async (): Promise<FormSubmitResult> => {
       await delay(1500);
       setFlash({
-        title: "Letter sent",
-        description: "Discharge letter has been sent to the GP.",
+        title: "Hazard saved",
+        description: "The draft evidence has been recorded. This is not clinical approval.",
       });
-      setPage("destination");
       return { state: "success", message: { title: "" } };
     };
 
     return (
-      <Form<LetterFormValues>
+      <Form<HazardDraftValues>
         defaultValues={{
-          patientName: "Jane Smith",
-          hospitalNumber: "H-2847193",
-          dateOfBirth: "12/03/1985",
-          letterContents: "Your thyroid function tests are normal.",
+          title: "Delayed discharge summary",
+          owner: "alex.morgan@example.com",
+          reviewDate: "12/03/2026",
+          evidence: "Review the recorded mitigation evidence before changing the assessment.",
         }}
         onSubmit={handleSubmit}
-        submitLabel="Send letter"
-        submittingLabel="Sending…"
+        onSuccess={() => setPage("destination")}
+        submitLabel="Save hazard"
+        submittingLabel="Saving…"
       >
         <Stack gap="md">
           <StoryNote>
-            Press "Send letter". The form will navigate to a new page with a flash message.
+            Press "Save hazard". This simulation shows feedback on the destination page.
           </StoryNote>
           <FormStatus />
-          <RegisteredPatientName />
-          <RegisteredHospitalNumber />
-          <RegisteredDateOfBirth />
-          <RegisteredLetterContents />
+          <RegisteredHazardTitle />
+          <RegisteredOwner />
+          <RegisteredReviewDate />
+          <RegisteredEvidence />
           <SubmitButton onCancel={() => {}} cancelLabel="Back" />
         </Stack>
       </Form>
@@ -593,28 +593,28 @@ function RegisteredNotes() {
   return <TextAreaField label="Notes" {...register("notes")} />;
 }
 
-function RegisteredPatientName() {
+function RegisteredHazardTitle() {
   const { methods } = useFormContext();
   const { register } = methods;
-  return <TextField label="Patient name" {...register("patientName")} />;
+  return <TextField label="Hazard title" {...register("title")} />;
 }
 
-function RegisteredHospitalNumber() {
+function RegisteredOwner() {
   const { methods } = useFormContext();
   const { register } = methods;
-  return <TextField label="Hospital number" {...register("hospitalNumber")} />;
+  return <TextField label="Owner" {...register("owner")} />;
 }
 
-function RegisteredDateOfBirth() {
+function RegisteredReviewDate() {
   const { methods } = useFormContext();
   const { register } = methods;
-  return <TextField label="Date of birth" {...register("dateOfBirth")} />;
+  return <TextField label="Review date" {...register("reviewDate")} />;
 }
 
-function RegisteredLetterContents() {
+function RegisteredEvidence() {
   const { methods } = useFormContext();
   const { register } = methods;
-  return <TextAreaField label="Letter contents" {...register("letterContents")} minRows={6} />;
+  return <TextAreaField label="Evidence" {...register("evidence")} minRows={6} />;
 }
 
 function RegisteredUser() {
