@@ -79,7 +79,7 @@ An argument naming the `safety_file` package routes to the host; anything else g
 
 ### `./s/lint`
 
-Runs every check CI enforces: `pre-commit run --all-files`, then the Zizmor GitHub Actions audit. Run before committing.
+Runs every check CI enforces: `pre-commit run --all-files`, whose hooks include the Zizmor GitHub Actions audit. Run before committing.
 
 ### `./s/frontend`
 

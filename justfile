@@ -75,7 +75,7 @@ test-coverage:
 
 
 alias pc := pre-commit
-# Run every check CI enforces (pre-commit, then the Zizmor Actions audit)
+# Run every check CI enforces (pre-commit, including the Zizmor Actions audit)
 pre-commit:
     @./s/lint
 

@@ -51,7 +51,7 @@ cp app/.env.example app/.env    # then edit as needed
 
 ```bash
 ./s/test      # both suites: safety_file on the host, app in the container
-./s/lint      # everything CI enforces: pre-commit, then the Zizmor Actions audit
+./s/lint      # everything CI enforces: pre-commit, including the Zizmor Actions audit
 ./s/docs      # serve the documentation site at http://localhost:8001
 ```
 

@@ -32,6 +32,17 @@ repos:
     hooks:
       - id: gitleaks
 
+  # The security audit of the GitHub Actions workflows. Offline, because the
+  # audits that ask GitHub need a token; CI's `Workflow security` job runs
+  # those, with this same version, which it reads from here. Pinned rather
+  # than tracking the latest, so a new audit rule arrives through a reviewed
+  # Dependabot bump instead of turning main red without warning.
+  - repo: https://github.com/zizmorcore/zizmor-pre-commit
+    rev: v1.30.1
+    hooks:
+      - id: zizmor
+        args: [--no-progress, --offline, --strict-collection]
+
   - repo: https://github.com/streetsidesoftware/cspell-cli
     rev: v10.4.0
     hooks:
