@@ -34,11 +34,11 @@ Branch `feature/pre-commit-gitleaks`.
 
 Branch `feature/pre-commit-dev-details`.
 
-- [ ] Add `s/checks/check-dev-details`, which refuses private network addresses and device MAC addresses in tracked files, plus the literals in a developer's own denylist, such as a hostname or a VPN network's name. It reports a match as `path:line` and the rule's name, never the matched text, because CI logs are as public as the files.
+- [x] Add `s/checks/check-dev-details`, which refuses private network addresses and device MAC addresses in tracked files, plus the literals in a developer's own denylist, such as a hostname or a VPN network's name. It reports a match as `path:line` and the rule's name, never the matched text, because CI logs are as public as the files.
 - [ ] Support an optional, explicitly supplied private list such as `.private/dev-details-denylist`. Scans do not create personal files, change another working tree or modify shared Git configuration. CI runs the shared patterns without requiring a personal list.
-- [ ] Add it to `.pre-commit-config.yaml` as a `local` hook over `types: [text]`.
-- [ ] Add `s/tests/check-dev-details.bats`, with every made-up address and name obviously fake.
-- [ ] Run it over every tracked file before turning it on. Remove any real detail it finds, and widen the patterns' exceptions only for a value that names nothing, such as a documentation address range.
+- [x] Add it to `.pre-commit-config.yaml` as a `local` hook over `types: [text]`.
+- [x] Add `s/tests/check-dev-details.bats`, with every made-up address and name obviously fake.
+- [ ] Run it over every tracked file before turning it on. Remove any real detail it finds, and widen the patterns' exceptions only for a value that names nothing, such as a documentation address range. The original scan claim must be repeated after the read-only and error-handling corrections.
 
 ## Phase 4: Zizmor as a pre-commit hook
 

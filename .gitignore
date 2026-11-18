@@ -253,3 +253,7 @@ storybook-static/
 /terraform/github/*.tfvars
 /terraform/github/*.tfvars.json
 /terraform/github/crash*.log
+
+# Files kept on one machine only, such as local/dev-details-denylist, which
+# s/checks/check-dev-details reads. Never committed.
+/local/
