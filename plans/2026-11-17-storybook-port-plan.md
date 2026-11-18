@@ -1,8 +1,8 @@
 # Storybook port plan
 
-Turva's frontend has seven components, no Storybook and only the Mantine core packages, while the components and pages rules for Claude Code describe a catalogue of shared, tested components that every page is built from. A copy of Quill Medical's frontend, adapted in part for Turva, sits in `~/github/turva-port-quill/frontend`: a full Storybook set-up, 68 component folders with 245 story files, and the theme, style, story and test helpers they share. Without that catalogue, each new page invents its own buttons, cards and text, and the accessibility checks the rules rely on do not exist.
+This port began with seven frontend components, no Storybook and only the Mantine core packages. Quill Medical's component catalogue supplied the starting point for shared, tested components and their theme, style, story and test helpers. Turva's catalogue provides a common place to review controls and accessibility rather than implementing each new page's presentation separately.
 
-This plan brings across the foundations of that catalogue: Storybook itself, the shared helpers, and the general components the rules name, such as typography, icons, buttons, badges, cards, the page header, the loading spinners and the form fields. Each phase is one pull request in a new stack whose trunk is `feature/claude-components-rule` (#82), built in the `~/github/turva-2` worktree so the Claude Code rules stay loaded. Quill-only folders, such as `patients`, `appointments` and `messaging`, are not brought across. Using the components in Turva's existing pages, and the Turva-specific `safety` components, are left for later plans.
+This plan brings across Storybook, shared helpers and general components: typography, icons, buttons, badges, cards, the page header, loading spinners and form fields. Each phase is a pull request in the frontend-only stack on `main`. Personal Claude configuration is not a prerequisite. Quill-only folders, such as `patients`, `appointments` and `messaging`, are not brought across. Using the components in Turva's existing pages, and the Turva-specific `safety` components, are left for later plans.
 
 ## Open questions
 
@@ -75,8 +75,16 @@ This plan brings across the foundations of that catalogue: Storybook itself, the
 ## Decisions
 
 - **npm, not yarn** - Turva's frontend already uses npm with a `package-lock.json`, and `./s/frontend` runs it. Quill's yarn lock is not brought across; versions are taken from its `package.json` and locked afresh.
-- **A stack on top of the Claude stack, in its own worktree** - the components and pages rules, and the rest of Mark's Claude Code set-up, only exist on branches that contain `.claude-personal/mark/`. Building on #82 keeps them loaded while this work is done, at the cost of merging after the Claude stack does.
+- **A frontend-only review stack** - rebased onto `main` on 18 November 2026. The former dependency on the personal Claude/tooling stack was removed; it is not an adoption requirement.
 - **Foundations first** - the general components are what every later screen is built from, and what the rules name. The Quill-only folders are left behind, and the `safety` components wait for a later plan.
 - **Two form libraries for a while** - porting Quill's form components on `react-hook-form` is faster and safer unattended than rewriting them on `@mantine/form`. Turva carries both until its existing pages move across.
 
-<!-- cspell:words Hyperlegible Garamond dompurify worktrees -->
+<!-- cspell:words Hyperlegible Garamond dompurify worktrees Tiptap CommonMark -->
+
+## Markdown parser review, 18 November 2026
+
+`MarkdownView` now delegates parsing to [Marked](https://marked.js.org/), retaining DOMPurify as the final HTML sanitiser. Turva owns only rendering policy: allowed URL schemes, caller-approved asset paths and icons, optional tables and comment visibility. New regression tests protect URLs containing underscores/parentheses, literal code and non-default list numbering. CommonMark list continuations and nested headings replace the former parser's indentation rules. Tests that claimed to cover fenced code now pass real newlines and assert the exact code text.
+
+Marked is a direct runtime dependency, MIT-licensed, with no runtime dependencies and Node 20+ support. Version 17.0.6 matches the `^17.0.1` range of Tiptap's Markdown extension in the later editor PR, so that dependency can share the same package rather than relying on an undeclared transitive import. Marked 18 exists; this compatible-major choice is deliberate, not a claim that 17 is the latest release. Re-evaluate the parser version and performance fixes when reviewing the editor dependency, rather than forcing an unsupported major override through Tiptap. The production dependency audit and regression suite must pass before merge.
+
+Raw HTML remains visible escaped text, not active markup. Comment hiding acts on parsed comment tokens, never fenced/inline code. DOMPurify preserves the ordered-list `start` attribute. This work does not implement document viewing, change evidence on disk or establish clinical approval. The new public-title story uses the darker purple background already selected by the later accessibility PR so its large text meets the contrast requirement.

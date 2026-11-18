@@ -121,7 +121,7 @@ describe("MarkdownView", () => {
       const items = container.querySelectorAll("ul > li");
       expect(container.querySelectorAll("ul")).toHaveLength(1);
       expect(items).toHaveLength(3);
-      expect(items[0]?.textContent).toBe(
+      expect(items[0]).toHaveTextContent(
         "Press Finish to go back to the module page, where the assessment starts.",
       );
       expect(items[1]?.textContent).toContain("narrow band imaging.");
@@ -139,7 +139,7 @@ describe("MarkdownView", () => {
 
       const items = container.querySelectorAll("ol > li");
       expect(items).toHaveLength(2);
-      expect(items[0]?.textContent).toBe("Open the form, which may take a moment to load");
+      expect(items[0]).toHaveTextContent("Open the form, which may take a moment to load");
     });
 
     it("still starts a paragraph after a blank line", () => {
@@ -151,48 +151,48 @@ describe("MarkdownView", () => {
       expect(container.querySelector("p")?.textContent).toBe("After the list.");
     });
 
-    it("still starts a paragraph on an unindented line after a list", () => {
-      // Only indented lines carry an item on, so text written straight
-      // after a list reads as it always has.
+    it("reads a lazy continuation as part of the list item, as CommonMark specifies", () => {
+      // https://spec.commonmark.org/0.31.2/#list-items
+      // A separate paragraph needs a blank line. The old parser ended the
+      // list here merely because the continuation was not indented.
       const source = ["- One", "Straight after."].join("\n");
 
       const { container } = renderWithMantine(<MarkdownView source={source} />);
 
-      expect(container.querySelector("li")?.textContent).toBe("One");
-      expect(container.querySelector("p")?.textContent).toBe("Straight after.");
+      expect(container.querySelector("li")?.textContent).toBe("One\nStraight after.");
+      expect(container.querySelector("p")).toBeNull();
     });
 
-    it("does not carry an item into a heading", () => {
+    it("keeps an indented heading inside its list item, as CommonMark specifies", () => {
       const source = ["- One", "  ## Next part"].join("\n");
 
       const { container } = renderWithMantine(<MarkdownView source={source} />);
 
-      expect(container.querySelector("li")?.textContent).toBe("One");
+      expect(container.querySelector("li")?.firstChild?.textContent).toBe("One");
+      expect(container.querySelector("li h2")).toHaveTextContent("Next part");
     });
   });
 
   describe("Code blocks", () => {
     it("renders code blocks with triple backticks", () => {
       const { container } = renderWithMantine(
-        <MarkdownView source="```\nconst x = 42;\nconsole.log(x);\n```" />,
+        <MarkdownView source={"```\nconst x = 42;\nconsole.log(x);\n```"} />,
       );
       const pre = container.querySelector("pre");
       expect(pre).toBeInTheDocument();
-      // DOMPurify may strip code blocks, check if pre exists at minimum
-      if (pre && pre.textContent) {
-        expect(pre.textContent.length).toBeGreaterThan(0);
-      }
+      expect(pre?.textContent).toBe("const x = 42;\nconsole.log(x);\n");
     });
 
     it("escapes HTML in code blocks", () => {
       const { container } = renderWithMantine(
-        <MarkdownView source="```\n<script>alert('xss')</script>\n```" />,
+        <MarkdownView source={"```\n<script>alert('xss')</script>\n```"} />,
       );
       // Main security check: no actual script element
       expect(container.querySelector("script")).not.toBeInTheDocument();
       // Code block should exist
       const pre = container.querySelector("pre");
       expect(pre).toBeInTheDocument();
+      expect(pre?.textContent).toBe("<script>alert('xss')</script>\n");
     });
   });
 
@@ -298,8 +298,8 @@ describe("MarkdownView", () => {
       const { container } = renderWithMantine(
         <MarkdownView source="<p onclick='alert(1)'>Click</p>" />,
       );
-      const p = container.querySelector("p");
-      expect(p?.getAttribute("onclick")).toBeNull();
+      expect(container.querySelector("[onclick]")).toBeNull();
+      expect(screen.getByText(/<p onclick=/)).toBeInTheDocument();
     });
 
     it("sanitizes iframe tags", () => {
