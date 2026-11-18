@@ -102,6 +102,29 @@ export function SafetyFileDetailPage() {
             </Alert>
           )}
 
+          {detail.documents && detail.documents.length > 0 && (
+            <Box component="section" mt="xl" aria-labelledby="safety-documents">
+              <Title order={2} size="h3" id="safety-documents" mb="xs">
+                Safety documents
+              </Title>
+              <Text size="sm" c="dimmed" mb="xs">
+                Read-only views of the committed documents.
+              </Text>
+              <ul className="document-list">
+                {detail.documents.map((item) => (
+                  <li key={item.key}>
+                    <Anchor
+                      component={Link}
+                      to={`/safety-files/${file.slug}/documents/${item.key}`}
+                    >
+                      {item.title}
+                    </Anchor>
+                  </li>
+                ))}
+              </ul>
+            </Box>
+          )}
+
           <Group justify="space-between" mt="xl" mb="sm">
             <Title order={2} size="h3">
               Hazards

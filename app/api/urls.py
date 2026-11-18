@@ -77,6 +77,11 @@ urlpatterns = [
         name="safety-file-pdf",
     ),
     path(
+        "safety-files/<slug:slug>/documents/<slug:key>/",
+        views.SafetyDocumentView.as_view(),
+        name="safety-document",
+    ),
+    path(
         "safety-files/<slug:slug>/mitigations/",
         views.MitigationListView.as_view(),
         name="mitigation-list",

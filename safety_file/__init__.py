@@ -21,6 +21,7 @@ from .errors import (
     NotASafetyFileError,
     SafetyFileError,
     SchemaVersionError,
+    UnreadableSourceError,
     ValidationError,
 )
 from .git import Author, Commit
@@ -63,6 +64,7 @@ __all__ = [
     "SafetyFileError",
     "SafetyFileRepository",
     "SchemaVersionError",
+    "UnreadableSourceError",
     "ValidationError",
     "derive_risk_level",
     "requires_elimination",
