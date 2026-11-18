@@ -43,6 +43,24 @@ repos:
       - id: zizmor
         args: [--no-progress, --offline, --strict-collection]
 
+  # Strict type checking of the storage layer, with the settings in
+  # pyproject.toml's [tool.mypy]. The extra packages are what safety_file/
+  # imports beyond the standard library. jinja2, markupsafe and pytest are
+  # pinned to app/requirements*.txt, so mypy checks against the versions the
+  # code runs on. Bump them with the lock, never one without the other.
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v2.4.1
+    hooks:
+      - id: mypy
+        files: ^safety_file/
+        language_version: python3.14
+        args: []
+        additional_dependencies:
+          - jinja2==3.1.6
+          - markupsafe==3.0.4
+          - pytest==9.2.0
+          - types-PyYAML==6.0.12.20261103
+
   - repo: https://github.com/streetsidesoftware/cspell-cli
     rev: v10.4.0
     hooks:

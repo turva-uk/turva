@@ -11,6 +11,7 @@ from __future__ import annotations
 import fcntl
 import threading
 import time
+from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
 
@@ -23,7 +24,7 @@ class RepositoryLock:
         self.state = threading.local()
 
     @contextmanager
-    def hold(self, *, exclusive: bool, timeout: float = 5):
+    def hold(self, *, exclusive: bool, timeout: float = 5) -> Iterator[None]:
         if getattr(self.state, "depth", 0):
             if exclusive and not self.state.exclusive:
                 raise RuntimeError("Cannot write inside a read-only repository snapshot")
