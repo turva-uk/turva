@@ -13,6 +13,7 @@ import FieldDescription from "@/components/typography/FieldDescription";
 import SortChevron from "@/components/sort/SortChevron";
 import classes from "./MultiSelectField.module.css";
 import dropdownClasses from "./dropdownGroupLabel.module.css";
+import { dropdownScrollArea } from "./dropdownScrollArea";
 
 const fieldStyles = {
   label: {
@@ -27,12 +28,14 @@ export default function MultiSelectField({
   description,
   error,
   disabled,
+  scrollAreaProps,
   ...props
 }: MultiSelectProps) {
   return (
     <MultiSelect
       {...props}
       disabled={disabled}
+      scrollAreaProps={dropdownScrollArea(scrollAreaProps)}
       rightSection={<SortChevron direction="neutral" />}
       description={description ? <FieldDescription>{description}</FieldDescription> : undefined}
       error={error ? <ErrorMessage>{error}</ErrorMessage> : undefined}

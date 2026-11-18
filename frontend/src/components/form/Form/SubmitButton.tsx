@@ -61,6 +61,9 @@ export default function SubmitButton({
     <ButtonPair
       acceptType="submit"
       acceptDisabled={isDisabled}
+      cancelDisabled={
+        submissionPending || formState === "validating" || formState === "submitting"
+      }
       acceptTestId="submit-button"
       onCancel={onCancel}
       cancelLabel={effectiveCancelLabel}

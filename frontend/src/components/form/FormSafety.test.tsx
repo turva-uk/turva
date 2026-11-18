@@ -31,7 +31,7 @@ function deferred<T>() {
   return { promise, resolve, reject };
 }
 const saved: FormSubmitResult = { state: "success", message: { title: "Saved" } };
-function Fields() {
+function Fields({ onCancel }: { onCancel?: () => void } = {}) {
   const { methods, formState } = useFormContext<Values>();
   const { isDirty } = useFormState({ control: methods.control });
   return (
@@ -41,7 +41,7 @@ function Fields() {
         {formState}:{String(isDirty)}
       </output>
       <FormStatus />
-      <SubmitButton />
+      <SubmitButton onCancel={onCancel} />
     </>
   );
 }
@@ -165,6 +165,30 @@ describe("TH-001/TH-003: opened drafts and request boundaries", () => {
     expect(screen.getByLabelText("Hazard narrative")).toHaveValue("Opened judgement unsaved");
     await user.click(screen.getByTestId("submit-button"));
     expect(submit.mock.calls[1]![0].expected_head).toBe("opened-version");
+  });
+
+  it("blocks cancellation while an accepted request remains unresolved, including timeout", async () => {
+    const user = userEvent.setup();
+    const pending = deferred<FormSubmitResult>();
+    const cancel = vi.fn();
+    renderWithMantine(
+      <Form<Values>
+        defaultValues={{ narrative: "Opened judgement", expected_head: "opened-version" }}
+        onSubmit={() => pending.promise}
+        timeoutMs={30}
+      >
+        <Fields onCancel={cancel} />
+      </Form>,
+    );
+    await user.click(screen.getByTestId("submit-button"));
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(cancel).not.toHaveBeenCalled();
+    await screen.findByText("Request timed out");
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(cancel).not.toHaveBeenCalled();
+    await act(async () => pending.resolve(saved));
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(cancel).toHaveBeenCalledOnce();
   });
 
   it("allows only explicit post-save navigation", async () => {

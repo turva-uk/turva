@@ -11,6 +11,7 @@ import { ErrorMessage } from "@/components/typography";
 import FieldDescription from "@/components/typography/FieldDescription";
 import classes from "./SelectField.module.css";
 import dropdownClasses from "./dropdownGroupLabel.module.css";
+import { dropdownScrollArea } from "./dropdownScrollArea";
 
 const fieldStyles = {
   label: {
@@ -29,10 +30,16 @@ const fieldStyles = {
   required: { color: "var(--mantine-color-secondary-5)" },
 };
 
-export default function SelectField({ description, error, ...props }: SelectProps) {
+export default function SelectField({
+  description,
+  error,
+  scrollAreaProps,
+  ...props
+}: SelectProps) {
   return (
     <Select
       {...props}
+      scrollAreaProps={dropdownScrollArea(scrollAreaProps)}
       description={description ? <FieldDescription>{description}</FieldDescription> : undefined}
       error={error ? <ErrorMessage>{error}</ErrorMessage> : undefined}
       size="md"

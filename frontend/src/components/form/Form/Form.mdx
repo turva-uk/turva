@@ -104,6 +104,6 @@ Use `partial_success` only when all submitted form values were saved but an anci
 
 `confirm` gates the request after validation. Cancelling it submits nothing. Password/code confirmations use the same hardened modal but collect the extra credential separately. Only the backend can verify identity or grant authority.
 
-`FormStatus` announces success/partial success politely and errors/validation/timeouts assertively. It scrolls when shown, without smooth motion when reduced motion is requested. `SubmitButton` retains its label width and uses an enforced `aria-disabled` state while unavailable. An optional `onCancel` renders the accompanying cancel button; attempted navigation still passes through departure protection.
+`FormStatus` announces success/partial success politely and errors/validation/timeouts assertively. It scrolls when shown, without smooth motion when reduced motion is requested. `SubmitButton` retains its label width and uses an enforced `aria-disabled` state while unavailable. An optional `onCancel` renders the accompanying cancel button. Cancellation stays disabled until an accepted request settles, including after timeout, so a modal-close callback cannot discard an unresolved draft. Attempted navigation still passes through departure protection.
 
 Use a separate, specified workflow for multi-step authoring. Turva does not collect patient data or send clinical letters.

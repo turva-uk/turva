@@ -74,10 +74,10 @@ export const OpenFilters: Story = {
     await userEvent.click(
       within(canvasElement).getByRole("button", { name: "Filter delegates" }),
     );
-    within(canvasElement.ownerDocument.body)
-      .getByRole("combobox", { name: "Filter delegates" })
-      .focus();
+    const dropdown = within(canvasElement.ownerDocument.body);
+    (await dropdown.findByRole("combobox", { name: "Filter delegates" })).focus();
     await userEvent.keyboard("{ArrowDown}");
+    await dropdown.findByRole("option", { name: "Bradford Teaching Hospitals" });
   },
 };
 

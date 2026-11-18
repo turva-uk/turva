@@ -37,6 +37,16 @@
   border-color: var(--error-focus-color) !important;
 }
 
+/* Adjacent-month dates are selectable, not disabled: do not fade their text. */
+.day[data-outside]:not([data-selected], [data-disabled]) {
+  opacity: 1;
+  color: var(--mantine-color-dimmed);
+}
+
+.day[data-weekend]:not([data-selected], [data-disabled], [data-outside]) {
+  color: var(--error-color);
+}
+
 /* Keep a whole calendar visible at 320 CSS pixels, including its popover. */
 @media (width < 40em) {
   .day {
