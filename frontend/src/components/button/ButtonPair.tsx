@@ -37,6 +37,8 @@ interface ButtonPairProps {
   onCancel?: () => void;
   /** Disables the accept button (aria-disabled, stays focusable) */
   acceptDisabled?: boolean;
+  /** Blocks cancellation after a caller has started an irreversible action. */
+  cancelDisabled?: boolean;
   /** Shows loading spinner on the accept button (hides label) */
   acceptLoading?: boolean;
   /** HTML button type for the accept button (defaults to "button") */
@@ -62,6 +64,7 @@ export default function ButtonPair({
   onAccept,
   onCancel,
   acceptDisabled = false,
+  cancelDisabled = false,
   acceptLoading = false,
   acceptType = "button",
   acceptChildren,
@@ -100,7 +103,14 @@ export default function ButtonPair({
         {acceptChildren ?? acceptLabel}
       </Button>
       {onCancel && (
-        <Button variant="outline" onClick={onCancel} size="md">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={cancelDisabled ? (event) => event.preventDefault() : onCancel}
+          aria-disabled={cancelDisabled || undefined}
+          styles={{ root: cancelDisabled ? { opacity: 0.6, cursor: "default" } : undefined }}
+          size="md"
+        >
           {cancelLabel}
         </Button>
       )}

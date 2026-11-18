@@ -74,6 +74,23 @@ describe("ButtonPair", () => {
   });
 
   describe("Disabled states", () => {
+    it("blocks mouse and keyboard cancellation only when explicitly disabled", async () => {
+      const user = userEvent.setup();
+      const onCancel = vi.fn();
+      const { rerender } = renderWithMantine(
+        <ButtonPair onAccept={vi.fn()} onCancel={onCancel} cancelDisabled />,
+      );
+      const cancel = screen.getByRole("button", { name: "Cancel" });
+      expect(cancel).toHaveAttribute("aria-disabled", "true");
+      await user.click(cancel);
+      cancel.focus();
+      await user.keyboard("{Enter} ");
+      expect(onCancel).not.toHaveBeenCalled();
+      rerender(<ButtonPair onAccept={vi.fn()} onCancel={onCancel} />);
+      await user.click(cancel);
+      expect(onCancel).toHaveBeenCalledOnce();
+    });
+
     it("marks accept button as aria-disabled when acceptDisabled is true", () => {
       renderWithMantine(<ButtonPair {...defaultProps} acceptDisabled />);
       expect(screen.getByRole("button", { name: "OK" })).toHaveAttribute(

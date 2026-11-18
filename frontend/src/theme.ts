@@ -307,5 +307,28 @@ export const theme = createTheme({
     // dialog" rather than "Close", so it differs from a text button that
     // says "Close" in the same modal.
     Modal: { defaultProps: { closeButtonProps: { "aria-label": "Close dialog" } } },
+    // Keep full status labels at 19px. Short badges keep their usual size;
+    // long labels wrap rather than truncating or widening a narrow page.
+    Badge: {
+      defaultProps: { size: "lg" },
+      styles: {
+        root: {
+          minWidth: 0,
+          maxWidth: "100%",
+          flexShrink: 0,
+          height: "auto",
+          minHeight: "var(--badge-height)",
+          lineHeight: 1.2,
+          overflow: "visible",
+        },
+        label: {
+          fontSize: typographyTokens.fontSizes.md,
+          whiteSpace: "normal",
+          overflowWrap: "anywhere",
+          overflow: "visible",
+          textOverflow: "clip",
+        },
+      },
+    },
   },
 });
