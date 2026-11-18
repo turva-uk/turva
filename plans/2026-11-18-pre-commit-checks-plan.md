@@ -66,10 +66,10 @@ Branch `feature/pre-commit-mypy`.
 
 Branch `feature/pre-commit-bandit`.
 
-- [ ] Run bandit once over `app/`, `safety_file/` and `demo/`, using the hook's own copy through `pre-commit run bandit --all-files`, with the test files excluded, and triage what it reports. Fix a real finding. Mark a false one with bandit's skip comment and the rule's code, plus a comment saying why it is safe.
-- [ ] Add the `bandit` hook from `https://github.com/PyCQA/bandit`, with `language_version: python3.14`, and its settings in a `[tool.bandit]` block in `pyproject.toml`.
-- [ ] Decide whether Turva needs a bandit wrapper that checks the scan really covered the code. Bandit silently skips a file it cannot parse, so add the wrapper if a file is skipped on the first run.
-- [ ] If a finding touches permissions, the audit trail or the risk matrix, update `SAFETY.md` in the same commit, as `AGENTS.md` requires.
+- [x] Run bandit once over `app/`, `safety_file/` and `demo/`, using the hook's own copy through `pre-commit run bandit --all-files`, with the test files excluded, and triage what it reports. Fix a real finding. Mark a false one with bandit's skip comment and the rule's code, plus a comment saying why it is safe. Ran on 18 November 2026: 14 findings, all false. Six were B404, which flags every `import subprocess`, so the hook skips B404 and relies on B603 for each call. The other eight each got a skip comment with its reason.
+- [x] Add the `bandit` hook from `https://github.com/PyCQA/bandit`, with `language_version: python3.14`, and its settings in a `[tool.bandit]` block in `pyproject.toml`. Departed from the plan: the settings went in the hook instead, because bandit ignores `exclude_dirs` for files that pre-commit names one by one.
+- [x] Decide whether Turva needs a bandit wrapper that checks the scan really covered the code. Bandit silently skips a file it cannot parse, so add the wrapper if a file is skipped on the first run. Not needed: the first run skipped no files.
+- [x] If a finding touches permissions, the audit trail or the risk matrix, update `SAFETY.md` in the same commit, as `AGENTS.md` requires.
 
 ## Decisions
 
