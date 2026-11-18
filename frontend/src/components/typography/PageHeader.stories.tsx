@@ -1,9 +1,9 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import PageHeader from "./PageHeader";
 import BodyText from "./BodyText";
-// A plain Mantine button stands in for the header action until the shared
-// buttons (AddButton, IconTextButton) arrive in the next phase.
-import { Box, Button, Stack } from "@mantine/core";
+import { Box, Stack } from "@mantine/core";
+import AddButton from "@/components/button/AddButton";
+import IconTextButton from "@/components/button/IconTextButton";
 import { StoryNote } from "@/stories/variants";
 
 const meta = {
@@ -39,7 +39,7 @@ export const Default: Story = {
 export const WithAction: Story = {
   args: {
     title: "Hazards",
-    action: <Button>Add hazard</Button>,
+    action: <AddButton label="Add hazard" />,
   },
 };
 
@@ -50,7 +50,7 @@ export const WithAction: Story = {
 export const WithActionWrapped: Story = {
   args: {
     title: "Safety file team",
-    action: <Button>Invite a colleague</Button>,
+    action: <IconTextButton icon="userPlus" label="Invite a colleague" />,
   },
   render: (args) => (
     <>
@@ -66,7 +66,7 @@ export const WithActionWrapped: Story = {
 export const WithCentredAction: Story = {
   args: {
     title: "Administration",
-    action: <Button>Settings</Button>,
+    action: <IconTextButton icon="settings" label="Settings" />,
     actionAlign: "center",
   },
 };
@@ -76,7 +76,7 @@ export const WithSubtitle: Story = {
   args: {
     title: "Discharge summary",
     subtitle: "Safety file for Example NHS Trust",
-    action: <Button>Download</Button>,
+    action: <IconTextButton icon="download" label="Download" />,
   },
 };
 

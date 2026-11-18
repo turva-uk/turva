@@ -10,9 +10,7 @@ import { Group, SimpleGrid, Stack } from "@mantine/core";
 import { IconPencil, IconCheck, IconX } from "@/components/icons/appIcons";
 import Icon from "./Icon";
 import { iconCatalogue } from "./appIcons";
-// A Mantine Paper stands in for BaseCard until the shared cards arrive in the
-// next phase.
-import { Paper } from "@mantine/core";
+import BaseCard from "@/components/base-card/BaseCard";
 import { statusColours } from "@/styles/semanticColours";
 import { VariantRow, VariantStack, StoryNote } from "@/stories/variants";
 
@@ -53,12 +51,12 @@ export const Default: Story = {
   render: () => (
     <SimpleGrid cols={5} spacing="lg" style={{ maxWidth: 700 }}>
       {Object.entries(iconCatalogue).map(([name, IconComponent]) => (
-        <Paper key={name} withBorder p="md" ta="center">
+        <BaseCard key={name} style={{ textAlign: "center" }}>
           <Stack gap="xs" align="center">
             <Icon icon={<IconComponent />} size="lg" />
             <StoryNote mt={0}>{name.replace(/([A-Z])/g, " $1").trim()}</StoryNote>
           </Stack>
-        </Paper>
+        </BaseCard>
       ))}
     </SimpleGrid>
   ),
