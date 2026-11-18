@@ -103,4 +103,48 @@ describe("BaseCard", () => {
     expect(card).toHaveClass("mine");
     expect(card.className.split(" ").length).toBeGreaterThan(1);
   });
+
+  it("preserves object styles and lets them override the wrapper defaults", () => {
+    renderWithMantine(
+      <BaseCard data-testid="card" style={{ overflow: "hidden", textTransform: "uppercase" }}>
+        Content
+      </BaseCard>,
+    );
+    expect(screen.getByTestId("card").style.overflow).toBe("hidden");
+    expect(screen.getByTestId("card").style.textTransform).toBe("uppercase");
+  });
+
+  it("passes theme callbacks to Mantine rather than discarding them", () => {
+    renderWithMantine(
+      <BaseCard
+        data-testid="card"
+        style={(theme) => ({ color: theme.colors["primary"]?.[8], textTransform: "uppercase" })}
+      >
+        Content
+      </BaseCard>,
+    );
+    const card = screen.getByTestId("card");
+    expect(card.style.color).toBe("rgb(84, 80, 124)");
+    expect(card.style.textTransform).toBe("uppercase");
+    expect(card.style.overflow).toBe("visible");
+  });
+
+  it("accepts nested style arrays and applies later entries last", () => {
+    renderWithMantine(
+      <BaseCard
+        data-testid="card"
+        style={[
+          { overflow: "hidden", textTransform: "lowercase" },
+          [undefined, (theme) => ({ color: theme.colors["primary"]?.[8] })],
+          { textTransform: "uppercase" },
+        ]}
+      >
+        Content
+      </BaseCard>,
+    );
+    const card = screen.getByTestId("card");
+    expect(card.style.overflow).toBe("hidden");
+    expect(card.style.textTransform).toBe("uppercase");
+    expect(card.style.color).toBe("rgb(84, 80, 124)");
+  });
 });

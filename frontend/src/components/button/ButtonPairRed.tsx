@@ -31,7 +31,7 @@ interface ButtonPairRedProps {
   onCancel: () => void;
   /** Disables the accept button (aria-disabled, stays focusable) */
   acceptDisabled?: boolean;
-  /** Shows loading spinner on the accept button (hides label) */
+  /** Blocks acceptance and shows a spinner with submittingLabel or acceptLabel */
   acceptLoading?: boolean;
   /** HTML button type for the accept button (defaults to "button") */
   acceptType?: "button" | "submit";
@@ -50,6 +50,8 @@ export default function ButtonPairRed({
   acceptType = "button",
   justify = "flex-end",
 }: ButtonPairRedProps) {
+  const acceptUnavailable = acceptDisabled || acceptLoading;
+
   return (
     <Group justify={justify} mt="xs" className={classes.group}>
       <Button
@@ -57,11 +59,14 @@ export default function ButtonPairRed({
         // The status alert red, not Mantine's "red": with this theme's
         // primaryShade of 5 that is red.5, and white on it is 2.8:1.
         color="var(--alert-color)"
-        onClick={acceptDisabled ? (e: React.MouseEvent) => e.preventDefault() : onAccept}
-        aria-disabled={acceptDisabled || undefined}
+        onClick={acceptUnavailable ? (e: React.MouseEvent) => e.preventDefault() : onAccept}
+        aria-disabled={acceptUnavailable || undefined}
+        aria-busy={acceptLoading || undefined}
         size="md"
         styles={{
-          root: acceptDisabled ? { opacity: 0.6, cursor: "default" } : undefined,
+          root: acceptUnavailable
+            ? { opacity: acceptDisabled ? 0.6 : undefined, cursor: "default" }
+            : undefined,
         }}
       >
         {acceptLoading ? (

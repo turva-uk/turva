@@ -18,7 +18,7 @@ export interface PublicButtonProps {
   size?: "sm" | "md" | "lg";
   /** Disabled state */
   disabled?: boolean;
-  /** Outline variant instead of filled */
+  /** Outline on a dark brand surface instead of the yellow fill */
   variant?: "filled" | "outline";
   /** Click handler */
   onClick?: () => void;

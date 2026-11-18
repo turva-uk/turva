@@ -1,5 +1,6 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { renderWithMantine } from "@/test/test-utils";
 import PublicButton from "./PublicButton";
 
@@ -64,6 +65,24 @@ describe("PublicButton", () => {
   });
 
   describe("Disabled state", () => {
+    it.each(["filled", "outline"] as const)(
+      "blocks clicks and keyboard activation for the disabled %s variant",
+      async (variant) => {
+        const user = userEvent.setup();
+        const onClick = vi.fn();
+        renderWithMantine(
+          <PublicButton href="https://example.com" variant={variant} disabled onClick={onClick}>
+            Start review
+          </PublicButton>,
+        );
+        const button = screen.getByRole("button", { name: "Start review" });
+        await user.click(button);
+        await user.keyboard("{Enter} ");
+        expect(onClick).not.toHaveBeenCalled();
+        expect(screen.queryByRole("link")).not.toBeInTheDocument();
+      },
+    );
+
     it("disables the button", () => {
       renderWithMantine(<PublicButton disabled>Disabled</PublicButton>);
       expect(screen.getByRole("button", { name: "Disabled" })).toHaveAttribute(

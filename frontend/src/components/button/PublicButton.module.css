@@ -9,31 +9,32 @@
   opacity: 0.5;
 }
 
-.filled.filled:hover:not(:disabled) {
+.filled.filled:hover:not(:disabled, [aria-disabled="true"]) {
   background-color: var(--mantine-color-secondary-6);
   color: var(--button-text-dark);
 }
 
-.filled.filled:active:not(:disabled) {
+.filled.filled:active:not(:disabled, [aria-disabled="true"]) {
   background-color: var(--button-active-bg);
   color: var(--button-text-dark);
 }
 
 .outline.outline {
   background-color: transparent;
-  color: var(--mantine-color-secondary-5);
-  border: 1px solid var(--mantine-color-secondary-5);
+  /* A pale yellow tint also passes on the lighter logo-purple backdrop.
+     The usual yellow fill is too dark to be normal-sized text there. */
+  color: var(--mantine-color-secondary-0);
+  border: 1px solid currentColor;
 }
 
 .outline.outline:disabled {
   opacity: 0.5;
 }
 
-.outline.outline:hover:not(:disabled) {
-  background-color: rgb(200 150 62 / 10%);
-  color: var(--button-outline-hover-text);
+.outline.outline:hover:not(:disabled, [aria-disabled="true"]) {
+  background-color: var(--mantine-color-primary-9);
 }
 
-.outline.outline:active:not(:disabled) {
-  background-color: rgb(200 150 62 / 20%);
+.outline.outline:active:not(:disabled, [aria-disabled="true"]) {
+  background-color: var(--mantine-color-primary-8);
 }

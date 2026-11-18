@@ -73,6 +73,59 @@ describe("ButtonPairRed", () => {
   });
 
   describe("Loading state", () => {
+    // Busy UI must not fire another action or submit a form (TH-001).
+    it.each([
+      { acceptLoading: true, acceptDisabled: false },
+      { acceptLoading: false, acceptDisabled: true },
+      { acceptLoading: true, acceptDisabled: true },
+    ])("blocks mouse, keyboard and submit activation with %j", async (state) => {
+      const user = userEvent.setup();
+      const onAccept = vi.fn();
+      const onCancel = vi.fn();
+      const onSubmit = vi.fn();
+      renderWithMantine(
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            onSubmit();
+          }}
+        >
+          <ButtonPairRed
+            {...state}
+            onAccept={onAccept}
+            onCancel={onCancel}
+            acceptType="submit"
+          />
+        </form>,
+      );
+      const accept = screen.getByRole("button", { name: "OK" });
+      expect(accept).toHaveAttribute("aria-disabled", "true");
+      await user.click(accept);
+      await user.click(accept);
+      accept.focus();
+      expect(accept).toHaveFocus();
+      await user.keyboard("{Enter} ");
+      expect(onAccept).not.toHaveBeenCalled();
+      expect(onSubmit).not.toHaveBeenCalled();
+      await user.click(screen.getByRole("button", { name: "Cancel" }));
+      expect(onCancel).toHaveBeenCalledOnce();
+    });
+
+    it("announces busy state and accepts actions again once loading ends", async () => {
+      const user = userEvent.setup();
+      const onAccept = vi.fn();
+      const { rerender } = renderWithMantine(
+        <ButtonPairRed onAccept={onAccept} onCancel={vi.fn()} acceptLoading />,
+      );
+      expect(screen.getByRole("button", { name: "OK" })).toHaveAttribute("aria-busy", "true");
+      rerender(<ButtonPairRed onAccept={onAccept} onCancel={vi.fn()} />);
+      const accept = screen.getByRole("button", { name: "OK" });
+      expect(accept).not.toHaveAttribute("aria-busy");
+      expect(accept).not.toHaveAttribute("aria-disabled");
+      await user.click(accept);
+      expect(onAccept).toHaveBeenCalledOnce();
+    });
+
     it("shows loading spinner when acceptLoading is true", () => {
       renderWithMantine(<ButtonPairRed {...defaultProps} acceptLoading />);
       const acceptButton = screen.getByRole("button", { name: "OK" });

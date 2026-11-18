@@ -5,7 +5,7 @@
  */
 
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { fn } from "storybook/test";
+import { expect, fn, userEvent, within } from "storybook/test";
 import ButtonPairRed from "./ButtonPairRed";
 
 const meta: Meta<typeof ButtonPairRed> = {
@@ -39,7 +39,15 @@ export const Submitting: Story = {
     acceptLabel: "Deactivate",
     submittingLabel: "Submitting…",
     acceptLoading: true,
-    acceptDisabled: true,
+  },
+  play: async ({ canvasElement, args }) => {
+    const accept = within(canvasElement).getByRole("button", { name: "Submitting…" });
+    await expect(accept).toHaveAttribute("aria-disabled", "true");
+    await expect(accept).toHaveAttribute("aria-busy", "true");
+    await userEvent.click(accept);
+    accept.focus();
+    await userEvent.keyboard("{Enter} ");
+    await expect(args.onAccept).not.toHaveBeenCalled();
   },
 };
 

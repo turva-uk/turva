@@ -213,7 +213,6 @@ export const cssVariablesResolver: CSSVariablesResolver = (theme) => ({
     // Text on the yellow accent fill: the only ink permitted on it.
     "--button-text-dark": ACCENT_INK,
     "--button-active-bg": TURVA_YELLOW[7],
-    "--button-outline-hover-text": TURVA_YELLOW[8],
     "--typo-xs": typographyTokens.fontSizes.xs,
     "--typo-sm": typographyTokens.fontSizes.sm,
     "--typo-md": typographyTokens.fontSizes.md,

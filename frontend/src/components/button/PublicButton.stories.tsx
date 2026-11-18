@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import PublicButton from "./PublicButton";
 import { Group } from "@mantine/core";
-import { StoryNote, VariantStack } from "@/stories/variants";
+import { StateRow, StoryNote, VariantStack } from "@/stories/variants";
 import { BRAND_BACKDROP } from "@/stories/backdrops";
 
 const meta = {
@@ -66,4 +66,32 @@ export const AllVariants: Story = {
       </PublicButton>
     </Group>
   ),
+};
+
+/** Actual pseudo-states are scanned, not just a resting outline button. */
+export const OutlineStates: Story = {
+  args: { children: "" },
+  render: () => (
+    <Group gap="xl">
+      <StateRow label="default">
+        <PublicButton variant="outline">Start review</PublicButton>
+      </StateRow>
+      <StateRow label="hover" state="hover">
+        <PublicButton variant="outline">Start review</PublicButton>
+      </StateRow>
+      <StateRow label="active" state={["hover", "active"]}>
+        <PublicButton variant="outline">Start review</PublicButton>
+      </StateRow>
+      <StateRow label="focus-visible" state="focus-visible">
+        <PublicButton variant="outline" href="#start-review">
+          Start review
+        </PublicButton>
+      </StateRow>
+    </Group>
+  ),
+};
+
+export const DarkOutlineStates: Story = {
+  ...OutlineStates,
+  globals: { colorScheme: "dark" },
 };

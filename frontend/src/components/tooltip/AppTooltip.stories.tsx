@@ -2,12 +2,13 @@
  * AppTooltip Component Stories
  *
  * Demonstrates the design-system tooltip:
- * - Light secondary background with primary navy text
+ * - Paired light/dark surfaces and normal text colours
  * - BodyTextInline typography
- * - Hover delay behaviour
+ * - Keyboard focus and hover delay behaviour
  */
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { Button } from "@mantine/core";
+import { Button, Stack } from "@mantine/core";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 import { StoryNote } from "@/stories/variants";
 import AppTooltip from "./AppTooltip";
 
@@ -57,5 +58,33 @@ export const Below: Story = {
 
 export const DarkMode: Story = {
   ...Default,
+  globals: { colorScheme: "dark" },
+};
+
+/** Leave the hint open so the accessibility add-on checks the rendered text. */
+export const KeyboardFocus: Story = {
+  render: () => (
+    <Stack align="flex-start">
+      <Button variant="default">Previous control</Button>
+      <AppTooltip label="Additional review guidance" openDelay={0}>
+        <Button>Review target</Button>
+      </AppTooltip>
+    </Stack>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    canvas.getByRole("button", { name: "Previous control" }).focus();
+    await userEvent.tab();
+    const target = canvas.getByRole("button", { name: "Review target" });
+    await expect(target).toHaveFocus();
+    const tooltip = await within(canvasElement.ownerDocument.body).findByRole("tooltip");
+    await expect(target).toHaveAttribute("aria-describedby", tooltip.id);
+    // A fading-in tooltip is excluded by axe. Wait for its final colours.
+    await waitFor(() => expect(getComputedStyle(tooltip).opacity).toBe("1"));
+  },
+};
+
+export const DarkKeyboardFocus: Story = {
+  ...KeyboardFocus,
   globals: { colorScheme: "dark" },
 };

@@ -47,6 +47,21 @@ export const WithBackground: Story = {
   ),
 };
 
+/** Style callbacks and arrays keep Mantine's precedence and theme access. */
+export const StyleOverrides: Story = {
+  render: () => (
+    <BaseCard
+      style={[
+        { overflow: "hidden" },
+        [undefined, (theme) => ({ borderColor: theme.colors["primary"]?.[6] })],
+      ]}
+    >
+      <Heading>Style array and theme callback</Heading>
+      <BodyText>The card still renders, with the caller's themed border.</BodyText>
+    </BaseCard>
+  ),
+};
+
 const LONG_ADDRESS =
   "/teaching/assessments/12345/questions/67890/review/8ed08fd0c2b48463456cb1a88add2739f5fcd5a7";
 
