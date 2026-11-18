@@ -23,6 +23,15 @@ repos:
       - id: check-added-large-files
       - id: check-merge-conflict
 
+  # Secret scanning, on what is staged. It reads its rules from
+  # .gitleaks.toml. CI's pre-commit run has nothing staged, so CI scans the
+  # pushed commits separately with s/gitleaks/scan-commits, which installs
+  # this same version with s/gitleaks/install. Bump it here only.
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.30.1
+    hooks:
+      - id: gitleaks
+
   - repo: https://github.com/streetsidesoftware/cspell-cli
     rev: v10.4.0
     hooks:
