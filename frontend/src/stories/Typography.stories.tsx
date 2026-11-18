@@ -3,11 +3,14 @@
  *
  * Turva's type: the font, the fixed type scale and the headings. Sizes come
  * from `typographyTokens` in `theme.ts`, and do not change with screen width.
+ * The headings and type scale show raw Mantine `Title` and `Text` on purpose:
+ * they are the sizes the typography components are built on.
  */
 
 import { Stack, Text, Title } from "@mantine/core";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
+import { Heading } from "@/components/typography";
 import { StoryNote, VariantRow, VariantStack } from "@/stories/variants";
 import { DISPLAY_FONT, typographyTokens } from "@/theme";
 
@@ -26,7 +29,7 @@ export const Overview: Story = {
   render: () => (
     <Stack gap="xl">
       <Stack gap="xs">
-        <Title order={2}>Font family</Title>
+        <Heading>Font family</Heading>
         <StoryNote>
           <strong>Atkinson Hyperlegible Next</strong>, designed by the Braille Institute for
           readability. Self-hosted variable font.
@@ -38,7 +41,7 @@ export const Overview: Story = {
       </Stack>
 
       <Stack gap="xs">
-        <Title order={2}>Display font</Title>
+        <Heading>Display font</Heading>
         <Text ff={DISPLAY_FONT} fz={40} lh={1.2}>
           Cormorant Garamond
         </Text>
