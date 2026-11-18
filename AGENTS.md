@@ -70,7 +70,7 @@ Scheduled overnight runs must also follow [the overnight instructions](specifica
 ## Before Every Commit
 
 ```sh
-./s/lint      # pre-commit --all-files, then the Zizmor Actions audit
+./s/lint      # pre-commit --all-files, including the Zizmor Actions audit
 ./s/test      # storage tests on the host; Django/API tests against container PostgreSQL
 ```
 
