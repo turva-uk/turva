@@ -106,7 +106,7 @@ Without this the application starts but every query fails with `relation "tbl_us
 - **Hot Reload**: the Django development server reloads on Python and template changes
 - **Code Formatting**: `ruff format .`
 - **Linting**: `ruff check .`, or `./s/lint` for everything CI enforces
-- **Pre-commit Hooks**: Install with `pre-commit install` to automatically check code quality before commits
+- **Pre-commit Hooks**: run `just setup` once per clone, so every commit runs the pre-commit checks on the staged files
 
 ## Troubleshooting
 

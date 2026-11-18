@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+# Git's pre-commit hook: runs the pre-commit checks on the staged files, and
+# stops the commit if any of them fails.
+#
+# Usage: git runs it before each commit, once `just setup` has pointed
+# core.hooksPath at .githooks. Run by hand, it checks what is staged now.
+#
+# Safe to run twice: it changes nothing but what the hooks themselves fix.
+set -euo pipefail
+
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+# The same pre-commit as ./s/lint: the repository's .venv copy first, then
+# the one on PATH.
+find_pre_commit() {
+	if [ -x "${root}/.venv/bin/pre-commit" ]; then
+		echo "${root}/.venv/bin/pre-commit"
+		return
+	fi
+
+	if command -v pre-commit >/dev/null 2>&1; then
+		echo "pre-commit"
+		return
+	fi
+
+	return 1
+}
+
+main() {
+	local pre_commit
+
+	if ! pre_commit="$(find_pre_commit)"; then
+		echo "pre-commit not found, so the commit was stopped. Install it with:" >&2
+		echo "  python -m venv .venv && .venv/bin/pip install pre-commit" >&2
+		exit 1
+	fi
+
+	"${pre_commit}" run
+}
+
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+	main "$@"
+fi
