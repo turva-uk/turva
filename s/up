@@ -37,6 +37,12 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
+# The nested frontend volume also needs a caller-owned host mount point,
+# regardless of whether this clone has opted into Git hooks.
+# shellcheck source=s/utils/frontend-directory.sh
+source s/utils/frontend-directory.sh
+prepare_frontend_directory
+
 # The safety file repositories are bind-mounted from here. Create the directory
 # first: Docker creates a missing bind-mount source as root, which the container
 # user (uid 1000) could then not write into, and the failure appears later as a

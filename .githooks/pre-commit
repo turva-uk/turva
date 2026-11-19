@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Git's pre-commit hook: runs the pre-commit checks on the staged files, and
-# stops the commit if any of them fails.
+# Git's pre-commit hook: runs the pre-commit checks on the staged files, then
+# lint-staged when frontend files are staged, and stops the commit if any of
+# them fails.
 #
 # Usage: git runs it before each commit, once ./s/install-hooks has pointed
 # core.hooksPath at .githooks. Run by hand, it checks what is staged now.
@@ -26,8 +27,34 @@ find_pre_commit() {
 	return 1
 }
 
+# Whether any staged change is under frontend/. Only then is lint-staged
+# needed, so a commit that touches no frontend file needs no Node packages.
+frontend_staged() {
+	local staged
+
+	staged="$(git -C "${root}" diff --cached --name-only --diff-filter=ACMR -- frontend/)" || return
+
+	[ -n "${staged}" ]
+}
+
+# ESLint and Prettier on the staged frontend files, as frontend/package.json's
+# lint-staged config sets out. It runs on the host because it asks git which
+# files are staged, and the frontend container mounts only frontend/.
+run_lint_staged() {
+	local lint_staged="${root}/frontend/node_modules/.bin/lint-staged"
+
+	if [ ! -x "${lint_staged}" ]; then
+		echo "lint-staged not found, so the commit was stopped. Install the frontend's packages with:" >&2
+		echo "  ./s/frontend install" >&2
+		exit 1
+	fi
+
+	(cd "${root}/frontend" && "${lint_staged}")
+}
+
 main() {
 	local pre_commit
+	local frontend_status=0
 	cd "${root}"
 
 	if ! pre_commit="$(find_pre_commit)"; then
@@ -37,6 +64,16 @@ main() {
 	fi
 
 	"${pre_commit}" run
+
+	frontend_staged || frontend_status=$?
+	case "${frontend_status}" in
+		0) run_lint_staged ;;
+		1) ;; # No added or changed frontend files.
+		*)
+			echo "Could not inspect staged frontend files; the commit was stopped." >&2
+			return "${frontend_status}"
+			;;
+	esac
 }
 
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then

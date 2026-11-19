@@ -29,6 +29,7 @@ services:
       - ./docker-compose.yml:/srv/docker-compose.yml:ro
       # The launcher regressions run a copied script with fake external commands.
       - ./s/up:/srv/s/up:ro
+      - ./s/utils/frontend-directory.sh:/srv/s/utils/frontend-directory.sh:ro
       # Safety file repositories - the system of record.
       #
       # A bind mount, not a named volume, so the repositories are visible on the

@@ -38,5 +38,11 @@ else
 	[ "${status}" -eq 1 ] || exit "${status}"
 fi
 
+# Check the frontend directory before changing Git configuration. This creates
+# only the writable mount point, never packages or an automatic hook install.
+# shellcheck source=s/utils/frontend-directory.sh
+source "${root}/s/utils/frontend-directory.sh"
+prepare_frontend_directory
+
 git config --local core.hooksPath .githooks
 echo "Git hooks switched on: each commit now runs .githooks/pre-commit"
