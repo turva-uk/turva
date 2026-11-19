@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# Read-only privacy checks for this Turva checkout's text files. Personal
+# literals are optional; scanning never creates a list or changes Git config.
+# Usage: s/checks/check-dev-details [--all] [--denylist PATH] [FILE...]
+set -euo pipefail
+
+main() {
+	local root python
+	root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+	cd "${root}"
+	python=python3
+	if [ -x "${root}/.venv/bin/python" ]; then
+		python="${root}/.venv/bin/python"
+	fi
+	exec "${python}" "${root}/s/utils/dev-details.py" "$@"
+}
+
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+	main "$@"
+fi

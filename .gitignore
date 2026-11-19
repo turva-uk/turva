@@ -253,3 +253,7 @@ storybook-static/
 /terraform/github/*.tfvars
 /terraform/github/*.tfvars.json
 /terraform/github/crash*.log
+
+# Keep legacy private files ignored during migration. Scanners neither create
+# nor implicitly read this directory; new optional files belong in .private/.
+/local/

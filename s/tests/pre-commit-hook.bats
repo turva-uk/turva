@@ -231,3 +231,47 @@ stage() {
 
 	[ "$status" -eq 0 ]
 }
+
+# A stand-in that would fail if the hook tried to run personal setup itself.
+write_dev_details_stand_in() {
+	mkdir -p "${repo}/s/checks"
+	cat >"${repo}/s/checks/check-dev-details" <<'EOF'
+#!/usr/bin/env bash
+echo "dev-details: $*" >>"${BATS_TEST_TMPDIR}/calls.log"
+exit 99
+EOF
+	chmod +x "${repo}/s/checks/check-dev-details"
+}
+
+@test "passing checks do not prompt for personal setup" {
+	write_dev_details_stand_in
+	stage file.txt
+
+	run "${hook}"
+
+	[ "$status" -eq 0 ]
+	[ "$(wc -l <"${calls}")" -eq 1 ]
+	[ -z "${output}" ]
+}
+
+@test "git still commits without optional personal setup" {
+	write_dev_details_stand_in
+	stage file.txt
+
+	run git -C "${repo}" commit -q -m "add file"
+
+	[ "$status" -eq 0 ]
+	[ -z "${output}" ]
+	git -C "${repo}" rev-parse --verify -q HEAD
+}
+
+@test "a failed check does not run separate personal setup" {
+	export PRE_COMMIT_STATUS=1
+	write_dev_details_stand_in
+	stage file.txt
+
+	run "${hook}"
+
+	[ "$status" -eq 1 ]
+	run ! grep -q "dev-details" "${calls}"
+}
