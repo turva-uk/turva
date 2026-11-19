@@ -62,6 +62,26 @@ repos:
           - pytest==9.2.0
           - types-PyYAML==6.0.12.20261103
 
+  # A security linter for Python: shell commands, unsafe YAML loading, weak
+  # hashes and the like. It scans app/, safety_file/ and demo/, without the
+  # tests: pytest is built from assert, which bandit reports everywhere as
+  # B101, and application code is still checked for it. The tests are left
+  # out here, because bandit's own exclude_dirs is ignored for files that
+  # pre-commit names one by one. The wrapper rejects skipped files and
+  # incomplete reports even when Bandit itself returns success.
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.9.4
+    hooks:
+      - id: bandit
+        files: ^(app|safety_file|demo)/
+        exclude: (^|/)(tests/|conftest\.py$)
+        language_version: python3.14
+        entry: python s/utils/bandit-check.py
+        # B404 flags every `import subprocess`. Each call is checked on its
+        # own as B603, which is where a real problem would show.
+        # That fixed policy lives in the wrapper; its arguments are filenames.
+        args: []
+
   - repo: https://github.com/streetsidesoftware/cspell-cli
     rev: v10.4.0
     hooks:

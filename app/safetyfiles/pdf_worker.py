@@ -249,7 +249,7 @@ def build(job: dict, directory: Path, output: Path) -> None:
     config_path = directory / "mkdocs.yml"
     config_path.write_text(yaml.safe_dump(config), encoding="utf-8")
     try:
-        subprocess.run(  # noqa: S603 - trusted config, fixed command, captured output
+        subprocess.run(  # noqa: S603 - trusted config, fixed command, captured output  # nosec B603
             [sys.executable, "-m", "zensical", "build", "--config-file", str(config_path)],
             cwd=directory,
             check=True,

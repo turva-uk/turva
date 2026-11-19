@@ -62,7 +62,7 @@ def run_pdf_worker(job: dict, directory: Path) -> Path:
     output_path = directory / "document.pdf"
     input_path.write_text(json.dumps(job), encoding="utf-8")
     try:
-        subprocess.run(  # noqa: S603 - fixed Python module, server-generated paths
+        subprocess.run(  # noqa: S603 - fixed Python module, server-generated paths  # nosec B603
             [sys.executable, "-m", "app.safetyfiles.pdf_worker", str(input_path), str(output_path)],
             cwd=settings.BASE_DIR,
             # Do not forward database credentials, Django secrets or API keys to

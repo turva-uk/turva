@@ -167,6 +167,12 @@ Quoted scalars, comments and flow-style YAML are supported. Missing, duplicate, 
 
 The mypy pre-commit hook checks `safety_file/`, including its tests, using the strict settings in `pyproject.toml`. Its runtime and test package pins match the application locks; update them together. The temporary test-only override permits missing annotations and untyped calls but still checks test bodies. Completing those annotations is tracked in #117; Django typing is separate work in #118. Neither exception disables strict production checks.
 
+### Python security linting
+
+The pinned Bandit hook checks production Python under `app/`, `safety_file/` and `demo/`. Tests are excluded, but application assertions remain checked. B404's import-only heuristic is omitted; subprocess-call checks remain enabled. Any line-level false positive needs its specific rule and a reason beside the code.
+
+The hook's complete-report wrapper refuses skipped files, missing or inconsistent metrics, malformed reports and scanner failures, even if Bandit exits successfully. JSON reports are bounded to `16 MiB` and the process has a 120-second limit. Only public source paths, line numbers and rule IDs are reported, never source snippets or arbitrary scanner errors. A file matcher or a clean baseline alone does not establish that a later scan was complete.
+
 ### `./s/terraform`
 
 Runs Terraform for Turva's GitHub repository settings in `terraform/github/`, in a pinned container. The host needs Docker, `curl` and Python 3.10 or later. `plan` and `apply` use `GITHUB_TOKEN`, falling back to `gh auth token`; see [GitHub settings](../docs/docs/github-settings.md) for the local-state limitations and explicit administrative approval boundary.
@@ -198,6 +204,7 @@ The seeding step refuses to run with `DEBUG` off. It creates an account whose pa
 
 `s/utils/` holds internal helpers, not commands to type.
 
+- **`s/utils/bandit-check.py`** - runs the pinned hook's scanner with fixed policy arguments and validates complete per-file report evidence before claiming success.
 - **`s/utils/frontend-directory.sh`** - prepares the caller-owned frontend mount point for hook setup, host npm and Compose. It never installs packages or changes ownership automatically.
 - **`s/utils/dev-details.py`** - read-only standard-library privacy scanner behind the shell entry point, with bounded file reads and explicit scope/error handling.
 - **`s/utils/gitleaks-report.py`** - validates the bounded, redacted report for the synthetic canary. A findings exit code without the expected rule, file and line is not evidence that the scan worked.
