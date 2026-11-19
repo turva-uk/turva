@@ -1,0 +1,18 @@
+/* TextLink - link colour and hover state, per colour scheme, from the
+   --link-color tokens in theme.ts */
+
+.link {
+  color: var(--link-color);
+
+  &:hover {
+    color: var(--link-hover-color);
+  }
+}
+
+@media (width <= 40em) {
+  .standalone {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.75rem;
+  }
+}

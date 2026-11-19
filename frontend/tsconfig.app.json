@@ -9,6 +9,7 @@
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true,
     "moduleDetection": "force",
+    "resolveJsonModule": true,
     "noEmit": true,
     "jsx": "react-jsx",
 
@@ -19,7 +20,12 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
     "noUncheckedIndexedAccess": true,
-    "erasableSyntaxOnly": true
+    "erasableSyntaxOnly": true,
+
+    /* One alias, for one way to name a file: `@/components/button/AddButton`
+       rather than a chain of `../../`. Vite and Storybook read it from here, so the alias
+       is written once. */
+    "paths": { "@/*": ["./src/*"] }
   },
-  "include": ["src"]
+  "include": ["src", ".storybook/*.ts", ".storybook/*.tsx"]
 }

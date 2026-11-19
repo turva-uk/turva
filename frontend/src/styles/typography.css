@@ -1,0 +1,70 @@
+/**
+ * Fixed Typography
+ *
+ * All font sizes are fixed across all screen widths. The 19px body text
+ * standard ensures readability for all users regardless of device.
+ * Token values are defined in theme.ts (typographyTokens) and exposed
+ * as CSS custom properties via cssVariablesResolver.
+ */
+
+/* Fixed font sizes - from typographyTokens.fontSizes */
+:root {
+  --mantine-font-size-xs: var(--typo-xs);
+  --mantine-font-size-sm: var(--typo-sm);
+  --mantine-font-size-md: var(--typo-md);
+  --mantine-font-size-lg: var(--typo-lg);
+  --mantine-font-size-xl: var(--typo-xl);
+}
+
+/**
+ * Accessibility: Ensure text remains readable at all sizes
+ * Minimum font size should never go below 14px for body content
+ */
+body {
+  font-size: 1.1875rem; /* 19px - fixed across all viewports */
+  line-height: 1.6;
+}
+
+/**
+ * Lead paragraphs - larger text for introductory content
+ * 26px for improved readability
+ */
+.lead-text {
+  font-size: 1.625rem; /* 26px */
+  line-height: 1.4;
+}
+
+/**
+ * Small text - 16px
+ * Handled by sm/xs font size variables above
+ */
+
+/**
+ * Ensure consistent text alignment (accessibility)
+ * Left-align text for screen magnifier and assistive technology users
+ */
+p,
+.mantine-Text-root {
+  text-align: left;
+}
+
+/**
+ * Responsive Badge sizing
+ * xl badges: desktop size by default, 30% smaller on mobile
+ * Height is 10% taller than calculated to provide extra vertical padding
+ */
+.mantine-Badge-root[data-size="xl"] {
+  /* Mobile: 30% smaller than desktop */
+  --badge-height: 1.7325rem !important; /* 27.72px (10% taller than 25.2px) */
+  --badge-fz: 1.3125rem !important; /* 21px (70% of 30px) */
+  --badge-padding-x: 0.875rem !important; /* Proportionally smaller padding */
+}
+
+@media (width >= 40em) {
+  /* 640px and up - full desktop size */
+  .mantine-Badge-root[data-size="xl"] {
+    --badge-height: 2.475rem !important; /* 39.6px (10% taller than 36px) */
+    --badge-fz: 1.875rem !important; /* 30px */
+    --badge-padding-x: 1.25rem !important;
+  }
+}

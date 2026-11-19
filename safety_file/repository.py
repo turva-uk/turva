@@ -17,11 +17,12 @@ from __future__ import annotations
 import re
 import unicodedata
 import uuid
+from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass, replace
 from datetime import date
 from pathlib import Path
-from typing import Any
+from typing import Any, Self
 
 import yaml
 
@@ -88,7 +89,7 @@ class SafetyFileRepository:
         self._check_schema_version()
 
     @contextmanager
-    def snapshot(self, *, timeout: float = 5):
+    def snapshot(self, *, timeout: float = 5) -> Iterator[Self]:
         """A coherent multi-read response while participating writers are excluded."""
         with self._lock.hold(exclusive=False, timeout=timeout):
             if not self.is_clean or self._ignored_artefacts():
@@ -101,7 +102,7 @@ class SafetyFileRepository:
             yield self
 
     @contextmanager
-    def edit(self, *, expected_head: str | None = None, timeout: float = 5):
+    def edit(self, *, expected_head: str | None = None, timeout: float = 5) -> Iterator[Self]:
         """Serialise a complete edit, including identifier allocation and the log.
 
         Callers editing an earlier read must supply its full HEAD. This rejects
@@ -440,6 +441,7 @@ class SafetyFileRepository:
                 "before saving: " + "; ".join(problems)
             )
         pending: list[Hazard | Mitigation] = [artefact]
+        related: list[Hazard] | list[Mitigation]
         if isinstance(artefact, Hazard):
             related = self.mitigations()
             selected = artefact.mitigations
@@ -455,10 +457,13 @@ class SafetyFileRepository:
                 references = [identifier for identifier in references if identifier != artefact.id]
                 if wanted:
                     references.append(artefact.id)
+                # The field is named at run time, so mypy cannot check its
+                # type here; reverse_field is always a list of identifiers.
+                reverse_link: dict[str, Any] = {reverse_field: sorted(references)}
                 pending.append(
                     replace(
                         other,
-                        **{reverse_field: sorted(references)},
+                        **reverse_link,
                         updated=max(other.updated, artefact.updated),
                     )
                 )

@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+# Opt in to this clone's tracked hooks. The relative path lets each worktree
+# use its own branch's hooks. This changes local Git configuration only when
+# explicitly run; it never installs packages or replaces a custom hooks path.
+set -euo pipefail
+
+if [ "${1:-}" = "--help" ] || [ "${1:-}" = "-h" ]; then
+	echo "Usage: ./s/install-hooks (opt in to this clone's tracked Git hooks)"
+	exit 0
+fi
+if [ "$#" -ne 0 ]; then
+	echo "Usage: ./s/install-hooks (no arguments); no configuration changed." >&2
+	exit 2
+fi
+
+# Target the checkout containing this installer, not a Git directory inherited
+# from a command in another repository. Linked working trees use their .git file.
+unset GIT_DIR GIT_WORK_TREE GIT_COMMON_DIR GIT_INDEX_FILE
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
+root="$(pwd -P)"
+if [ "$(git rev-parse --show-toplevel)" != "${root}" ]; then
+	echo "The hook installer must belong to the root of its own Git checkout." >&2
+	exit 1
+fi
+if [ ! -x .githooks/pre-commit ]; then
+	echo "The tracked .githooks/pre-commit is missing or not executable; no configuration changed." >&2
+	exit 1
+fi
+
+existing=""
+if existing="$(git config --get core.hooksPath)"; then
+	if [ "${existing}" != ".githooks" ]; then
+		echo "A custom core.hooksPath is already configured; inspect it before opting in. No configuration changed." >&2
+		exit 1
+	fi
+else
+	status=$?
+	[ "${status}" -eq 1 ] || exit "${status}"
+fi
+
+# Check the frontend directory before changing Git configuration. This creates
+# only the writable mount point, never packages or an automatic hook install.
+# shellcheck source=s/utils/frontend-directory.sh
+source "${root}/s/utils/frontend-directory.sh"
+prepare_frontend_directory
+
+git config --local core.hooksPath .githooks
+echo "Git hooks switched on: each commit now runs .githooks/pre-commit"

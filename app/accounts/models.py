@@ -311,7 +311,8 @@ class User(AbstractBaseUser, PermissionsMixin):
             return False
 
         self.is_verified = True
-        self.verification_token = ""
+        # Clearing the spent token, not setting a password.
+        self.verification_token = ""  # nosec B105
         self.verification_token_created_at = None
         self.verification_last_sent_at = None
         self.save(

@@ -1,10 +1,11 @@
 import react from "@vitejs/plugin-react";
-// From `vitest/config`, not `vite`: Vite's own `defineConfig` does not know
-// about the `test` key and rejects it at typecheck time.
-import { defineConfig } from "vitest/config";
+import { defineConfig } from "vite";
 
 export default defineConfig({
   plugins: [react()],
+  // Reads the `@/` alias from tsconfig.app.json, so the build, the tests and
+  // Storybook (which loads this file) all resolve it the same way.
+  resolve: { tsconfigPaths: true },
   server: {
     // 0.0.0.0 so the dev server is reachable from outside its container.
     host: true,
@@ -26,10 +27,5 @@ export default defineConfig({
         changeOrigin: false,
       },
     },
-  },
-  test: {
-    environment: "jsdom",
-    globals: true,
-    setupFiles: ["./src/test-setup.ts"],
   },
 });

@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# Read validated native reports for every counting hook. Emit no counts until
+# all reports succeed, so downstream updates cannot mistake partial output for
+# a complete scope. This is an explicit hook run, not a package installer.
+set -euo pipefail
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+if [ -x "${root}/.venv/bin/pre-commit" ]; then
+	pre_commit="${root}/.venv/bin/pre-commit"
+elif ! pre_commit="$(command -v pre-commit)"; then
+	echo "pre-commit not found, so no hook could be counted." >&2
+	exit 1
+fi
+python=python3
+if [ -x "${root}/.venv/bin/python" ]; then
+	python="${root}/.venv/bin/python"
+fi
+exec "${python}" "${root}/s/utils/hook-counts.py" "${pre_commit}" "$@"

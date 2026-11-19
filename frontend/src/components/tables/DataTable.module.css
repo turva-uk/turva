@@ -1,0 +1,15 @@
+.cell {
+  overflow-wrap: anywhere;
+}
+
+/*
+ * A header wraps between words, never inside one.
+ *
+ * A table in a BaseCard inherits the card's `overflow-wrap: anywhere`,
+ * so a header in a narrow column, such as "Authorised here" at 140px,
+ * was split mid-word. A header is short words, so the column grows to
+ * fit the longest of them, and the rest wrap onto the next line.
+ */
+.header {
+  overflow-wrap: normal;
+}

@@ -178,10 +178,10 @@ All AI assistance is optional and explicitly requested by the user, never invoke
 
 ### The LLM Opportunity
 
-Modern LLMs can draft clinical safety cases in minutes, potentially making traditional templating engines obsolete. Turva embraces this by:
+Potential uses remain subject to the AI strategy's permission, data-handling and human-review gates:
 
-- **Embedded safety expert LLM**: AI assistant helps CSOs identify hazards, assess risks, and draft mitigations
-- **Safety case generation**: LLM drafts complete safety cases from structured data
+- **Drafting assistance**: Propose hazards, questions or mitigation wording for the CSO to evaluate, without claiming clinical expertise
+- **Safety case narrative**: Propose text from authorised structured evidence, without presenting it as a complete or approved safety argument
 - **Review and critique**: AI challenges assessments and suggests missed hazards
 - **Evidence synthesis**: Suggests links between supporting evidence and claims for explicit human review
 

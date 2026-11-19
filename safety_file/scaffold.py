@@ -32,7 +32,8 @@ def _environment() -> Environment:
     with a silently blank Clinical Safety Officer or intended-use statement.
     Better to refuse to create the file.
     """
-    return Environment(
+    # Autoescape is off because this renders Markdown, not HTML.
+    return Environment(  # nosec B701
         undefined=StrictUndefined,
         keep_trailing_newline=True,
         autoescape=False,  # noqa: S701 - rendering Markdown, not HTML

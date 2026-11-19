@@ -83,8 +83,8 @@ The remaining sections preserve longer-term and assurance work. They are not an 
 - [ ] **R54 - User onboarding.** Guide new users through setup without implying that completing onboarding establishes CSO competence.
 - [ ] **R55 - Contextual interface help.** Provide control-level help, tooltips and guides, distinct from the clinical process guidance in R12.
 - [ ] **R56 - User-configurable comfort themes.** Check every colour pairing and preserve the agreed risk palette, labels and readability across themes.
-- [ ] **R57 - Dark mode.** Treat it as the first tested comfort theme, not an unverified palette swap.
-- [ ] **R58 - Contrast and motion preferences.** Respect `prefers-contrast` and `prefers-reduced-motion`.
+- [~] **R57 - Application dark-mode rollout.** Shared components have tested light/dark catalogue states; existing application pages still use the legacy theme. Integrate and inspect the actual workflows before claiming application-wide dark-mode support.
+- [~] **R58 - Contrast and motion preferences.** Reduced-motion CSS is present. Complete contrast-preference support and verify the delivered application paths, rather than treating catalogue coverage as an application audit.
 - [ ] **R59 - Primary-action colour decision.** Review whether brand yellow with dark text should identify the primary action; record the hierarchy decision and contrast evidence.
 
 ### Browser-local dictation
@@ -98,7 +98,7 @@ Dictation must keep audio and transcripts on the device, following [the local-in
 
 ### Engineering quality and testing
 
-- [ ] **R64 - Python type checking.** Introduce an exercised mypy gate with an explicit scope.
+- [~] **R64 - Complete Python type coverage.** Strict storage checking and unannotated test-body checking are enforced. Finish storage test annotations in [#117](https://github.com/turva-uk/turva/issues/117) and review Django typing separately in [#118](https://github.com/turva-uk/turva/issues/118); do not weaken the production gate.
 - [ ] **R65 - Docstring linting.** Adopt useful, enforceable documentation checks rather than an untested configuration.
 - [ ] **R66 - Complexity analysis.** Measure and address risky complexity without imposing arbitrary rewrites.
 - [ ] **R67 - Conventional-commit enforcement.** Add commit-message checking to the established commit convention.
@@ -109,7 +109,7 @@ Dictation must keep audio and transcripts on the device, following [the local-in
 - [ ] **R72 - Performance and capacity tests.** Measure representative files, imports, exports and concurrent use before making production-capacity claims.
 - [ ] **R73 - Security regression coverage.** Audit and test remaining boundary gaps in input validation, ORM usage, escaping, CSRF and access controls; the existing baseline protections are not unimplemented features.
 - [ ] **R74 - Browser compatibility tests.** Exercise supported browser/device combinations and visible fallbacks.
-- [ ] **R75 - Automated accessibility regression checks.** Complement, not replace, the human keyboard/screen-reader audit in R21.
+- [~] **R75 - Application accessibility regression coverage.** Storybook light/dark interactions, WCAG 2.2 AA checks and gate canaries already run in CI. Extend coverage to complete application journeys; retain the separate human keyboard/screen-reader audit in R21.
 
 ### Documentation
 
@@ -248,4 +248,6 @@ The 15 November 2026 reconciliation removed completed entries, including previou
 
 The same day's issue review retained the existing public-site and professional-assurance discussions as R164/R165, rather than dropping them or pretending verification had shipped. Existing issue descriptions now separate prerequisites, proposal-only work and implementation; completed authentication/identity linkage and superseded badge/CSE/alternative-store briefs are closed without deleting their history. Only two new discussion issues were needed: the matrix-source decision (#65) and AI connection policy (#66). Other backlog entries deliberately remain roadmap-only.
 
-**Last reconciled:** 15 November 2026. **Next milestone:** R10 - document reading and authoring. **Next unused code:** R166. Append new codes without renumbering; remove completed entries without recycling their codes.
+The 19 November 2026 PR review distinguishes the delivered shared component catalogue, storage typing, host script tests and hook/test-scope gates from remaining application rollout and clinical acceptance. Shared Markdown/editor components do not complete R10 authoring, and tested catalogue themes do not establish application-wide accessibility. No runtime risk matrix, authority rule or safety evidence changes in this documentation update.
+
+**Last reconciled:** 19 November 2026. **Next milestone:** R10 - document reading and authoring. **Next unused code:** R166. Append new codes without renumbering; remove completed entries without recycling their codes.

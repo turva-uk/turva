@@ -15,6 +15,8 @@ downloads/
 eggs/
 .eggs/
 lib/
+# The rule above is for Python packaging; the frontend keeps source in src/lib.
+!frontend/src/lib/
 lib64/
 parts/
 sdist/
@@ -222,14 +224,39 @@ site/
 /playwright-report
 /blob-report
 /test-results
+/.vitest
+/frontend/.vitest
 /.claude
 
 # Intentionally retained local-only work (decks, reports, captures, notes).
 # See https://github.com/pacharanero/house-style/blob/main/private-workspace.md
 /.private
 
+# Same-directory temporary files used only for atomic floor publication.
+/s/floors/.minimums-*
+
 # Safety file repositories created at runtime. Each one is its own Git
 # repository, so they must never be nested inside this one. In deployment this
 # path is a mounted volume on the VPS; locally it is where ./s/seed-demo writes
 # the demo safety file.
 /.turva-data
+
+# Storybook static build (npm run build-storybook)
+storybook-static/
+
+# Terraform for terraform/github/: its working folder and the state. The state
+# stays local; ./s/terraform imports existing settings from GitHub before each
+# plan, so it never needs sharing. The provider lock, .terraform.lock.hcl, is
+# committed.
+/terraform/github/.terraform/
+/terraform/github/*.tfstate
+/terraform/github/*.tfstate.*
+/terraform/github/.terraform.tfstate.lock.info
+/terraform/github/*.tfplan
+/terraform/github/*.tfvars
+/terraform/github/*.tfvars.json
+/terraform/github/crash*.log
+
+# Keep legacy private files ignored during migration. Scanners neither create
+# nor implicitly read this directory; new optional files belong in .private/.
+/local/

@@ -1,0 +1,21 @@
+/*
+ * CardActionRow styles
+ *
+ * Text on the left, an action on the right, on one line. The text
+ * column must be allowed to shrink, or its longest unbreakable word (an
+ * email address, a long surname) holds its full width and pushes the
+ * action out of the card when the card is narrow. `min-width: 0` lets a
+ * flex child go narrower than its content, and `overflow-wrap: anywhere`
+ * then breaks the word rather than letting it overflow. The action
+ * never shrinks: a squashed icon button is a missed tap.
+ */
+
+.text {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.action {
+  flex-shrink: 0;
+}

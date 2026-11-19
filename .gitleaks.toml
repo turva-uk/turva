@@ -1,0 +1,11 @@
+# Gitleaks configuration: the rules to scan with, and the known values that
+# are not secrets. Read by the pre-commit hook and by s/gitleaks/scan-commits.
+# See https://github.com/gitleaks/gitleaks#configuration
+#
+# Add an allowlist entry only for a value proven not to be a secret, as
+# narrow as it can be, with a description saying what the value is.
+
+title = "Turva gitleaks config"
+
+[extend]
+useDefault = true

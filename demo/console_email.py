@@ -79,11 +79,13 @@ def main() -> None:
         "'django.core.mail.backends.console.EmailBackend' else "
         "'Email preview is only available with DEBUG=true and the console email backend.')"
     )
+    # A local developer tool: docker is found on PATH by design, and every
+    # argument is fixed or built here, never taken from input.
     try:
-        subprocess.run(
+        subprocess.run(  # nosec B603 B607
             ["docker", "compose", "exec", "-T", "web", "python", "-c", guard], cwd=root, check=True
         )
-        logs = subprocess.check_output(
+        logs = subprocess.check_output(  # nosec B603 B607
             [
                 "docker",
                 "compose",

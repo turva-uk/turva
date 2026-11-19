@@ -88,7 +88,7 @@ def run(
         ]
     command += args
 
-    result = subprocess.run(  # noqa: S603 - fixed executable, list args, no shell
+    result = subprocess.run(  # noqa: S603 - fixed executable, list args, no shell  # nosec B603
         command,
         cwd=cwd,
         capture_output=True,

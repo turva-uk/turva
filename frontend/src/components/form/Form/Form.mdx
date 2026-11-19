@@ -1,0 +1,109 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+
+<Meta title="Form/Form/Guide" />
+
+# Form
+
+`Form` is the shared single-page form wrapper. It registers values through React Hook Form and owns validation, request feedback, confirmation and departure warnings. It does not save evidence itself or confer clinical approval.
+
+Existing application pages still use `@mantine/form` and their tested submission adapters. Keeping both libraries is a temporary migration boundary, not permission to mix them within one form. Migrate a page separately, with tests for its API errors, retained drafts, permissions and version preconditions; remove the old dependency only after its last caller moves.
+
+## A registered profile field
+
+Fields must be registered. Merely placing a `TextField` inside `Form` does not connect its value to submission.
+
+```tsx
+import { Stack } from "@mantine/core";
+import { request, ApiError } from "@/api/client";
+import type { User } from "@/api/types";
+import { Form, FormStatus, SubmitButton, useFormContext } from "@/components/form/Form";
+import type { FormSubmitResult } from "@/components/form/Form/Form";
+import TextField from "@/components/form/TextField";
+
+type Values = { job_role: string };
+
+function ProfileFields() {
+  const { methods } = useFormContext<Values>();
+  return (
+    <TextField
+      label="Job role"
+      {...methods.register("job_role")}
+      error={methods.formState.errors.job_role?.message}
+    />
+  );
+}
+
+export function JobRoleForm({ jobRole }: { jobRole: string }) {
+  async function save(
+    data: Values,
+    { signal }: { signal: AbortSignal },
+  ): Promise<FormSubmitResult> {
+    try {
+      await request<User>("/profile/", { method: "PATCH", body: data, signal });
+      return { state: "success", message: { title: "Job role saved" } };
+    } catch (error) {
+      if (!(error instanceof ApiError)) throw error;
+      return {
+        state: "error",
+        message: { title: "Job role not saved", description: error.message },
+      };
+    }
+  }
+  return (
+    <Form<Values> defaultValues={{ job_role: jobRole }} onSubmit={save} disableWhenClean>
+      <Stack>
+        <FormStatus />
+        <ProfileFields />
+        <SubmitButton />
+      </Stack>
+    </Form>
+  );
+}
+```
+
+Use the existing API client: it supplies session credentials and CSRF and throws `ApiError` on non-success responses. It returns decoded data, not a `Response` with an `ok` property. Page adapters can map its dotted `fieldErrors` to `methods.setError`; never replace a stale-version or permission refusal with success.
+
+For controlled Mantine fields, use RHF's `Controller`, or `watch` and `setValue` with `shouldDirty` and `shouldValidate`. Give each resource its own keyed form instance so changing files cannot reuse another file's draft.
+
+## Save and departure contract
+
+- Submission is single-flight, including validation and confirmation. Disabling a button alone is not the duplicate guard.
+- Success acknowledges only the submitted values. Newer edits stay visible and dirty. Error, validation failure and timeout never reset the draft.
+- `blockNavigation` defaults to true. SPA protection requires `createBrowserRouter` or `createMemoryRouter`; a legacy router fails visibly rather than silently dropping the guard. The application uses a data router. Standalone forms also warn on refresh/tab departure while dirty or pending.
+- A pending write and any unsaved values remain protected regardless of the last status message. Leaving deliberately does not cancel a server operation or undo a commit.
+- Use synchronous `onSuccess` for post-save navigation, not navigation inside `onSubmit`. It runs only after full success with no edits made since submission. Partial success never automatically navigates.
+
+```tsx
+const navigate = useNavigate();
+<Form
+  defaultValues={openedValues}
+  onSubmit={save}
+  onSuccess={() => {
+    void navigate(destination, {
+      state: { flash: { variant: "success", title: "Hazard saved" } },
+    });
+  }}
+>
+  {/* Registered fields, FormStatus and SubmitButton */}
+</Form>;
+```
+
+`PageMessageProvider` consumes the flash once. The first `PageHeader` shows it beneath the title; the layout's fallback shows it when there is no header. Messages are dismissed by the person, not a timer.
+
+### Timeouts are uncertain outcomes
+
+After `timeoutMs` (30 seconds by default), the wrapper signals the optional transport cancellation and shows uncertainty. An abort signal cannot prove that the server did not commit. The duplicate guard stays held until the original handler's promise settles, even if it ignores the signal. A late result cannot reset the draft or navigate. Once settled, a deliberate retry uses the original version precondition; inspect the recorded version first.
+
+For evidence writes, capture `expected_head` when the form opens and keep it through failures and retries. Never fetch a newer HEAD to make a stale judgement save. Retain the draft on conflict and offer comparison separately. The backend's service, repository lock and attributed Git commit remain authoritative. The wrapper provides neither request idempotency nor clinical sign-off.
+
+### Partial success
+
+Use `partial_success` only when all submitted form values were saved but an ancillary operation failed, for example a notification. It establishes that submitted baseline while retaining newer edits. If some form values were not saved, return `error` and retain the whole draft instead. An unsigned safety case is not a partially saved form; saving and clinical approval are separate outcomes.
+
+## Confirmation and status
+
+`confirm` gates the request after validation. Cancelling it submits nothing. Password/code confirmations use the same hardened modal but collect the extra credential separately. Only the backend can verify identity or grant authority.
+
+`FormStatus` announces success/partial success politely and errors/validation/timeouts assertively. It scrolls when shown, without smooth motion when reduced motion is requested. `SubmitButton` retains its label width and uses an enforced `aria-disabled` state while unavailable. An optional `onCancel` renders the accompanying cancel button. Cancellation stays disabled until an accepted request settles, including after timeout, so a modal-close callback cannot discard an unresolved draft. Attempted navigation still passes through departure protection.
+
+Use a separate, specified workflow for multi-step authoring. Turva does not collect patient data or send clinical letters.

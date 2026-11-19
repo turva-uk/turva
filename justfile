@@ -75,12 +75,22 @@ test-coverage:
 
 
 alias pc := pre-commit
-# Run every check CI enforces (pre-commit, then the Zizmor Actions audit)
+# Run every check CI enforces (pre-commit, including the Zizmor Actions audit)
 pre-commit:
     @./s/lint
 
 
 alias lint := pre-commit
+
+
+# Switch on the git hooks in .githooks, so every commit runs pre-commit on
+# the staged files. Once per clone: the setting is shared by every worktree.
+# The path is relative on purpose, so git resolves it against the worktree
+# that is committing, and each worktree runs its own branch's hook. Not
+# `pre-commit install`, whose untracked hook nobody reviews, and which
+# refuses to run once core.hooksPath is set.
+setup:
+    @./s/install-hooks
 
 
 # Regenerate the pinned dependency locks from the .in declarations
@@ -92,6 +102,32 @@ alias d := docs
 # Serve the documentation site at http://localhost:8001
 docs:
     @./s/docs
+
+# Explicitly refresh measured floors, without ever lowering an existing floor.
+# The suite-count extension needs the dev stack up for Django collection.
+floors-update:
+    @./s/floors/refresh
+
+
+# GitHub repository settings, as code in terraform/github/. Each recipe runs
+# ./s/terraform, which reads the rulesets already on GitHub before plan and
+# apply, and takes the token from gh when GITHUB_TOKEN is not set. See
+# docs/docs/github-settings.md.
+
+alias tfi := terraform-init
+# Set up Terraform for the GitHub settings (once, and after a provider bump)
+terraform-init *args:
+    @./s/terraform init {{args}}
+
+alias tfp := terraform-plan
+# Show what would change in the GitHub settings; changes nothing
+terraform-plan *args:
+    @./s/terraform plan {{args}}
+
+alias tfa := terraform-apply
+# Apply the GitHub settings (an admin, after the pull request merges)
+terraform-apply *args:
+    @./s/terraform apply {{args}}
 
 
 alias rb := remove-branches
@@ -117,3 +153,15 @@ abbreviate-just:
     fi
 
     echo "Run 'source ~/.zshrc' to apply the change to this terminal."
+
+
+alias sb := storybook
+# Start Storybook, the catalogue of shared components, on port 6006
+storybook:
+    @./s/frontend storybook
+
+
+alias sbt := storybook-test
+# Check every story with axe (WCAG 2.2 AA) in light and dark mode, as CI does
+storybook-test:
+    @./s/frontend test-storybook:ci

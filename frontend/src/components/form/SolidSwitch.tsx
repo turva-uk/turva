@@ -1,0 +1,138 @@
+/**
+ * Solid Switch Component
+ *
+ * A Mantine Switch wrapper with a solid thumb (no inner ring/hole).
+ * Renders an optional top label, a switch with automatic "No"/"Yes"
+ * inline text, and an optional description below. At size xl the
+ * tap target is padded to 44px tall for touch screens, and xl is the
+ * default below the sm breakpoint (md above it) unless a size is passed.
+ */
+
+import {
+  Input,
+  Switch,
+  useComputedColorScheme,
+  useMantineTheme,
+  type SwitchProps,
+} from "@mantine/core";
+import { useMediaQuery } from "@mantine/hooks";
+import { useId } from "react";
+import { useUncontrolled } from "@mantine/hooks";
+import type { ReactNode } from "react";
+import { FieldDescription, ErrorMessage } from "@/components/typography";
+import classes from "./SolidSwitch.module.css";
+
+interface SolidSwitchProps extends Omit<SwitchProps, "label" | "description"> {
+  /** Label displayed above the switch (matches form field style) */
+  label?: string;
+  /** Helper text displayed below the switch */
+  description?: string;
+  /** Error message displayed below the switch */
+  error?: string;
+  /** Text shown when switch is on (default: "Yes") */
+  onLabel?: string;
+  /** Text shown when switch is off (default: "No") */
+  offLabel?: string;
+}
+
+export default function SolidSwitch({
+  label,
+  description,
+  error,
+  checked: controlledChecked,
+  defaultChecked,
+  id: suppliedId,
+  onChange,
+  classNames,
+  size: sizeProp,
+  onLabel = "Yes",
+  offLabel = "No",
+  ...rest
+}: SolidSwitchProps) {
+  const generatedId = useId();
+  const id = suppliedId ?? generatedId;
+  const [checked, setChecked] = useUncontrolled({
+    value: controlledChecked,
+    defaultValue: defaultChecked,
+    finalValue: false,
+  });
+  const isDark = useComputedColorScheme("light") === "dark";
+  const theme = useMantineTheme();
+  const isMobile = useMediaQuery(`(max-width: ${theme.breakpoints.sm})`);
+  const size = sizeProp ?? (isMobile ? "xl" : "md");
+
+  const stableLabel: ReactNode = (
+    <span style={{ display: "inline-grid" }}>
+      <span style={{ gridArea: "1/1", visibility: checked ? "visible" : "hidden" }}>
+        {onLabel}
+      </span>
+      <span style={{ gridArea: "1/1", visibility: checked ? "hidden" : "visible" }}>
+        {offLabel}
+      </span>
+    </span>
+  );
+
+  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
+    setChecked(e.currentTarget.checked);
+    onChange?.(e);
+  }
+
+  return (
+    <div>
+      {label && (
+        <Input.Label id={`${id}-label`} htmlFor={id} className={classes.topLabel}>
+          {label}
+        </Input.Label>
+      )}
+      {description && (
+        <div id={`${id}-description`}>
+          <FieldDescription>{description}</FieldDescription>
+        </div>
+      )}
+      <Switch
+        {...rest}
+        id={id}
+        aria-labelledby={rest["aria-labelledby"] ?? (label ? `${id}-label` : undefined)}
+        aria-describedby={
+          [rest["aria-describedby"], description && `${id}-description`, error && `${id}-error`]
+            .filter(Boolean)
+            .join(" ") || undefined
+        }
+        aria-invalid={!!error || undefined}
+        checked={checked}
+        onChange={handleChange}
+        size={size}
+        label={stableLabel}
+        classNames={{
+          root: classes.root,
+          body: size === "xl" ? classes.bodyXl : undefined,
+          thumb: classes.thumb,
+          track: classes.track,
+          ...classNames,
+        }}
+        styles={{
+          label: {
+            fontSize: "var(--mantine-font-size-md)",
+            fontWeight: 500,
+            color: "var(--mantine-color-text)",
+          },
+          track: isDark
+            ? {
+                backgroundColor: checked
+                  ? "var(--mantine-color-primary-9)"
+                  : "var(--mantine-color-primary-5)",
+                borderColor: checked
+                  ? "var(--mantine-color-primary-9)"
+                  : "var(--mantine-color-primary-5)",
+              }
+            : undefined,
+        }}
+      />
+      {error && (
+        <div id={`${id}-error`}>
+          <ErrorMessage>{error}</ErrorMessage>
+        </div>
+      )}
+    </div>
+  );
+}

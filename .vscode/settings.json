@@ -23,8 +23,8 @@
     "*.md": "markdown"
   },
   "terminal.integrated.tabs.enableAnimation": true,
-  "terminal.integrated.tabs.description": "${sequence}",
-  "terminal.integrated.tabs.title": "${process}",
+  "terminal.integrated.tabs.description": "",
+  "terminal.integrated.tabs.title": "${sequence}",
   "python-envs.defaultEnvManager": "ms-python.python:system",
   "python-envs.pythonProjects": []
 }

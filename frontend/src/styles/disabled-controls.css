@@ -1,0 +1,46 @@
+/*
+ * A disabled control keeps the ordinary pointer.
+ *
+ * Mantine gives almost everything it disables `cursor: not-allowed`, the
+ * "no entry" sign: buttons, inputs, checkboxes, radios, switches, options
+ * in a list, tabs, menu items, pagination and more, two dozen components
+ * in all. The sign reads as a refusal, "you are not allowed". But a
+ * control here is disabled far more often because something is under way
+ * (an email being sent, a form being saved, a list still loading) or
+ * already done, and to somebody waiting, the sign says the wrong thing.
+ * The greyed-out look already says the control will not act. Windows,
+ * macOS and a plain web page all leave the pointer alone; the sign is a
+ * habit of some web component libraries.
+ *
+ * One rule for all of them, by state and not by component, so a Mantine
+ * control nobody listed here is covered too. Every Mantine element
+ * carries a static `mantine-…` class, which is what `[class*="mantine-"]`
+ * matches.
+ *
+ * `!important`, deliberately. Mantine writes these rules a different way
+ * in almost every component (`:disabled`, `[data-disabled]`, a sibling
+ * after a disabled input, a parent that `:has()` one), with weights from
+ * one class to three. Matching each weight exactly would win only while
+ * this file happens to load after Mantine's, and would break silently
+ * the day a component's selector changed. The property is one a disabled
+ * control never needs to vary.
+ */
+
+/* The control itself. */
+[class*="mantine-"]:disabled,
+[class*="mantine-"][data-disabled],
+[class*="mantine-"][data-combobox-disabled],
+/* Busy is not forbidden either: a button showing its spinner. */
+[class*="mantine-"][data-loading],
+/* What sits inside or just after it: a label, a track, an icon. Never a
+   control of its own that is enabled, such as the next button in a row:
+   it keeps its hand. A label or a track is no form control, so
+   `:not(:enabled)` still matches it. */
+[class*="mantine-"]:disabled + [class*="mantine-"]:not(:enabled),
+[class*="mantine-"][data-disabled] + [class*="mantine-"]:not(:enabled),
+[class*="mantine-"][data-disabled] [class*="mantine-"],
+/* A wrapper around a disabled input, which Mantine styles with :has(). */
+[class*="mantine-"]:has(> input:disabled),
+[class*="mantine-"]:has(> button:disabled) {
+  cursor: default !important;
+}

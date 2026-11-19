@@ -1,0 +1,17 @@
+.sortHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  cursor: pointer;
+  border-radius: var(--mantine-radius-sm);
+  padding: 0.125rem 0.25rem;
+  margin: -0.125rem -0.25rem;
+
+  &:hover {
+    background-color: var(--mantine-color-gray-1);
+  }
+}
+
+:global([data-mantine-color-scheme="dark"]) .sortHeader:hover {
+  background-color: var(--mantine-color-primary-7);
+}
