@@ -13,8 +13,8 @@
  * changed; a row that is not a hazard at all, such as a note, is ticked
  * off. Nothing is guessed.
  *
- * Every hazard imported is still marked extracted, to be reviewed one by
- * one; this screen decides only what goes in.
+ * This view compares supplied proposals only. A future import must retain
+ * source provenance and require review; neither is implemented here.
  *
  * Not yet in Turva's API: supplier extraction has no route, so this
  * takes everything as props. The level for each row comes from
@@ -32,10 +32,12 @@
  * ```
  */
 
-import { Badge, Checkbox, Select, SimpleGrid, Stack } from "@mantine/core";
+import { Alert, Badge, Checkbox, SimpleGrid, Stack } from "@mantine/core";
 import BaseCard from "@/components/base-card/BaseCard";
 import { badgeColours, BADGE_VARIANT } from "@/components/badge/badgeColours";
 import { BodyText, BodyTextBold, FieldDescription, Heading } from "@/components/typography";
+import { SelectField } from "@/components/form";
+import { BrandSpinner } from "@/components/loading-spinner";
 import RiskScoreBadge from "./RiskScoreBadge";
 import {
   EXTRACTION_FIELDS,
@@ -89,11 +91,20 @@ function RowLevel({ row, preview }: { row: ExtractionRow; preview: PreviewAssess
   if (level.state === "ready") return <RiskScoreBadge assessment={level.assessment} />;
   if (level.state === "failed") {
     return (
-      <FieldDescription>Turva could not work out the risk level just now.</FieldDescription>
+      <Alert role="alert" color="red" title="Assessment preview unavailable">
+        Turva could not work out the risk level just now.
+      </Alert>
     );
   }
-
-  return null;
+  if (level.state === "working")
+    return (
+      <BrandSpinner label={`Working out the risk for extracted row ${row.row}`} size="2rem" />
+    );
+  return (
+    <Alert role="alert" color="yellow" title="Extracted assessment unavailable">
+      Extracted scores are missing or unsupported. No replacement scores have been assumed.
+    </Alert>
+  );
 }
 
 function ColumnMapEditor({
@@ -118,26 +129,47 @@ function ColumnMapEditor({
           none is left empty.
         </FieldDescription>
         <SimpleGrid cols={{ base: 1, sm: 2 }}>
-          {EXTRACTION_FIELDS.map((field) => (
-            <Select
-              key={field}
-              label={FIELD_LABELS[field]}
-              data={options}
-              value={
-                extraction.column_map[field] === null
-                  ? ""
-                  : String(extraction.column_map[field])
-              }
-              allowDeselect={false}
-              disabled={disabled}
-              onChange={(value) =>
-                onColumnMapChange({
-                  ...extraction.column_map,
-                  [field]: value ? Number(value) : null,
-                })
-              }
-            />
-          ))}
+          {EXTRACTION_FIELDS.map((field) => {
+            const column = extraction.column_map[field];
+            const supported =
+              column === null ||
+              (Number.isInteger(column) && column >= 0 && column < extraction.headers.length);
+            return (
+              <SelectField
+                key={field}
+                label={FIELD_LABELS[field]}
+                data={
+                  supported
+                    ? options
+                    : [
+                        ...options,
+                        {
+                          value: "unsupported-mapping",
+                          label: `Unsupported column: ${String(column)}`,
+                          disabled: true,
+                        },
+                      ]
+                }
+                value={
+                  !supported ? "unsupported-mapping" : column === null ? "" : String(column)
+                }
+                error={
+                  supported
+                    ? undefined
+                    : `Recorded column ${String(column)} is not available in the supplied table.`
+                }
+                allowDeselect={false}
+                disabled={disabled}
+                onChange={(value) => {
+                  if (value === "unsupported-mapping" || value === null) return;
+                  onColumnMapChange({
+                    ...extraction.column_map,
+                    [field]: value ? Number(value) : null,
+                  });
+                }}
+              />
+            );
+          })}
         </SimpleGrid>
       </Stack>
     </BaseCard>
@@ -170,9 +202,15 @@ function RowReview({
         />
         <SimpleGrid cols={{ base: 1, sm: 2 }}>
           <Stack gap="xs">
-            <BodyTextBold>In the supplier&apos;s document</BodyTextBold>
+            <BodyTextBold>Supplied source cells</BodyTextBold>
+            {(row.cells.length === 0 || row.cells.length !== headers.length) && (
+              <Alert role="alert" color="yellow" title="Source row incomplete">
+                Supplied cells: {row.cells.length}; column headings: {headers.length}. This
+                comparison is incomplete; check the original document before import.
+              </Alert>
+            )}
             {row.cells.map((cell, index) => (
-              <BodyText key={index}>
+              <BodyText key={index} preserveLines>
                 <strong>{headers[index] || `Column ${index + 1}`}:</strong> {cell || "(empty)"}
               </BodyText>
             ))}
@@ -181,13 +219,29 @@ function RowReview({
             <BodyTextBold>{rejected ? "Left out" : "Drafted hazard"}</BodyTextBold>
             {!rejected && (
               <>
-                <BodyText>{row.title || "(no hazard name)"}</BodyText>
+                <BodyText preserveLines>{row.title || "(no hazard name)"}</BodyText>
                 {row.supplier_id && (
                   <FieldDescription>
                     Supplier&apos;s reference: {row.supplier_id}
                   </FieldDescription>
                 )}
-                {row.cause && <BodyText>Cause: {row.cause}</BodyText>}
+                {(
+                  [
+                    ["Cause", row.cause],
+                    ["Effect", row.effect],
+                    ["Potential harm", row.harm],
+                    ["Supplier's controls", row.controls],
+                  ] as const
+                ).map(([label, text]) => (
+                  <Stack key={label} gap={4}>
+                    <BodyTextBold>{label}</BodyTextBold>
+                    <BodyText preserveLines>{text.trim() ? text : "Not extracted."}</BodyText>
+                  </Stack>
+                ))}
+                <BodyText>
+                  Severity: {row.severity ?? "Not extracted"}; likelihood:{" "}
+                  {row.likelihood ?? "Not extracted"}.
+                </BodyText>
                 <RowLevel row={row} preview={preview} />
                 {row.problems.map((problem) => (
                   <Badge
@@ -218,6 +272,19 @@ export default function ExtractionReview({
 }: ExtractionReviewProps) {
   return (
     <Stack gap="lg">
+      <Heading>Proposed extraction for review</Heading>
+      <BodyText preserveLines>Recorded source: {extraction.source || "Not supplied"}</BodyText>
+      <BodyText>
+        These are supplied table cells, not the original document. Check every proposed field
+        against that document before import. Excluding a row is not clinical approval; no
+        evidence is written by this view. This comparison does not establish that all source
+        hazards or cells were recovered.
+      </BodyText>
+      {extraction.rows.length === 0 && (
+        <Alert role="alert" color="yellow" title="No extracted rows supplied">
+          An empty extraction does not establish that the source contains no hazards.
+        </Alert>
+      )}
       <ColumnMapEditor
         extraction={extraction}
         onColumnMapChange={onColumnMapChange}

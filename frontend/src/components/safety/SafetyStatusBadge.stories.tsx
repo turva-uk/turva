@@ -5,6 +5,8 @@
  */
 
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { expect, within } from "storybook/test";
+import type { SafetyFileStatus } from "@/lib/safety";
 
 import { aheadOfTheApi } from "@/stories/aheadOfTheApi";
 import SafetyStatusBadge from "./SafetyStatusBadge";
@@ -19,6 +21,13 @@ const meta: Meta<typeof SafetyStatusBadge> = {
 
 export default meta;
 type Story = StoryObj<typeof SafetyStatusBadge>;
+
+export const UnsupportedStatus: Story = {
+  args: { status: "archived" as SafetyFileStatus },
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).getByRole("alert")).toHaveTextContent("archived");
+  },
+};
 
 export const Draft: Story = { args: { status: "draft" } };
 

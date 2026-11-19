@@ -19,7 +19,7 @@ describe("SafetyDocumentSheet", () => {
     );
     expect(screen.getByText("BP@Home")).toBeInTheDocument();
     expect(screen.getByText("Draft, not approved")).toBeInTheDocument();
-    expect(screen.getByText("As at commit abcdef12")).toBeInTheDocument();
+    expect(screen.getByText(`As at commit ${"abcdef12" + "0".repeat(32)}`)).toBeInTheDocument();
   });
 
   it("does not run script in the document's text", () => {
@@ -50,7 +50,7 @@ describe("SafetyDocumentSheet", () => {
     expect(screen.queryByText(/\| Name \|/)).not.toBeInTheDocument();
   });
 
-  it("leaves out the notes a template leaves as comments", () => {
+  it("retains comments rather than assuming they are disposable template instructions", () => {
     renderWithMantine(
       <SafetyDocumentSheet
         system="x"
@@ -60,7 +60,7 @@ describe("SafetyDocumentSheet", () => {
       />,
     );
 
-    expect(screen.queryByText(/Completed at approval/)).not.toBeInTheDocument();
+    expect(screen.getByText(/Completed at approval/)).toBeInTheDocument();
     expect(screen.getByText("Signed below.")).toBeInTheDocument();
   });
 });

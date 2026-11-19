@@ -53,7 +53,9 @@ describe("NextStepCard", () => {
         name: "Every step of the process is complete",
       }),
     ).toBeInTheDocument();
-    expect(screen.getByText(/judgement of the people/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Completing a process is not clinical approval/),
+    ).toBeInTheDocument();
   });
 
   it("shows the step's own action", () => {

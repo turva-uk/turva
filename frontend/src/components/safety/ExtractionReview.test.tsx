@@ -34,7 +34,7 @@ describe("ExtractionReview", () => {
     renderReview();
     const row = screen.getByTestId("extraction-row-1");
 
-    expect(within(row).getByText("In the supplier's document")).toBeVisible();
+    expect(within(row).getByText("Supplied source cells")).toBeVisible();
     expect(within(row).getByText("Drafted hazard")).toBeVisible();
     expect(within(row).getAllByText(/The API returns an incorrect centile/)).toHaveLength(2);
     expect(within(row).getByText("Supplier's reference: dGC-49")).toBeInTheDocument();

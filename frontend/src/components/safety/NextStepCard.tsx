@@ -20,11 +20,12 @@
  */
 
 import type { ReactNode } from "react";
-import { Group, List, Stack } from "@mantine/core";
+import { Alert, Group, List, Stack } from "@mantine/core";
 import BaseCard from "@/components/base-card/BaseCard";
 import IconTextButton from "@/components/button/IconTextButton";
 import { BodyText, FieldDescription, Heading } from "@/components/typography";
 import type { SafetyProcess } from "@/lib/safety";
+import { processProblem } from "./processPresentation";
 
 export interface NextStepCardProps {
   /** The process, as the file's API response carries it */
@@ -36,6 +37,14 @@ export interface NextStepCardProps {
 }
 
 export default function NextStepCard({ process, onOpenGuide, action }: NextStepCardProps) {
+  const problem = processProblem(process);
+  if (problem) {
+    return (
+      <Alert role="alert" color="red" title="Process status unavailable">
+        {problem} No completion or next action can be established from this view.
+      </Alert>
+    );
+  }
   const index = process.steps.findIndex((step) => step.id === process.next_step);
   const step = index >= 0 ? process.steps[index] : null;
   const done = process.steps.filter((item) => item.done).length;
@@ -46,8 +55,8 @@ export default function NextStepCard({ process, onOpenGuide, action }: NextStepC
         <Stack gap="sm">
           <Heading>Every step of the process is complete</Heading>
           <BodyText>
-            This says where the file is in its process. Whether the deployment is acceptably
-            safe is the judgement of the people who signed it.
+            Completing a process is not clinical approval. The safety judgement remains with the
+            responsible Clinical Safety Officer and organisation.
           </BodyText>
         </Stack>
       </BaseCard>

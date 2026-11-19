@@ -6,6 +6,8 @@
  */
 
 .markdown {
+  min-width: 0;
+  overflow-wrap: anywhere;
   font-size: var(--mantine-font-size-md);
   font-weight: 500;
   color: var(--mantine-color-text);

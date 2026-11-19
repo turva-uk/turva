@@ -7,7 +7,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
 import { aheadOfTheApi } from "@/stories/aheadOfTheApi";
-import { fn } from "storybook/test";
+import { expect, fn, within } from "storybook/test";
 import NextStepCard from "./NextStepCard";
 import { SAMPLE_PROCESS } from "@/test/safetyFile";
 
@@ -39,4 +39,15 @@ export const Complete: Story = {
 
 export const DarkMode: Story = {
   globals: { colorScheme: "dark" },
+};
+
+export const MissingNextStep: Story = {
+  args: { process: { ...SAMPLE_PROCESS, next_step: null } },
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole("alert")).toHaveTextContent("Process status unavailable");
+    await expect(canvas.queryByText("Every step of the process is complete")).toBeNull();
+    await expect(canvas.queryByRole("button")).toBeNull();
+    await expect(args.onOpenGuide).not.toHaveBeenCalled();
+  },
 };

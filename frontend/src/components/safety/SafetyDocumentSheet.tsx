@@ -22,15 +22,15 @@
  * Not yet in Turva's API: the file's prose documents have no route yet, so this takes the text as a prop.
  */
 
-import { Box, Stack } from "@mantine/core";
+import { Alert, Box, Stack } from "@mantine/core";
 import { BodyText, BodyTextBold, MarkdownView } from "@/components/typography";
-import type { SafetyFileStatus } from "@/lib/safety";
+import { isSafetyFileStatus, type SafetyFileStatus } from "@/lib/safety";
 import classes from "./SafetyDocumentSheet.module.css";
 
 const STATUS_WORDS: Record<SafetyFileStatus, string> = {
   draft: "Draft, not approved",
-  approved: "Approved by the Clinical Safety Officer",
-  accepted: "Accepted by Top Management for go-live",
+  approved: "Recorded as approved by the Clinical Safety Officer",
+  accepted: "Recorded as accepted by Top Management for go-live",
 };
 
 export interface SafetyDocumentSheetProps {
@@ -50,14 +50,31 @@ export default function SafetyDocumentSheet({
   commit,
   text,
 }: SafetyDocumentSheetProps) {
+  const sourceAvailable = typeof commit === "string" && /^[a-f0-9]{40}$/.test(commit);
   return (
     <Box className={classes.sheet} data-testid="safety-document-sheet">
       <Stack gap={4} className={classes.meta}>
         <BodyTextBold>{system}</BodyTextBold>
-        <BodyText c="dimmed">{STATUS_WORDS[status]}</BodyText>
-        {commit && <BodyText c="dimmed">As at commit {commit.slice(0, 8)}</BodyText>}
+        {isSafetyFileStatus(status) ? (
+          <BodyText c="dimmed">{STATUS_WORDS[status]}</BodyText>
+        ) : (
+          <Alert role="alert" color="red" title="Safety-file status unavailable">
+            Unsupported recorded status: {String(status)}.
+          </Alert>
+        )}
+        {sourceAvailable ? (
+          <BodyText c="dimmed" preserveLines>
+            As at commit {commit}
+          </BodyText>
+        ) : (
+          <Alert role="alert" color="yellow" title="Source version unavailable">
+            A full source commit was not supplied. This view cannot establish which evidence
+            version the text or reported status belongs to.
+            {commit && <BodyText preserveLines>Supplied version: {commit}</BodyText>}
+          </Alert>
+        )}
       </Stack>
-      <MarkdownView source={text} tables hideComments />
+      <MarkdownView source={text} tables />
     </Box>
   );
 }

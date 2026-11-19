@@ -7,7 +7,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
 import { aheadOfTheApi } from "@/stories/aheadOfTheApi";
-import { fn } from "storybook/test";
+import { expect, fn, within } from "storybook/test";
 import DocumentTable from "./DocumentTable";
 import { SAMPLE_DOCUMENTS } from "@/test/safetyFile";
 
@@ -28,4 +28,18 @@ export const Default: Story = {
 export const DarkMode: Story = {
   ...Default,
   globals: { colorScheme: "dark" },
+};
+
+export const Unavailable: Story = {
+  args: {
+    documents: SAMPLE_DOCUMENTS,
+    onSelect: fn(),
+    error: "Recorded documents could not be read.",
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText("Recorded documents could not be read.")).toBeVisible();
+    await expect(canvas.queryByText("No documents in this safety file")).toBeNull();
+    await expect(canvas.queryByRole("button", { name: /^Open record/ })).toBeNull();
+  },
 };

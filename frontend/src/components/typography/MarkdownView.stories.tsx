@@ -8,6 +8,7 @@
  * - Safe HTML rendering (XSS protection via DOMPurify)
  */
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { expect, within } from "storybook/test";
 import { IconPencil, IconUserPlus } from "@/components/icons/appIcons";
 import MarkdownView from "./MarkdownView";
 
@@ -21,6 +22,35 @@ const meta: Meta<typeof MarkdownView> = {
 
 export default meta;
 type Story = StoryObj<typeof MarkdownView>;
+
+const LONG_CONTACT = "clinical-safety-officer@riverbank.example.nhs.uk";
+
+export const LongTableValues: Story = {
+  args: {
+    tables: true,
+    source: `| Field | Value |\n| --- | --- |\n| Contact | ${LONG_CONTACT} |\n\n${"qualification".repeat(8)}`,
+  },
+  render: (args) => (
+    <div style={{ maxWidth: 320 }}>
+      <MarkdownView {...args} />
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const table = canvas.getByRole("table");
+    await expect(table.getBoundingClientRect().width).toBeLessThanOrEqual(320);
+    await expect(canvas.getByRole("link", { name: LONG_CONTACT })).toHaveAttribute(
+      "href",
+      `mailto:${LONG_CONTACT}`,
+    );
+    await expect(canvas.getByRole("cell", { name: LONG_CONTACT })).toHaveTextContent(
+      LONG_CONTACT,
+    );
+    await expect(canvasElement.ownerDocument.documentElement.scrollWidth).toBeLessThanOrEqual(
+      canvasElement.ownerDocument.defaultView!.innerWidth,
+    );
+  },
+};
 
 // Build the sample string from an array of lines so code-fence lines are safe
 // and don't appear raw inside the file editing surface.

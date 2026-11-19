@@ -23,9 +23,9 @@ describe("ProcessStepTable", () => {
     expect(onSelect).toHaveBeenCalledWith("hold-a-hazard-workshop");
   });
 
-  it("says when the template has no process", () => {
+  it("does not infer a template's requirements from an empty supplied list", () => {
     renderWithRouter(<ProcessStepTable steps={[]} />);
 
-    expect(screen.getByText("This file's template has no process.")).toBeInTheDocument();
+    expect(screen.getByText("No process steps were supplied.")).toBeInTheDocument();
   });
 });

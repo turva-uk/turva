@@ -15,7 +15,8 @@ import {
   BADGE_VARIANT,
   type BadgeColourConfig,
 } from "@/components/badge/badgeColours";
-import type { SafetyFileStatus } from "@/lib/safety";
+import { isSafetyFileStatus, type SafetyFileStatus } from "@/lib/safety";
+import { ErrorMessage } from "@/components/typography";
 
 type Props = {
   /** Where the file stands */
@@ -29,6 +30,14 @@ const STATUS_CONFIG: Record<SafetyFileStatus, { label: string; colour: BadgeColo
 };
 
 export default function SafetyStatusBadge({ status }: Props) {
+  if (!isSafetyFileStatus(status))
+    return (
+      <span role="alert">
+        <ErrorMessage>
+          Safety-file status unavailable: unsupported recorded value {String(status)}.
+        </ErrorMessage>
+      </span>
+    );
   const config = STATUS_CONFIG[status];
 
   return (

@@ -34,16 +34,26 @@ export interface DocumentTableProps {
    */
   action?: ReactNode;
   documents: DocumentRef[];
+  error?: string | null;
+  loading?: boolean;
   /** Called when a document is chosen */
   onSelect?: (document: DocumentRef) => void;
 }
 
-export default function DocumentTable({ action, documents, onSelect }: DocumentTableProps) {
+export default function DocumentTable({
+  action,
+  documents,
+  onSelect,
+  error,
+  loading,
+}: DocumentTableProps) {
   return (
     <DataTableControlled
       action={action}
       searchFields={(document) => [document.title, document.path]}
       data={documents}
+      error={error}
+      loading={loading}
       columns={columns}
       getRowKey={(document) => document.path}
       onRowClick={onSelect}

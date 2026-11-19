@@ -46,7 +46,7 @@ export function useAssessmentPreview(
   const key = `${severity},${likelihood}`;
 
   useEffect(() => {
-    if (severity === null || likelihood === null) return;
+    if (!isRiskScore(severity) || !isRiskScore(likelihood)) return;
 
     const controller = new AbortController();
 
@@ -79,6 +79,7 @@ export function useAssessmentPreview(
   }, [key, severity, likelihood, preview]);
 
   if (severity === null || likelihood === null) return { state: "none" };
+  if (!isRiskScore(severity) || !isRiskScore(likelihood)) return { state: "failed" };
 
   return result.key === key && result.source === preview
     ? result.preview

@@ -7,7 +7,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
 import { aheadOfTheApi } from "@/stories/aheadOfTheApi";
-import { fn } from "storybook/test";
+import { expect, fn, within } from "storybook/test";
 import ProcessStepTable from "./ProcessStepTable";
 import { SAMPLE_PROCESS } from "@/test/safetyFile";
 
@@ -28,4 +28,24 @@ export const NoProcess: Story = { args: { steps: [] } };
 
 export const DarkMode: Story = {
   globals: { colorScheme: "dark" },
+};
+
+export const InconsistentCompletion: Story = {
+  args: {
+    steps: [
+      {
+        ...SAMPLE_PROCESS.steps[0]!,
+        done: true,
+        reasons: ["A recorded requirement is still outstanding."],
+      },
+    ],
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(
+      canvas.getByText("A process step is marked done but still has outstanding requirements."),
+    ).toBeVisible();
+    await expect(canvas.queryByText("Done")).toBeNull();
+    await expect(canvas.queryByRole("button", { name: /^Open record/ })).toBeNull();
+  },
 };
