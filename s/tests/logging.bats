@@ -2,6 +2,9 @@
 # Tests for s/utils/logging.sh. Each test sources it in a fresh bash, so the
 # name it is given never leaks between tests.
 
+# The quoted scripts expand $1 inside the fresh child Bash, not inside Bats.
+# shellcheck disable=SC2016
+
 bats_require_minimum_version 1.5.0
 
 setup() {

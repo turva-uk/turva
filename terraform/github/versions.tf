@@ -1,5 +1,5 @@
-# Turva's GitHub repository settings, as code. See README.md for what is
-# managed here, how to apply it, and why nothing depends on it.
+# Turva's GitHub repository settings, as code. See
+# docs/docs/github-settings.md for the scope and explicit apply boundary.
 
 terraform {
   # The image ./s/terraform runs is pinned in .pre-commit-config.yaml.

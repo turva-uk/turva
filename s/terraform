@@ -22,9 +22,13 @@
 # .pre-commit-config.yaml, and read from there. Safe to run again: an
 # imported ruleset is in the state, so it is not imported twice. See
 # docs/docs/github-settings.md.
+# Only the default workspace/state and literal, top-level, uniquely named
+# branch rulesets are supported. Discovery never adopts inherited settings.
 set -euo pipefail
 
-# shellcheck source=utils/logging.sh
+helpers="$(cd "$(dirname "${BASH_SOURCE[0]}")/utils" && pwd)"
+
+# shellcheck source=s/utils/logging.sh
 source "$(dirname "${BASH_SOURCE[0]}")/utils/logging.sh" terraform
 
 # Print the pinned Terraform image, or nothing if the pin is missing.
@@ -45,7 +49,7 @@ run_terraform() {
 		tty=(-it)
 	fi
 
-	docker run --rm "${tty[@]}" \
+	docker run --rm ${tty[@]+"${tty[@]}"} \
 		--user "$(id -u):$(id -g)" \
 		-e HOME=/tmp \
 		-e GITHUB_TOKEN \
@@ -58,18 +62,38 @@ run_terraform() {
 # input, or nothing if GitHub has none of that name.
 ruleset_id() {
 	local name="$1"
-	local program
+	local repository="$2"
 
-	program=$(
-		cat <<'EOF'
-import json, sys
-name = sys.argv[1]
-matches = [r["id"] for r in json.load(sys.stdin) if r.get("name") == name]
-print(matches[0] if matches else "")
-EOF
-	)
+	python3 "${helpers}/github-rulesets.py" find "${name}" "${repository}"
+}
 
-	python3 -c "${program}" "${name}"
+# Read every page before importing anything. Inherited rulesets are not ours
+# to manage; duplicate names or incomplete identities need inspection, not a
+# guess. A finite page/request bound also refuses a broken pagination loop.
+list_rulesets() {
+	local repository="$1"
+	local page response count
+	local pages=""
+
+	for ((page = 1; page <= 20; page++)); do
+		if ! response=$(curl -fsS --connect-timeout 10 --max-time 30 \
+			-H "Authorization: Bearer ${GITHUB_TOKEN}" \
+			-H "Accept: application/vnd.github+json" \
+			-H "X-GitHub-Api-Version: 2026-03-10" \
+			"https://api.github.com/repos/${repository}/rulesets?per_page=100&page=${page}&includes_parents=false"); then
+			error "Could not list the rulesets on GitHub, so nothing was planned. Check GITHUB_TOKEN."
+			return 1
+		fi
+		count=$(python3 "${helpers}/github-rulesets.py" page-size <<<"${response}") || return 1
+		pages+="${pages:+,}${response}"
+		if [ "${count}" -lt 100 ]; then
+			python3 "${helpers}/github-rulesets.py" flatten <<<"[${pages}]"
+			return
+		fi
+	done
+
+	error "Ruleset pagination exceeded 20 pages; inspect GitHub before importing."
+	return 1
 }
 
 # Print the GitHub command-line tool's token, or nothing if gh is missing or
@@ -107,10 +131,18 @@ import_existing_rulesets() {
 	local rulesets
 	local name
 	local id
+	local workspace
+	local pending=()
 
 	defined=$(defined_rulesets)
 	if [ -z "${defined}" ]; then
 		return 0
+	fi
+
+	workspace=$(run_terraform "${image}" workspace show)
+	if [ "${workspace}" != "default" ]; then
+		error "Only the default workspace is supported, so the imported state and planned state stay together."
+		return 1
 	fi
 
 	# With no state file there is nothing to list, and Terraform would report
@@ -120,24 +152,25 @@ import_existing_rulesets() {
 		known=$(run_terraform "${image}" state list)
 	fi
 
-	if ! rulesets=$(curl -fsS \
-		-H "Authorization: Bearer ${GITHUB_TOKEN}" \
-		-H "Accept: application/vnd.github+json" \
-		"https://api.github.com/repos/${repository}/rulesets?per_page=100"); then
-		error "Could not list the rulesets on GitHub, so nothing was planned. Check GITHUB_TOKEN."
-		exit 1
-	fi
+	rulesets=$(list_rulesets "${repository}")
 
 	for name in ${defined}; do
+		id=$(ruleset_id "${name}" "${repository}" <<<"${rulesets}")
 		if grep -qxF "github_repository_ruleset.${name}" <<<"${known}"; then
 			continue
 		fi
 
-		id=$(ruleset_id "${name}" <<<"${rulesets}")
 		if [ -n "${id}" ]; then
-			log "Importing the existing \"${name}\" ruleset (${id}) from GitHub."
-			run_terraform "${image}" import -input=false "github_repository_ruleset.${name}" "${repository#*/}:${id}"
+			pending+=("${name}:${id}")
 		fi
+	done
+
+	# Validate the whole adoption list before making even a local state change.
+	for name in ${pending[@]+"${pending[@]}"}; do
+		id=${name#*:}
+		name=${name%%:*}
+		log "Importing the existing \"${name}\" ruleset (${id}) from GitHub."
+		run_terraform "${image}" import -input=false "github_repository_ruleset.${name}" "${repository#*/}:${id}"
 	done
 }
 
@@ -145,6 +178,7 @@ main() {
 	local repository=turva-uk/turva
 	local command="${1:-}"
 	local image
+	local argument
 
 	cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
@@ -158,6 +192,25 @@ main() {
 		error "Usage: ./s/terraform <init|plan|apply|...> [options]"
 		exit 2
 	fi
+	case "${command}" in
+	-chdir | -chdir=*)
+		error "Only the default state and configuration directory are supported."
+		exit 1
+		;;
+	esac
+
+	case "${command}" in
+	plan | apply)
+		for argument in "$@"; do
+			case "${argument}" in
+			-state | -state=* | -state-out | -state-out=* | -backup | -backup=* | -chdir | -chdir=*)
+				error "Only the default state is supported; alternate state or configuration flags could bypass the imported settings."
+				exit 1
+				;;
+			esac
+		done
+		;;
+	esac
 
 	case "${command}" in
 	plan | apply | import | refresh | destroy)

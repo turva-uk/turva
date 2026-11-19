@@ -130,11 +130,12 @@ Serves the documentation site with hot reload at <http://localhost:8001>.
 
 ### `./s/terraform`
 
-Runs Terraform for Turva's GitHub repository settings in `terraform/github/`, in a pinned container, so only Docker is needed. `plan` and `apply` need a token in `GITHUB_TOKEN`; see `docs/docs/github-settings.md`.
+Runs Terraform for Turva's GitHub repository settings in `terraform/github/`, in a pinned container. The host needs Docker, `curl` and Python 3.10 or later. `plan` and `apply` use `GITHUB_TOKEN`, falling back to `gh auth token`; see [GitHub settings](../docs/docs/github-settings.md) for the local-state limitations and explicit administrative approval boundary.
 
 ```bash
 ./s/terraform init
-./s/terraform plan      # what would change on GitHub; changes nothing
+./s/terraform validate  # configuration and provider schema, no GitHub access
+./s/terraform plan      # reads GitHub and updates local imports, not settings
 ./s/terraform apply     # an admin, after the pull request merges
 ```
 
@@ -156,7 +157,9 @@ The seeding step refuses to run with `DEBUG` off. It creates an account whose pa
 
 ## Shared helpers
 
-`s/utils/` holds helpers that scripts source rather than commands to type.
+`s/utils/` holds internal helpers, not commands to type.
+
+- **`s/utils/github-rulesets.py`** - validates and selects repository-owned ruleset identities for `s/terraform`. Its refusal paths are covered by `s/tests/terraform.bats`.
 
 - **`s/utils/logging.sh`** - `log` and `error`, each printing the script's name in front, such as `[terraform] ERROR: ...`. Errors go to standard error, in red only in a terminal. Source it straight after the `set` line at the top, and always pass the name:
 

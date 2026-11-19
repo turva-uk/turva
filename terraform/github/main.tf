@@ -1,5 +1,6 @@
-# The token comes from GITHUB_TOKEN. Reading needs Metadata; applying needs
-# Administration: read and write on this repository.
+# The token comes from GITHUB_TOKEN. Applying needs Administration read/write.
+# GitHub omits bypass actors for readers without ruleset write access, so a
+# metadata-only plan is not a complete review of the existing settings.
 provider "github" {
   owner = "turva-uk"
 }

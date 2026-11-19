@@ -130,6 +130,23 @@ jobs:
       - name: Run tests
         run: bats s/tests
 
+  terraform:
+    name: GitHub settings (Terraform validate)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Installs only the checksum-locked provider and checks its schema.
+      # No GitHub token, plan or apply is used in this job.
+      - name: Initialise the locked provider
+        run: ./s/terraform init -backend=false -lockfile=readonly
+
+      - name: Validate the configuration
+        run: ./s/terraform validate -no-color
+
   frontend:
     name: Frontend (lint, types, tests, build)
     runs-on: ubuntu-latest

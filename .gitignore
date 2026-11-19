@@ -248,3 +248,8 @@ storybook-static/
 /terraform/github/.terraform/
 /terraform/github/*.tfstate
 /terraform/github/*.tfstate.*
+/terraform/github/.terraform.tfstate.lock.info
+/terraform/github/*.tfplan
+/terraform/github/*.tfvars
+/terraform/github/*.tfvars.json
+/terraform/github/crash*.log
