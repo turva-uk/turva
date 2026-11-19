@@ -3,7 +3,9 @@
 # test runs a copy of the hook in a scratch git repository, with stand-ins for
 # pre-commit and lint-staged, so no real check runs. Run with: bats s/tests
 
-# Each Bats test intentionally has its own process and exported fixture values.
+# bats runs each test in its own process on purpose, so a status a test
+# exports is meant to stay in that test. ShellCheck reads that as a change
+# lost to a subshell, so SC2030 and SC2031 are off for this file.
 # shellcheck disable=SC2030,SC2031
 
 bats_require_minimum_version 1.5.0
