@@ -48,9 +48,10 @@ The dev server runs in Docker as part of `./s/up`, so `./s/frontend` is for the 
 
 ### Running a second stack from another worktree
 
-Each git worktree can run its own stack, alongside the one in your main checkout. Compose names the containers after the worktree's folder, so they do not clash. The published ports do, so move them in the second worktree:
+Each git worktree can run its own stack alongside your main checkout. Compose isolates containers, networks and named volumes by project name, which defaults to the folder basename. Give each stack a unique `COMPOSE_PROJECT_NAME`, especially when two checkout folders have the same basename, and choose unused published ports:
 
 ```bash
+export COMPOSE_PROJECT_NAME=turva-second
 export TURVA_WEB_PORT=8010
 export TURVA_FRONTEND_PORT=5183
 export TURVA_POSTGRES_PORT=5443
@@ -61,7 +62,9 @@ export TURVA_HTTPS_PORT=8444
 ./s/down
 ```
 
-Any free ports will do. Keep the variables set in the shell you use for that worktree's stack, since `./s/up` and a rebuild both read them. The second stack has its own database and its own `.turva-data/`, so nothing it does reaches the first.
+Keep these variables set for every command targeting this stack, including tests and shutdown, or put them in the worktree's gitignored root `.env` (Compose interpolation, distinct from `app/.env`). The launcher asks the running Compose project for its published port, so it also honours `.env` values and Compose overrides. It opens React by default, or Django for `./s/up web`. `TURVA_URL` explicitly overrides the browser destination; an unavailable port never falls back to another stack.
+
+Set `SITE_BASE_URL=http://localhost:5183` in that worktree's `app/.env` so verification and password-reset emails return to this stack. `FRONTEND_BASE_URL` defaults to `SITE_BASE_URL`; update it too if explicitly set. The unique project keeps its own database volume, and each worktree keeps its own `.turva-data/` bind mount. Do not point either at the other worktree's data. Browser cookies are shared between ports on the same hostname, so use separate browser profiles when signing into different stacks at once.
 
 ## Where the safety files live
 
@@ -84,17 +87,14 @@ Turva being running.
 be nested inside this one. `./s/up` creates the directory before starting, so
 Docker cannot create it as root and leave it unwritable by the container user.
 
-**These repositories are the system of record.** The database is an index over
-them and can be rebuilt:
+**These repositories are the system of record for safety evidence.** The safety-file database index can be rebuilt from them:
 
 ```bash
 ./s/manage reindex_safety_files --dry-run
 ./s/manage reindex_safety_files --owner you@example.nhs.uk
 ```
 
-Nothing else in the stack needs backing up with the same care. Postgres can be
-reconstructed from the repositories; the repositories cannot be reconstructed
-from anything.
+Back up the repositories and PostgreSQL. Users, membership, appointments, sessions and invitation history are operational database state and cannot be reconstructed from evidence repositories. Rebuilding the index must not recreate live permissions from historical team records. See [ADR 0006](specifications/adr/0006-named-file-teams-and-live-appointments.md).
 
 ## Tests
 

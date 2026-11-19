@@ -1,7 +1,7 @@
 # No service sets `container_name`. Compose then names each container after
-# the project, which is the folder name, so a second worktree runs its own
-# stack beside the first. Every published port reads a TURVA_*_PORT variable
-# for the same reason; see DEVELOPMENT.md.
+# the project. Use a unique COMPOSE_PROJECT_NAME for worktrees with the same
+# folder name. Every published port reads a TURVA_*_PORT variable so stacks
+# can run beside each other; see DEVELOPMENT.md.
 services:
   web:
     build:
@@ -27,6 +27,8 @@ services:
       # run this stack: no fixed container names, and every published port
       # read from the environment.
       - ./docker-compose.yml:/srv/docker-compose.yml:ro
+      # The launcher regressions run a copied script with fake external commands.
+      - ./s/up:/srv/s/up:ro
       # Safety file repositories - the system of record.
       #
       # A bind mount, not a named volume, so the repositories are visible on the
@@ -38,9 +40,9 @@ services:
       # host user. `s/up` creates the directory first, so Docker cannot create
       # it as root and leave it unwritable.
       #
-      # On the VPS this is a host path on backed-up storage. It is the one
-      # directory that genuinely must survive: the database is rebuildable from
-      # these repositories, and they are rebuildable from nothing.
+      # On the VPS this is a host path on backed-up storage, the system of
+      # record for evidence. Also back up the database: only its
+      # safety-file index, not operational identities/access, is rebuildable.
       - ./.turva-data/safety-files:/srv/.turva-data/safety-files
     ports:
       - "${TURVA_WEB_PORT:-8000}:8000"
