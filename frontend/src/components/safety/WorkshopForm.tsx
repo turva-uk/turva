@@ -1,11 +1,8 @@
 /**
  * WorkshopForm Component
  *
- * Recording a hazard workshop: when it was held, who came, which hazards
- * it raised, and any notes. The one step of the process the repository
- * cannot otherwise show happened (DCB0160 4.1.2 asks for a
- * multi-disciplinary group), so it is written into the file as a dated
- * page under `docs/workshops/`.
+ * Retained proposal for a workshop record: outside the funded build,
+ * whose workshops remain reminder-only. This form writes no evidence.
  *
  * Attendees are typed one per line. Nothing is sent with no attendees.
  *
@@ -17,14 +14,15 @@
  * Not yet in Turva's API: hazard workshops have no route yet, so this hands the workshop to its caller.
  */
 
-import { useState } from "react";
-import { Stack } from "@mantine/core";
+import { useState, type FormEvent } from "react";
+import { Alert, Stack } from "@mantine/core";
 import BaseCard from "@/components/base-card/BaseCard";
 import { ButtonPair } from "@/components/button";
 import DateField from "@/components/form/DateField";
 import MultiSelectField from "@/components/form/MultiSelectField";
 import TextAreaField from "@/components/form/TextAreaField";
-import { ErrorMessage } from "@/components/typography";
+import { BodyText, ErrorMessage } from "@/components/typography";
+import { parseDateInput } from "@/components/form/parseDateInput";
 import type { Hazard, WorkshopInput } from "@/lib/safety";
 
 export interface WorkshopFormProps {
@@ -37,6 +35,7 @@ export interface WorkshopFormProps {
   onCancel: () => void;
   saving?: boolean;
   error?: string | null;
+  readOnly?: boolean;
 }
 
 export default function WorkshopForm({
@@ -46,76 +45,123 @@ export default function WorkshopForm({
   onCancel,
   saving = false,
   error = null,
+  readOnly = false,
 }: WorkshopFormProps) {
   const [heldOn, setHeldOn] = useState<string | null>(today);
   const [attendees, setAttendees] = useState("");
   const [raised, setRaised] = useState<string[]>([]);
   const [notes, setNotes] = useState("");
-  const [problem, setProblem] = useState<string | null>(null);
+  const [tried, setTried] = useState(false);
+  const editable = !saving && !readOnly;
+  const people = attendees
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const dateProblem =
+    !heldOn || parseDateInput(heldOn, "YYYY-MM-DD") !== heldOn
+      ? "Say when the workshop was held, using a valid calendar date."
+      : null;
+  const peopleProblem = people.length === 0 ? "Name at least one person who attended." : null;
+  const unavailable = raised.filter((id) => !hazards.some((hazard) => hazard.id === id));
 
-  function submit() {
-    const people = attendees
-      .split("\n")
-      .map((line) => line.trim())
-      .filter(Boolean);
-
-    if (!heldOn) {
-      setProblem("Say when the workshop was held.");
-      return;
-    }
-
-    if (people.length === 0) {
-      setProblem("Name at least one person who attended.");
-      return;
-    }
-
-    setProblem(null);
+  function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setTried(true);
+    if (!editable || dateProblem || peopleProblem || !heldOn || unavailable.length > 0) return;
     onSubmit({ held_on: heldOn, attendees: people, hazards: raised, notes });
   }
 
   return (
     <BaseCard>
-      <Stack gap="md">
-        <DateField
-          label="Held on"
-          value={heldOn}
-          onChange={(value) => setHeldOn(value)}
-          required
-        />
-        <TextAreaField
-          label="Attendees"
-          description="One person per line, with their role."
-          value={attendees}
-          onChange={(event) => setAttendees(event.currentTarget.value)}
-          autosize
-          minRows={3}
-          required
-        />
-        <MultiSelectField
-          label="Hazards it raised"
-          data={hazards.map((hazard) => ({
-            value: hazard.id,
-            label: `${hazard.id}: ${hazard.title}`,
-          }))}
-          value={raised}
-          onChange={setRaised}
-          searchable
-        />
-        <TextAreaField
-          label="Notes"
-          value={notes}
-          onChange={(event) => setNotes(event.currentTarget.value)}
-          autosize
-          minRows={3}
-        />
-        {(problem ?? error) && <ErrorMessage>{problem ?? error}</ErrorMessage>}
-        <ButtonPair
-          acceptLabel="Record workshop"
-          onAccept={submit}
-          onCancel={onCancel}
-          acceptLoading={saving}
-        />
-      </Stack>
+      <form aria-label="Proposed workshop record" onSubmit={submit} noValidate>
+        <Stack gap="md">
+          <BodyText>
+            Retained proposal only. Workshop recording is outside funded phase-one scope; this
+            form does not record a workshop.
+          </BodyText>
+          {unavailable.length > 0 && (
+            <Alert role="alert" color="yellow" title="Selected hazards unavailable">
+              Some selected hazards are no longer in the supplied list. Their identifiers are
+              retained; resolve the selection before submitting this proposal.
+            </Alert>
+          )}
+          <DateField
+            label="Held on"
+            value={heldOn}
+            onChange={(value) => {
+              if (editable) setHeldOn(value);
+            }}
+            required
+            readOnly={!editable}
+            popoverProps={!editable ? { opened: false } : undefined}
+            error={tried ? dateProblem : undefined}
+          />
+          <TextAreaField
+            label="Attendees"
+            description="One person per line, with their role."
+            value={attendees}
+            onChange={(event) => {
+              if (editable) setAttendees(event.currentTarget.value);
+            }}
+            readOnly={!editable}
+            error={tried ? peopleProblem : undefined}
+            autosize
+            minRows={3}
+            required
+          />
+          <MultiSelectField
+            label="Hazards it raised"
+            data={[
+              ...hazards.map((hazard) => ({
+                value: hazard.id,
+                label: `${hazard.id}: ${hazard.title}`,
+              })),
+              ...unavailable.map((id) => ({
+                value: id,
+                label: `${id}: unavailable`,
+              })),
+            ]}
+            value={raised}
+            onChange={(value) => {
+              if (
+                editable &&
+                value.every(
+                  (id) => raised.includes(id) || hazards.some((hazard) => hazard.id === id),
+                )
+              )
+                setRaised(value);
+            }}
+            searchable
+            readOnly={!editable}
+            error={
+              unavailable.length ? "Resolve the unavailable hazard selections." : undefined
+            }
+          />
+          <TextAreaField
+            label="Notes"
+            value={notes}
+            onChange={(event) => {
+              if (editable) setNotes(event.currentTarget.value);
+            }}
+            readOnly={!editable}
+            autosize
+            minRows={3}
+          />
+          {error && (
+            <div role="alert">
+              <ErrorMessage>{error}</ErrorMessage>
+            </div>
+          )}
+          <ButtonPair
+            acceptLabel="Record workshop"
+            acceptType="submit"
+            acceptDisabled={!editable || unavailable.length > 0}
+            onCancel={onCancel}
+            cancelDisabled={saving}
+            acceptLoading={saving}
+          />
+        </Stack>
+      </form>
     </BaseCard>
   );
 }

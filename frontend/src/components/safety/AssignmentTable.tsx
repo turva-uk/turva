@@ -2,9 +2,9 @@
  * AssignmentTable Component
  *
  * The officer's view of what is out with whom: each mitigation a member
- * has been asked to evidence, who asked, and since when. An assignment
- * closes when its mitigation is implemented or verified, so this lists
- * only what is still waiting.
+ * has been asked to evidence, who asked, and since when. Its rows are
+ * supplied by the caller. This view cannot establish that all
+ * assignments were read or that a mitigation is complete.
  *
  * @example
  * ```tsx
@@ -17,13 +17,28 @@
 import { type Column } from "@/components/tables/DataTable";
 import DataTableControlled from "@/components/tables/DataTableControlled";
 import type { Assignment } from "@/lib/safety";
+import { BodyText } from "@/components/typography";
 
-function day(value: string): string {
-  return new Date(value).toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
+function AssignedAt({ value }: { value: string }) {
+  const instant = new Date(value);
+  if (!Number.isFinite(instant.getTime()))
+    return (
+      <BodyText preserveLines>
+        Assignment time unavailable. Recorded value: {value || "Not supplied"}.
+      </BodyText>
+    );
+  return (
+    <time dateTime={value} title={value}>
+      {instant.toLocaleString("en-GB", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        timeZone: "UTC",
+      })}
+    </time>
+  );
 }
 
 const columns: Column<Assignment>[] = [
@@ -33,21 +48,25 @@ const columns: Column<Assignment>[] = [
   },
   { header: "With", render: (row) => row.assignee_name },
   { header: "Asked by", render: (row) => row.assigned_by_name },
-  { header: "Since", render: (row) => day(row.assigned_at) },
+  { header: "Since (UTC)", render: (row) => <AssignedAt value={row.assigned_at} /> },
 ];
 
 export interface AssignmentTableProps {
   assignments: Assignment[];
+  loading?: boolean;
+  error?: string | null;
 }
 
-export default function AssignmentTable({ assignments }: AssignmentTableProps) {
+export default function AssignmentTable({ assignments, loading, error }: AssignmentTableProps) {
   return (
     <DataTableControlled
       searchFields={(row) => [row.mitigation_id, row.mitigation_title, row.assignee_name]}
       data={assignments}
+      loading={loading}
+      error={error}
       columns={columns}
       getRowKey={(row) => row.id}
-      emptyMessage="No mitigation is out with anybody."
+      emptyMessage="No assignments were supplied."
     />
   );
 }

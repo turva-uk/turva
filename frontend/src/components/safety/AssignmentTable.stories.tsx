@@ -5,6 +5,7 @@
  */
 
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { expect, within } from "storybook/test";
 
 import { aheadOfTheApi } from "@/stories/aheadOfTheApi";
 import AssignmentTable from "./AssignmentTable";
@@ -20,6 +21,15 @@ const meta: Meta<typeof AssignmentTable> = {
 
 export default meta;
 type Story = StoryObj<typeof AssignmentTable>;
+
+export const Unavailable: Story = {
+  args: { assignments: SAMPLE_ASSIGNMENTS, error: "Assignments could not be read." },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText("Assignments could not be read.")).toBeVisible();
+    await expect(canvas.queryByText("No assignments were supplied.")).toBeNull();
+  },
+};
 
 export const Default: Story = {};
 

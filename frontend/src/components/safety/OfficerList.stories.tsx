@@ -5,6 +5,7 @@
  */
 
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { expect, within } from "storybook/test";
 
 import { aheadOfTheApi } from "@/stories/aheadOfTheApi";
 import { fn } from "storybook/test";
@@ -20,6 +21,17 @@ const meta: Meta<typeof OfficerList> = {
 
 export default meta;
 type Story = StoryObj<typeof OfficerList>;
+
+export const UnsupportedVerificationClaim: Story = {
+  args: { posts: [{ ...SAMPLE_POSTS[0]!, registration_verified: true }] },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText("GMC 7654321, not verified")).toBeVisible();
+    await expect(canvas.getByRole("alert")).toHaveTextContent(
+      "does not check professional registers",
+    );
+  },
+};
 
 export const Default: Story = { args: { posts: SAMPLE_POSTS } };
 

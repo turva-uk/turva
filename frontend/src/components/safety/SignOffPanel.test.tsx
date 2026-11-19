@@ -2,14 +2,14 @@ import { describe, expect, it, vi } from "vitest";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { renderWithMantine } from "@/test/test-utils";
-import { SAMPLE_EXTRAS, SAMPLE_EXTRAS_FOR_CSO } from "@/test/safetyFile";
+import { SAMPLE_EXTRAS, SAMPLE_EXTRAS_FOR_CSO, SAMPLE_HEAD } from "@/test/safetyFile";
 import type { SafetyFileExtras } from "@/lib/safety";
-import SignOffPanel from "./SignOffPanel";
+import SignOffPanel, { type SignOffPanelProps } from "./SignOffPanel";
 
 function renderPanel(file: SafetyFileExtras = SAMPLE_EXTRAS_FOR_CSO) {
-  const onSign = vi.fn<(kind: "approved" | "accepted", code: string) => Promise<void>>();
+  const onSign = vi.fn<SignOffPanelProps["onSign"]>();
   onSign.mockResolvedValue(undefined);
-  renderWithMantine(<SignOffPanel file={file} onSign={onSign} />);
+  renderWithMantine(<SignOffPanel file={file} head={SAMPLE_HEAD} onSign={onSign} />);
 
   return { onSign };
 }
@@ -31,7 +31,7 @@ describe("SignOffPanel", () => {
     await userEvent.type(screen.getByLabelText("Authenticator code"), "123456");
     await userEvent.click(screen.getByRole("button", { name: "Approve" }));
 
-    await waitFor(() => expect(onSign).toHaveBeenCalledWith("approved", "123456"));
+    await waitFor(() => expect(onSign).toHaveBeenCalledWith("approved", "123456", SAMPLE_HEAD));
   });
 
   it("offers nothing to somebody who may not sign", () => {
@@ -42,7 +42,7 @@ describe("SignOffPanel", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("asks a signer with no two-factor to set it up", () => {
+  it("explains the proposed two-factor requirement without claiming setup is implemented", () => {
     renderPanel({
       ...SAMPLE_EXTRAS_FOR_CSO,
       sign_offs: {
@@ -53,13 +53,15 @@ describe("SignOffPanel", () => {
       },
     });
 
-    expect(screen.getByText(/Set up two-factor authentication/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/No sign-off or two-factor setup workflow is implemented/),
+    ).toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: "Approve the safety case" }),
     ).not.toBeInTheDocument();
   });
 
-  it("says a sign-off no longer holds once the file has changed", () => {
+  it("retains a supplied tag without claiming it establishes the file's history", () => {
     renderPanel({
       ...SAMPLE_EXTRAS_FOR_CSO,
       status: "draft",
@@ -73,8 +75,10 @@ describe("SignOffPanel", () => {
 
     expect(
       within(screen.getByTestId("sign-off-approved")).getByText(
-        "Last signed as approved/2026-11-07; the file has changed since.",
+        "This proposal does not establish whether this person has signed the opened version.",
       ),
     ).toBeInTheDocument();
+    expect(screen.getByText("approved/2026-11-07", { exact: true })).toBeInTheDocument();
+    expect(screen.queryByText(/the file has changed since/)).not.toBeInTheDocument();
   });
 });

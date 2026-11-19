@@ -13,12 +13,14 @@
  * Not yet in Turva's API: the safety posts have no route yet, so this takes them as a prop.
  */
 
-import { SimpleGrid } from "@mantine/core";
+import { Alert, SimpleGrid, Stack } from "@mantine/core";
 import { BaseCard, CardActionRow } from "@/components/base-card";
 import IconButton from "@/components/button/IconButton";
 import { IconPencil } from "@/components/icons/appIcons";
 import { BodyText, BodyTextBold } from "@/components/typography";
 import type { Post } from "@/lib/safety";
+import { postHolderProblem } from "./proposedWorkflow";
+import { BrandSpinner } from "@/components/loading-spinner";
 
 export interface OfficerListProps {
   posts: Post[];
@@ -27,9 +29,19 @@ export interface OfficerListProps {
    * is drawn, so the list reads the same anywhere it is only read.
    */
   onEdit?: (post: Post) => void;
+  loading?: boolean;
+  error?: string | null;
 }
 
-export default function OfficerList({ posts, onEdit }: OfficerListProps) {
+export default function OfficerList({ posts, onEdit, loading, error }: OfficerListProps) {
+  if (error)
+    return (
+      <Alert role="alert" color="red" title="Safety posts unavailable">
+        {error}
+      </Alert>
+    );
+  if (loading) return <BrandSpinner label="Reading safety posts" />;
+  if (posts.length === 0) return <BodyText>No safety posts were supplied.</BodyText>;
   return (
     <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="lg">
       {posts.map((post) => (
@@ -48,19 +60,34 @@ export default function OfficerList({ posts, onEdit }: OfficerListProps) {
             }
           >
             <BodyTextBold>{post.title}</BodyTextBold>
-            {post.holder_name ? (
+            {postHolderProblem(post) ? (
+              <Alert role="alert" color="yellow" title="Post holder unavailable">
+                {postHolderProblem(post)}
+                <BodyText preserveLines>
+                  Recorded identity: {post.holder_id ?? "Not supplied"}; name:{" "}
+                  {post.holder_name ?? "Not supplied"}.
+                </BodyText>
+              </Alert>
+            ) : post.holder_name ? (
               <>
                 <BodyText>{post.holder_name}</BodyText>
-                {post.registrations.map((registration) => (
-                  <BodyText key={registration} c="dimmed">
-                    {registration}
-                    {post.registration_verified ? "" : ", not verified"}
-                  </BodyText>
-                ))}
               </>
             ) : (
               <BodyText c="dimmed">Vacant</BodyText>
             )}
+            <Stack gap={4}>
+              {post.registrations.map((registration, index) => (
+                <BodyText key={`${index}:${registration}`} preserveLines c="dimmed">
+                  {registration}, not verified
+                </BodyText>
+              ))}
+              {post.registration_verified && (
+                <Alert role="alert" color="yellow" title="Unsupported verification claim">
+                  The supplied record claims verification. Turva does not check professional
+                  registers; the recorded registrations are not verified by this view.
+                </Alert>
+              )}
+            </Stack>
           </CardActionRow>
         </BaseCard>
       ))}

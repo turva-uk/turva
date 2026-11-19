@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { renderWithMantine } from "@/test/test-utils";
-import { SAMPLE_MY_ASSIGNMENT } from "@/test/safetyFile";
+import { SAMPLE_HEAD, SAMPLE_MY_ASSIGNMENT } from "@/test/safetyFile";
 import type { AssigneeStatus } from "@/lib/safety";
 import AssignmentEvidenceForm from "./AssignmentEvidenceForm";
 
@@ -31,7 +31,11 @@ describe("AssignmentEvidenceForm", () => {
     await userEvent.type(screen.getByLabelText(/Evidence/), "Tested on 7 November 2026.");
     await userEvent.click(screen.getByRole("button", { name: "Save evidence" }));
 
-    expect(onSubmit).toHaveBeenCalledWith("implemented", "Tested on 7 November 2026.");
+    expect(onSubmit).toHaveBeenCalledWith(
+      "implemented",
+      "Tested on 7 November 2026.",
+      SAMPLE_HEAD,
+    );
   });
 
   it("does not offer withdrawing the mitigation", async () => {

@@ -29,6 +29,7 @@ import {
 import PageHeader from "@/components/page-header";
 import { BodyText } from "@/components/typography";
 import { aheadOfTheApi } from "@/stories/aheadOfTheApi";
+import { StoryNote } from "@/stories/variants";
 import {
   BLOCKING_HAZARD,
   SAMPLE_EXTRAS,
@@ -51,6 +52,17 @@ const file = SAMPLE_FILE_DETAIL.safety_file;
 const meta: Meta = {
   title: "Safety/Page layout",
   parameters: { layout: "padded" },
+  decorators: [
+    (Story) => (
+      <>
+        <StoryNote>
+          Fictional layout demonstration only. No evidence is saved, clinically reviewed or
+          approved by these stories.
+        </StoryNote>
+        <Story />
+      </>
+    ),
+  ],
 };
 
 export default meta;
@@ -97,7 +109,7 @@ const fileSections = [
   {
     icon: <IconShieldCheck />,
     title: "Sign-off",
-    subtitle: "Not yet approved.",
+    subtitle: "Retained proposal; formal sign-off is deferred.",
     label: "Open sign-off",
   },
 ];
@@ -113,7 +125,7 @@ export const FileOverview: Story = {
         actionAlign="center"
       />
       <BodyText c="dimmed">
-        {file.organisation}, assessed against {file.standard}.
+        {file.organisation}. Recorded standard: {file.standard}.
       </BodyText>
       <SimpleGrid cols={{ base: 1, md: 2 }}>
         {fileSections.map((section) => (
