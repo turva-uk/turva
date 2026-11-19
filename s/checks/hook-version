@@ -8,31 +8,18 @@
 # the same version and the hook's `rev` is the one pin to bump. For example,
 # `s/checks/hook-version https://github.com/zizmorcore/zizmor-pre-commit`
 # prints 1.30.1.
+# Uses the project's existing PyYAML dependency, installed explicitly. This
+# reader never installs packages or falls back to a partial YAML grammar.
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
 main() {
-	local repository="${1:-}"
-	local config="${root}/.pre-commit-config.yaml"
-	local version
-
-	if [ -z "${repository}" ]; then
-		echo "No repository given. Usage: s/checks/hook-version <repository URL>" >&2
-		exit 1
+	local python=python3
+	if [ -x "${root}/.venv/bin/python" ]; then
+		python="${root}/.venv/bin/python"
 	fi
-
-	version="$(awk -v repository="${repository}" '
-		$0 ~ /repo:/ { found = ($NF == repository); next }
-		found && /rev:/ { sub(/.*rev: *v?/, ""); print; exit }
-	' "${config}")"
-
-	if [ -z "${version}" ]; then
-		echo "${config} pins no rev for ${repository}." >&2
-		exit 1
-	fi
-
-	echo "${version}"
+	exec "${python}" "${root}/s/utils/hook-version.py" "$@"
 }
 
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then

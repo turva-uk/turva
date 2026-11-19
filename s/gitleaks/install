@@ -15,37 +15,10 @@ set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
-# The version after `rev: v` on the line below the gitleaks repository in
-# .pre-commit-config.yaml, such as 8.30.1.
+# The shared YAML boundary validates and decodes the manifest pin before it
+# can enter a release URL. No independent pin or partial YAML reader here.
 pinned_version() {
-	local config="${root}/.pre-commit-config.yaml"
-	local version
-
-	# Accept only the checked-in literal block format, not arbitrary YAML.
-	# A missing rev must never borrow the next repository's pin. Quoted or
-	# commented versions fail visibly until the shared reader supports them.
-	if ! version="$(awk '
-		/^  - repo:/ {
-			selected = ($0 == "  - repo: https://github.com/gitleaks/gitleaks")
-			if (selected) records++
-			next
-		}
-		selected && /^    rev:/ {
-			pins++
-			version = $0
-			sub(/^    rev:[[:space:]]*/, "", version)
-		}
-		END { if (records != 1 || pins != 1) exit 1; print version }
-	' "${config}")"; then
-		echo "Could not read the gitleaks rev: expected one literal repository block and pin in ${config}." >&2
-		return 1
-	fi
-	if [[ ! "${version}" =~ ^v?(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
-		echo "Invalid gitleaks pin; expected an unquoted semantic release version." >&2
-		return 1
-	fi
-
-	printf '%s\n' "${version#v}"
+	bash "${root}/s/checks/hook-version" https://github.com/gitleaks/gitleaks
 }
 
 main() (
