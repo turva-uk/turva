@@ -338,7 +338,7 @@ New types inherit core properties (versioning, audit, ownership).
 
 ### Pluggable LLM Backends
 
-LLM integration supports multiple providers:
+LLM integration is planned, not implemented. Its adapter contract must remain open to multiple providers, for example:
 
 - OpenAI GPT
 - Anthropic Claude
@@ -346,6 +346,8 @@ LLM integration supports multiple providers:
 - Custom fine-tuned models
 
 **Why**: Avoid vendor lock-in, support on-premises deployment, optimise cost/performance.
+
+Provider examples are not a closed support list or a claim of available integrations. [ADR 0007](adr/0007-user-and-organisation-supplied-inference.md) and [the AI strategy](llm-strategy.md) define scoped user-/organisation-supplied connections, including supported authentication and local endpoints. Assistance remains optional and explicitly user-triggered; ordinary work must not depend on AI, and accepted proposals still require human review and an attributable opened-version save.
 
 ### The Storage Layer Is a Library, and Stays One
 
