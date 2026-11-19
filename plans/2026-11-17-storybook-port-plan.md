@@ -184,9 +184,16 @@ As built:
 
 These are ahead of Turva's API too, and their stories open with "Not yet in Turva's API: ...", as Phase 13's do. Split from Phase 13 so each pull request is one sitting's reading.
 
-- [ ] Bring across `SignOffPanel`, `OfficerList`, `AssignmentTable`, `AssignMitigationForm`, `AssignmentEvidenceForm` and `WorkshopForm`, with their stories and tests, on the Phase 11 types. `SignOffPanel` uses `CodeConfirmModal` from #88.
-- [ ] Bring across the `SafetyLayout` stories, which show the components together on a page. Quill wraps them in its `MainLayout`, which needs Quill's navigation, ribbons and inbox, so these stories use `PageHeader` and a plain Mantine `Stack` instead.
-- [ ] Check: `./s/frontend` passes, with the Storybook build, `./s/lint` passes, and `npm run test-storybook:ci` passes every story in light and dark mode.
+- [x] Bring across `SignOffPanel`, `OfficerList`, `AssignmentTable`, `AssignMitigationForm`, `AssignmentEvidenceForm` and `WorkshopForm`, with their stories and tests, on the Phase 11 types. `SignOffPanel` uses `CodeConfirmModal` from #88.
+- [x] Bring across the `SafetyLayout` stories, which show the components together on a page. Quill wraps them in its `MainLayout`, which needs Quill's navigation, ribbons and inbox, so these stories use `PageHeader` and a plain Mantine `Stack` instead.
+- [x] Check: `./s/frontend` passes, with the Storybook build, `./s/lint` passes, and `npm run test-storybook:ci` passes every story in light and dark mode. As run on 17 November 2026: `./s/frontend` passed (1,014 tests, and the Storybook build), and the story check passed all 407 stories on port 6106.
+
+As built:
+
+- **`SignOffPanel` takes `SafetyFileExtras`**, which carries the status, posts and sign-offs it reads, instead of Quill's whole file.
+- **Member, assignment and post IDs are strings**, as Turva's IDs are, so `AssignMitigationForm` hands back the assignee's ID as it came.
+- **`WorkshopForm` hands back a `WorkshopInput` with no `expected_head`.** As with every Turva write, the version read goes to the write function, not into the form's values.
+- **The `SafetyLayout` stories have no component in their meta.** Each is the page's content in a `Stack` under a `PageHeader`. Only the overview, documents and officers stories carry the "Not yet in Turva's API" line; the hazard log and hazard detail show what Turva's API serves today.
 
 ## Phase 15: Rules for the components as ported
 

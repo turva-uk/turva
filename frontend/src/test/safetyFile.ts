@@ -13,6 +13,11 @@
 
 import type {
   Assessment,
+  Assignment,
+  Member,
+  MyAssignment,
+  Post,
+  SafetyFileExtras,
   Commit,
   DocumentRef,
   Extraction,
@@ -323,4 +328,100 @@ export const SAMPLE_PROCESS: SafetyProcess = {
       reasons: ["the safety case is not yet approved"],
     },
   ],
+};
+
+/** The safety posts in the file's organisation. Not yet in Turva's API. */
+export const SAMPLE_POSTS: Post[] = [
+  {
+    kind: "clinical_safety_officer",
+    title: "Clinical Safety Officer",
+    holder_id: "5f1c2a9e-0b7d-4e3a-9c61-2d8f4b7a1e30",
+    holder_name: "Dr Anita Patel",
+    registrations: ["GMC 7654321"],
+    registration_verified: false,
+  },
+  {
+    kind: "top_management",
+    title: "Top Management",
+    holder_id: null,
+    holder_name: null,
+    registrations: [],
+    registration_verified: false,
+  },
+];
+
+/** The officer, who assigns mitigations. Not yet in Turva's API. */
+export const SAMPLE_CSO: Member = {
+  id: "5f1c2a9e-0b7d-4e3a-9c61-2d8f4b7a1e30",
+  name: "Dr Anita Patel",
+};
+
+/** The IT lead, who evidences one. Not yet in Turva's API. */
+export const SAMPLE_IT_LEAD: Member = {
+  id: "9a4e7c21-3f6b-4d8e-b2a0-7c5d1e9f3b46",
+  name: "Sam Rivers",
+};
+
+export const SAMPLE_MEMBERS: Member[] = [SAMPLE_CSO, SAMPLE_IT_LEAD];
+
+/** The first sample mitigation, named so stories need no index. */
+export const FLAGGING_MITIGATION: Mitigation = SAMPLE_MITIGATIONS[0] ?? {
+  id: "MIT-001",
+  title: "Same-day automated flagging of readings above threshold",
+  status: "implemented",
+  owner: "it.lead@riverbank.example.nhs.uk",
+  created: "2026-02-18",
+  updated: "2026-03-02",
+  control_type: "technical",
+  hazards: ["HAZ-001"],
+  evidence: "",
+  body: "",
+};
+
+/** MIT-001 asked of the IT lead. Not yet in Turva's API. */
+export const SAMPLE_ASSIGNMENTS: Assignment[] = [
+  {
+    id: "c3b8e1f2-6a4d-4b9e-8f17-2e5a9d0c4b71",
+    mitigation_id: FLAGGING_MITIGATION.id,
+    mitigation_title: FLAGGING_MITIGATION.title,
+    assignee_id: SAMPLE_IT_LEAD.id,
+    assignee_name: SAMPLE_IT_LEAD.name,
+    assigned_by_name: SAMPLE_CSO.name,
+    assigned_at: "2026-11-07T09:00:00Z",
+  },
+];
+
+/** The same assignment, as the IT lead sees it. Not yet in Turva's API. */
+export const SAMPLE_MY_ASSIGNMENT: MyAssignment = {
+  id: "c3b8e1f2-6a4d-4b9e-8f17-2e5a9d0c4b71",
+  slug: SAMPLE_FILE.slug,
+  file_name: SAMPLE_FILE.name,
+  organisation: SAMPLE_FILE.organisation,
+  assigned_by_name: SAMPLE_CSO.name,
+  assigned_at: "2026-11-07T09:00:00Z",
+  mitigation: { ...FLAGGING_MITIGATION, status: "proposed", evidence: "" },
+  head_sha: SAMPLE_HEAD,
+};
+
+/** What the sign-off, process and assignment components read about the file. Not yet in Turva's API. */
+export const SAMPLE_EXTRAS: SafetyFileExtras = {
+  safety_file: SAMPLE_FILE,
+  status: "draft",
+  documents: SAMPLE_DOCUMENTS,
+  posts: SAMPLE_POSTS,
+  process: SAMPLE_PROCESS,
+  sign_offs: null,
+  assignments: SAMPLE_ASSIGNMENTS,
+  members: SAMPLE_MEMBERS,
+};
+
+/** The same, as its officer sees it, able to approve. Not yet in Turva's API. */
+export const SAMPLE_EXTRAS_FOR_CSO: SafetyFileExtras = {
+  ...SAMPLE_EXTRAS,
+  sign_offs: {
+    can_approve: true,
+    can_accept: false,
+    two_factor_enabled: true,
+    tags: [],
+  },
 };

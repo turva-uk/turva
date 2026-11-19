@@ -269,8 +269,8 @@ export interface MyAssignment {
   head_sha: string | null;
 }
 
-/** The statuses an assignee may set; withdrawing is the officer's. Not yet in Turva's API. */
-export type AssigneeStatus = "proposed" | "implemented" | "verified";
+/** A delegate supplies implementation evidence; verification remains a CSO decision. Not yet in Turva's API. */
+export type AssigneeStatus = "proposed" | "implemented";
 
 /** A hazard workshop, as a form would send it. Not yet in Turva's API. */
 export interface WorkshopInput {
