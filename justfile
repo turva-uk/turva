@@ -83,6 +83,16 @@ pre-commit:
 alias lint := pre-commit
 
 
+# Switch on the git hooks in .githooks, so every commit runs pre-commit on
+# the staged files. Once per clone: the setting is shared by every worktree.
+# The path is relative on purpose, so git resolves it against the worktree
+# that is committing, and each worktree runs its own branch's hook. Not
+# `pre-commit install`, whose untracked hook nobody reviews, and which
+# refuses to run once core.hooksPath is set.
+setup:
+    @./s/install-hooks
+
+
 # Regenerate the pinned dependency locks from the .in declarations
 lock:
     @./s/lock
