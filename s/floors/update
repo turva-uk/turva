@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+# Resets floors in s/floors/minimums to 90% of the counts given.
+#
+# Usage: <counts> | s/floors/update
+#
+# Reads "<check> <count>" lines on standard input, as s/floors/hook-counts
+# prints them. Each check's line is rewritten with its new floor and the
+# date it was measured, or added when the check has none. Floors for checks
+# not given are left as they are. `just floors-update` runs it.
+#
+# Safe to run twice: the same counts write the same floors.
+set -euo pipefail
+
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+minimums="${root}/s/floors/minimums"
+
+# Print the floors file with one check's line replaced, or added at the end.
+with_floor() {
+	local check="$1"
+	local floor="$2"
+	local line="$3"
+
+	awk -v check="${check}" -v line="${line}" '
+		$1 == check { print line; done = 1; next }
+		{ print }
+		END { if (!done) print line }
+	' "${minimums}"
+}
+
+main() {
+	local check
+	local count
+	local floor
+	local today
+	local updated
+
+	if [ ! -f "${minimums}" ]; then
+		echo "s/floors/minimums is missing, so there is nowhere to write the floors." >&2
+		exit 1
+	fi
+
+	today="$(date -u +%Y-%m-%d)"
+
+	while read -r check count; do
+		if ! [[ "${count}" =~ ^[0-9]+$ ]]; then
+			echo "${check}: '${count}' is not a count, so its floor was left as it was." >&2
+			exit 1
+		fi
+
+		floor=$((count * 9 / 10))
+		updated="$(with_floor "${check}" "${floor}" "${check} ${floor}  # 90% of ${count}, measured ${today}")"
+		echo "${updated}" >"${minimums}"
+		echo "${check}: floor ${floor}, from ${count}"
+	done
+}
+
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+	main "$@"
+fi

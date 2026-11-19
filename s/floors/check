@@ -1,0 +1,111 @@
+#!/usr/bin/env bash
+# Checks counts against their floors in s/floors/minimums, and fails on a
+# count below its floor.
+#
+# Usage: <counts> | s/floors/check [--raise]
+#
+# Reads "<check> <count>" lines on standard input, as s/floors/hook-counts
+# prints them. Each check must have a floor. The floors are a ratchet:
+#
+# - a count below its floor means something stopped being checked, and
+#   fails;
+# - a floor below 70% of its count is stale, since the floor was set at 90%
+#   and the code has grown by more than a quarter. That never fails. With
+#   --raise, which ./s/lint, ./s/test and ./s/frontend pass, the floor is
+#   raised to 90% of today's count, ready to commit with the work. Without
+#   it, as in CI, the floor is only reported as stale.
+#
+# Safe to run twice: a raised floor is no longer stale the second time.
+set -euo pipefail
+
+here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+root="$(cd "${here}/../.." && pwd)"
+minimums="${root}/s/floors/minimums"
+
+# Print the floor recorded for a check, or nothing when it has none.
+floor_for() {
+	local check="$1"
+
+	awk -v check="${check}" '$1 == check { print $2; exit }' "${minimums}"
+}
+
+# Check one count against its floor. Prints a line saying how it stands,
+# and fails when the count is below the floor. A stale floor is raised when
+# raise is "yes", and only reported otherwise.
+check_one() {
+	local check="$1"
+	local count="$2"
+	local raise="$3"
+	local floor
+
+	floor="$(floor_for "${check}")"
+
+	if [ -z "${floor}" ]; then
+		echo "${check}: no floor in s/floors/minimums. Run 'just floors-update' to add one." >&2
+		return 1
+	fi
+
+	if [ "${count}" -lt "${floor}" ]; then
+		echo "${check}: ${count} is below its floor of ${floor}, so part of what this check covers is no longer being checked." >&2
+		return 1
+	fi
+
+	if [ $((floor * 10)) -lt $((count * 7)) ] && [ "${raise}" = "yes" ]; then
+		echo "${check} ${count}" | "${here}/update" >/dev/null
+		echo "${check}: ${count}, floor raised from ${floor} to $((count * 9 / 10)) in s/floors/minimums. Commit it with your change."
+		return 0
+	fi
+
+	if [ $((floor * 10)) -lt $((count * 7)) ]; then
+		echo "${check}: ${count}, floor ${floor}, which is below 70% of the count. The next ./s/lint or ./s/test run raises it."
+		return 0
+	fi
+
+	echo "${check}: ${count}, floor ${floor}"
+}
+
+main() {
+	local option="${1:-}"
+	local raise="no"
+	local check
+	local count
+	local failed=0
+	local seen=0
+
+	case "${option}" in
+	"") ;;
+	--raise) raise="yes" ;;
+	*)
+		echo "Unknown option '${option}'. Usage: <counts> | s/floors/check [--raise]" >&2
+		exit 1
+		;;
+	esac
+
+	if [ ! -f "${minimums}" ]; then
+		echo "s/floors/minimums is missing, so there are no floors to check against." >&2
+		exit 1
+	fi
+
+	while read -r check count; do
+		seen=$((seen + 1))
+
+		if ! [[ "${count}" =~ ^[0-9]+$ ]]; then
+			echo "${check}: '${count}' is not a count." >&2
+			failed=1
+			continue
+		fi
+
+		check_one "${check}" "${count}" "${raise}" || failed=1
+	done
+
+	if [ "${seen}" -eq 0 ]; then
+		echo "No counts were given, so nothing was checked." >&2
+		exit 1
+	fi
+
+	exit "${failed}"
+}
+
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+	main "$@"
+fi

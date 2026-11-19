@@ -87,6 +87,14 @@ jobs:
           . .venv/bin/activate
           pre-commit run --all-files --show-diff-on-failure --color=always
 
+      # A hook that looks in the wrong place still passes. This fails when a
+      # counting hook reports less than its floor in s/floors/minimums, or
+      # when any hook is not given a file it should check.
+      - name: Check the hooks' floors and reach
+        run: |
+          . .venv/bin/activate
+          bash s/floors/hooks
+
   # The gitleaks pre-commit hook scans staged files, and the styling job's
   # pre-commit run has nothing staged, so it scans nothing here. This job
   # scans every commit the branch adds instead, so a commit made without the

@@ -16,7 +16,9 @@
 # and never fails: .githooks/pre-commit runs it after each commit's checks.
 #
 # A match is reported as path:line and the rule's name, never the text,
-# because CI logs are as public as the files.
+# because CI logs are as public as the files. A clean run says how many files
+# it checked, which s/floors/hook-counts reads: pre-commit shows it only with
+# --verbose.
 #
 # Safe to run twice: it changes nothing but making the denylist once.
 set -euo pipefail
@@ -163,6 +165,18 @@ find_details() {
 	printf '%s' "${findings}" | grep -v '^$' | sort -u -t: -k1,1 -k2,2n || true
 }
 
+# Say how many files were checked, which s/floors/hook-counts reads.
+report_checked() {
+	local count="$1"
+	local noun="files"
+
+	if [ "${count}" -eq 1 ]; then
+		noun="file"
+	fi
+
+	echo "Checked ${count} ${noun} for dev details"
+}
+
 main() {
 	local files=()
 	local checked=()
@@ -189,6 +203,7 @@ main() {
 	done
 
 	if [ "${#checked[@]}" -eq 0 ]; then
+		report_checked 0
 		exit 0
 	fi
 
@@ -199,6 +214,8 @@ main() {
 		echo "These lines hold details of a home or dev set-up, which must not be published in this public repository." >&2
 		exit 1
 	fi
+
+	report_checked "${#checked[@]}"
 }
 
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then

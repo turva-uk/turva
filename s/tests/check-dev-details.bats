@@ -255,4 +255,25 @@ check_in_ci() {
 	check
 
 	[ "$status" -eq 0 ]
+	[[ "$output" == *"Checked 0 files for dev details"* ]]
+}
+
+@test "a clean run says how many files it checked" {
+	echo "Nothing to see here." >one.md
+	echo "Nor here." >two.md
+	echo "reach it at 192.168.1.20" >fixture_test.py
+
+	check one.md two.md fixture_test.py
+
+	[ "$status" -eq 0 ]
+	[[ "$output" == *"Checked 2 files for dev details"* ]]
+}
+
+@test "one file checked is counted as one file" {
+	echo "Nothing to see here." >notes.md
+
+	check notes.md
+
+	[ "$status" -eq 0 ]
+	[[ "$output" == *"Checked 1 file for dev details"* ]]
 }

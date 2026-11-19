@@ -120,6 +120,15 @@ alias d := docs
 docs:
     @./s/docs
 
+# ./s/lint, ./s/test and ./s/frontend raise a stale floor themselves, so
+# this is only for resetting every floor on purpose, such as after removing
+# a check's files.
+# Reset every floor in s/floors/minimums to 90% of today's count
+floors-update:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    ./s/floors/hook-counts | ./s/floors/update
+
 
 alias rb := remove-branches
 # Remove all local branches that have been merged into main
