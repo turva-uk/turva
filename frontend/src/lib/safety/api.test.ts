@@ -21,7 +21,7 @@ import {
   updateMitigation,
 } from "./api";
 import { blankHazard, hazardInputFrom } from "./hazardInput";
-import type { MitigationInput } from "./types";
+import type { MitigationInput, RiskScore } from "./types";
 
 /**
  * Each call's method, path and body, against a mocked `fetch`.
@@ -143,11 +143,10 @@ describe("files", () => {
     expect(sent()).toMatchObject({ url: "/api/v1/safety-files/ward-list/", method: "GET" });
   });
 
-  it("encodes a slug, so it cannot reach another route", async () => {
+  it("rejects URL path syntax instead of treating it as a file identity", async () => {
     respond();
-    await getFile("../auth");
-
-    expect(sent().url).toBe("/api/v1/safety-files/..%2Fauth/");
+    await expect(getFile("../auth")).rejects.toThrow(/identifier/i);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("downloads the PDF at the version read", async () => {
@@ -321,4 +320,86 @@ describe("risk level", () => {
       expect(String(init.body)).not.toMatch(/risk_level|risk_label/);
     }
   });
+});
+
+describe("route identity is not URL navigation", () => {
+  it.each(["ward-list-1", "ward_list", "WARD_LIST_1"])(
+    "preserves a valid ASCII identifier exactly: %s",
+    async (slug) => {
+      respond();
+      await getFile(slug);
+      const url = sent().url;
+      expect(url).toBe(`/api/v1/safety-files/${slug}/`);
+      expect(new URL(url, "https://example.test").pathname).toBe(url);
+    },
+  );
+
+  it("returns local validation failures through the same promise contract as HTTP failures", async () => {
+    respond();
+    const result = getFile("..");
+    expect(result).toBeInstanceOf(Promise);
+    await expect(result).rejects.toThrow(/identifier/i);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    "",
+    ".",
+    "..",
+    "../auth",
+    "ward/list",
+    "ward\\list",
+    "ward?other=true",
+    "ward-list\n",
+  ])("rejects a non-segment file identifier before any request: %s", async (slug) => {
+    const calls: (() => Promise<unknown>)[] = [
+      () => getFile(slug),
+      () => downloadPdf(slug, HEAD),
+      () => getHazard(slug, "HAZ-001"),
+      () => addHazard(slug, blankHazard(), HEAD),
+      () => updateHazard(slug, "HAZ-001", {}, HEAD),
+      () => getMitigation(slug, "MIT-001"),
+      () => addMitigation(slug, MITIGATION, HEAD),
+      () => updateMitigation(slug, "MIT-001", {}, HEAD),
+    ];
+    for (const call of calls) {
+      respond();
+      await expect(Promise.resolve().then(call)).rejects.toThrow(/identifier/i);
+      expect(fetchMock).not.toHaveBeenCalled();
+    }
+  });
+
+  it.each(["", ".", "..", "../HAZ-001", "HAZ-001/extra", "MIT-001\\extra", "HAZ-001\n"])(
+    "rejects a non-segment record identifier before reads and writes: %s",
+    async (id) => {
+      const calls: (() => Promise<unknown>)[] = [
+        () => getHazard("ward-list", id),
+        () => updateHazard("ward-list", id, {}, HEAD),
+        () => getMitigation("ward-list", id),
+        () => updateMitigation("ward-list", id, {}, HEAD),
+      ];
+      for (const call of calls) {
+        respond();
+        await expect(Promise.resolve().then(call)).rejects.toThrow(/identifier/i);
+        expect(fetchMock).not.toHaveBeenCalled();
+      }
+    },
+  );
+});
+
+describe("preview scores are actual integer choices", () => {
+  it.each([0, 6, 1.5, NaN, Infinity, "3", "2&likelihood=5", null])(
+    "refuses an invalid score instead of constructing a different preview query: %s",
+    async (value) => {
+      const score = value as unknown as RiskScore;
+      for (const call of [
+        () => previewAssessment(score, 3),
+        () => previewAssessment(3, score),
+      ]) {
+        respond();
+        await expect(Promise.resolve().then(call)).rejects.toThrow(/score/i);
+        expect(fetchMock).not.toHaveBeenCalled();
+      }
+    },
+  );
 });

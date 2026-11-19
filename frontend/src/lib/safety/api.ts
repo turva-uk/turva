@@ -17,6 +17,7 @@
  */
 
 import { api, ApiError } from "@/api/client";
+import { isRiskScore } from "./risk";
 import type {
   HazardDetail,
   HazardOptions,
@@ -38,9 +39,17 @@ import type {
 
 const FILES = "/safety-files/";
 
-/** The path of one file, its slug encoded so it cannot reach another route. */
+/** Identifiers are data, never URL syntax. Match Django's ASCII slug alphabet. */
+function routeIdentifier(value: string, kind: string): string {
+  if (typeof value !== "string" || value.length === 0 || /[^a-zA-Z0-9_-]/.test(value)) {
+    throw new Error(`Invalid ${kind} identifier.`);
+  }
+  return encodeURIComponent(value);
+}
+
+/** Reject dot segments/separators before browser or proxy URL normalisation. */
 function filePath(slug: string): string {
-  return `${FILES}${encodeURIComponent(slug)}/`;
+  return `${FILES}${routeIdentifier(slug, "safety-file")}/`;
 }
 
 /* ------------------------------------------------------------------ */
@@ -58,12 +67,12 @@ export function createFile(input: SafetyFileInput): Promise<SafetyFile> {
 }
 
 /** One file, read from its repository: hazards, mitigations, history and `head_sha`. */
-export function getFile(slug: string, signal?: AbortSignal): Promise<SafetyFileDetail> {
+export async function getFile(slug: string, signal?: AbortSignal): Promise<SafetyFileDetail> {
   return api.get<SafetyFileDetail>(filePath(slug), signal);
 }
 
 /** The file as a PDF, at the version the caller read. */
-export function downloadPdf(slug: string, headSha: string): Promise<Blob> {
+export async function downloadPdf(slug: string, headSha: string): Promise<Blob> {
   return api.download(`${filePath(slug)}pdf/?expected_head=${encodeURIComponent(headSha)}`);
 }
 
@@ -72,7 +81,7 @@ export function downloadPdf(slug: string, headSha: string): Promise<Blob> {
 /* ------------------------------------------------------------------ */
 
 /** Records a new hazard. */
-export function addHazard(
+export async function addHazard(
   slug: string,
   input: HazardInput,
   headSha: string,
@@ -84,28 +93,31 @@ export function addHazard(
 }
 
 /** One hazard, with its mitigations and its own history. */
-export function getHazard(
+export async function getHazard(
   slug: string,
   hazardId: string,
   signal?: AbortSignal,
 ): Promise<HazardDetail> {
   return api.get<HazardDetail>(
-    `${filePath(slug)}hazards/${encodeURIComponent(hazardId)}/`,
+    `${filePath(slug)}hazards/${routeIdentifier(hazardId, "hazard")}/`,
     signal,
   );
 }
 
 /** Saves a change to a hazard. Fields left out stay as they are. */
-export function updateHazard(
+export async function updateHazard(
   slug: string,
   hazardId: string,
   input: Partial<HazardInput>,
   headSha: string,
 ): Promise<HazardWrite> {
-  return api.patch<HazardWrite>(`${filePath(slug)}hazards/${encodeURIComponent(hazardId)}/`, {
-    ...input,
-    expected_head: headSha,
-  });
+  return api.patch<HazardWrite>(
+    `${filePath(slug)}hazards/${routeIdentifier(hazardId, "hazard")}/`,
+    {
+      ...input,
+      expected_head: headSha,
+    },
+  );
 }
 
 /* ------------------------------------------------------------------ */
@@ -113,7 +125,7 @@ export function updateHazard(
 /* ------------------------------------------------------------------ */
 
 /** Records a new mitigation. */
-export function addMitigation(
+export async function addMitigation(
   slug: string,
   input: MitigationInput,
   headSha: string,
@@ -125,26 +137,26 @@ export function addMitigation(
 }
 
 /** One mitigation, with the hazards it controls and its own history. */
-export function getMitigation(
+export async function getMitigation(
   slug: string,
   mitigationId: string,
   signal?: AbortSignal,
 ): Promise<MitigationDetail> {
   return api.get<MitigationDetail>(
-    `${filePath(slug)}mitigations/${encodeURIComponent(mitigationId)}/`,
+    `${filePath(slug)}mitigations/${routeIdentifier(mitigationId, "mitigation")}/`,
     signal,
   );
 }
 
 /** Saves a change to a mitigation. Fields left out stay as they are. */
-export function updateMitigation(
+export async function updateMitigation(
   slug: string,
   mitigationId: string,
   input: Partial<MitigationInput>,
   headSha: string,
 ): Promise<MitigationWrite> {
   return api.patch<MitigationWrite>(
-    `${filePath(slug)}mitigations/${encodeURIComponent(mitigationId)}/`,
+    `${filePath(slug)}mitigations/${routeIdentifier(mitigationId, "mitigation")}/`,
     { ...input, expected_head: headSha },
   );
 }
@@ -167,11 +179,14 @@ export function mitigationOptions(signal?: AbortSignal): Promise<MitigationOptio
  * The risk level the server derives from a severity and likelihood,
  * before anything is saved. What a form shows while somebody chooses.
  */
-export function previewAssessment(
+export async function previewAssessment(
   severity: RiskScore,
   likelihood: RiskScore,
   signal?: AbortSignal,
 ): Promise<AssessmentPreview> {
+  if (!isRiskScore(severity) || !isRiskScore(likelihood)) {
+    throw new Error("Assessment scores must be integers from 1 to 5.");
+  }
   return api.get<AssessmentPreview>(
     `/assessment-preview/?severity=${severity}&likelihood=${likelihood}`,
     signal,
