@@ -108,13 +108,13 @@ jobs:
           bash s/gitleaks/install "$RUNNER_TEMP/gitleaks"
           echo "$RUNNER_TEMP/gitleaks" >>"$GITHUB_PATH"
 
-      # A pull request is measured against its base branch, and a push to
-      # main against the commit main was at before the push. A manual run
-      # falls back to main.
+      # Use immutable event SHAs, not moving branch names. Manual runs and
+      # new-history pushes scan full history, rather than main..main (nothing).
       - name: Scan this branch's commits
         env:
-          BASE_REF: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || github.event.before || 'origin/main' }}
-        run: bash s/gitleaks/scan-commits "$BASE_REF"
+          BASE_REF: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before || '--all' }}
+          HEAD_REF: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+        run: bash s/gitleaks/scan-commits "$BASE_REF" "$HEAD_REF"
 
   safety-file:
     name: Safety file storage layer

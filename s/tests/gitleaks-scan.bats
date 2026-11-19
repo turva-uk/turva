@@ -3,6 +3,9 @@
 # scratch git repository, with a stand-in for gitleaks, so no real scan
 # runs. Run with: bats s/tests
 
+# Bats intentionally isolates each test's exported scanner response.
+# shellcheck disable=SC2030,SC2031
+
 bats_require_minimum_version 1.5.0
 
 setup() {
@@ -10,31 +13,64 @@ setup() {
 	bin="${BATS_TEST_TMPDIR}/bin"
 	calls="${BATS_TEST_TMPDIR}/gitleaks.log"
 
-	mkdir -p "${repo}/s/gitleaks" "${bin}"
+	mkdir -p "${repo}/s/gitleaks" "${repo}/s/utils" "${bin}"
 	cp "${BATS_TEST_DIRNAME}/../gitleaks/scan-commits" "${repo}/s/gitleaks/scan-commits"
+	cp "${BATS_TEST_DIRNAME}/../utils/gitleaks-report.py" "${repo}/s/utils/gitleaks-report.py"
 	echo "[extend]" >"${repo}/.gitleaks.toml"
 
+	export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
 	git -C "${repo}" init -q
 	git -C "${repo}" config user.name "Test"
 	git -C "${repo}" config user.email "test@example.com"
+	git -C "${repo}" config commit.gpgsign false
 	git -C "${repo}" commit -q --allow-empty -m "base"
 	git -C "${repo}" tag base
 	git -C "${repo}" commit -q --allow-empty -m "change"
 
-	# gitleaks records each call. `dir`, the canary check, exits with
+# gitleaks records each call. `dir`, the canary check, exits with
 	# $DIR_STATUS, and `git`, the real scan, with $GIT_STATUS.
 	cat >"${bin}/gitleaks" <<'EOF'
 #!/usr/bin/env bash
 echo "$*" >>"${BATS_TEST_TMPDIR}/gitleaks.log"
 case "$1" in
-	dir) exit "${DIR_STATUS}" ;;
+	dir)
+		report=""
+		for argument in "$@"; do
+			case "$argument" in --report-path=*) report=${argument#*=} ;; esac
+		done
+		if [ -n "${CAPTURE_CANARY:-}" ]; then
+			cat "${@: -1}/settings.ini" >>"${BATS_TEST_TMPDIR}/canary.txt"
+		fi
+		if [ -n "$report" ] && [ "${REPORT_MODE}" != "missing" ]; then
+			python3 - "$report" "${@: -1}/settings.ini" <<'PY'
+import json, os, sys
+from pathlib import Path
+mode = os.environ["REPORT_MODE"]
+item = {"RuleID": "github-pat", "File": sys.argv[2], "StartLine": 1,
+        "EndLine": 1, "Secret": "REDACTED", "Match": "REDACTED"}
+if mode == "wrong-rule": item["RuleID"] = "another-rule"
+if mode == "wrong-file": item["File"] = "elsewhere.ini"
+if mode == "wrong-line": item["StartLine"] = 9
+if mode == "boolean-line": item["StartLine"] = True
+if mode == "wrong-end-line": item["EndLine"] = 9
+if mode == "invalid-file": item["File"] = None
+if mode == "unredacted": item["Secret"] = "synthetic-unredacted-value"
+value = [] if mode == "empty" else [item]
+if mode == "object": value = item
+if mode == "multiple": value.append(item)
+if mode == "oversized": value = " " * 1_048_577
+Path(sys.argv[1]).write_text("not-json" if mode == "malformed" else json.dumps(value))
+PY
+		fi
+		exit "${DIR_STATUS}"
+		;;
 	git) exit "${GIT_STATUS}" ;;
 esac
 EOF
 
 	chmod +x "${bin}/gitleaks"
 	export PATH="${bin}:${PATH}"
-	export DIR_STATUS=1
+	export DIR_STATUS=42 REPORT_MODE=valid
 	export GIT_STATUS=0
 
 	touch "${calls}"
@@ -44,12 +80,15 @@ EOF
 	run bash "${repo}/s/gitleaks/scan-commits" base
 
 	[ "$status" -eq 0 ]
-	[[ "$output" == *"Scanning 1 commit(s) not on base"* ]]
-	grep -q -- "--log-opts=base..HEAD" "${calls}"
+	[[ "$output" == *"Scanning 1 commit(s)"* ]]
+	local base head
+	base=$(git -C "${repo}" rev-parse base)
+	head=$(git -C "${repo}" rev-parse HEAD)
+	grep -q -- "--log-opts=${base}..${head}" "${calls}"
 }
 
 @test "fails when gitleaks finds a secret" {
-	export GIT_STATUS=1
+	export GIT_STATUS=42
 
 	run bash "${repo}/s/gitleaks/scan-commits" base
 
@@ -68,13 +107,7 @@ EOF
 }
 
 @test "plants a key the canary check can find" {
-	cat >"${bin}/gitleaks" <<'EOF'
-#!/usr/bin/env bash
-if [ "$1" = "dir" ]; then
-	cat "${@: -1}/settings.ini" >>"${BATS_TEST_TMPDIR}/canary.txt"
-	exit 1
-fi
-EOF
+	export CAPTURE_CANARY=1
 
 	run bash "${repo}/s/gitleaks/scan-commits" base
 
@@ -104,4 +137,78 @@ EOF
 	[ "$status" -eq 1 ]
 	[[ "$output" == *".gitleaks.toml is missing"* ]]
 	run ! grep -q "." "${calls}"
+}
+
+@test "a canary scanner error is never accepted as detection" {
+	export DIR_STATUS=127
+
+	run bash "${repo}/s/gitleaks/scan-commits" base
+
+	[ "$status" -ne 0 ]
+	[[ "$output" == *"Canary scan failed"* ]]
+	run ! grep -q '^git ' "${calls}"
+}
+
+@test "findings exit status alone is insufficient without positive report evidence" {
+	local mode
+	for mode in missing empty malformed wrong-rule wrong-file wrong-line boolean-line wrong-end-line invalid-file unredacted object multiple oversized; do
+		export REPORT_MODE="${mode}"
+		run bash "${repo}/s/gitleaks/scan-commits" base
+		[ "$status" -ne 0 ]
+		[[ "$output" == *"Canary report"* ]]
+		run ! grep -q '^git ' "${calls}"
+	done
+}
+
+@test "a real scanner error is not described as a detected secret" {
+	export GIT_STATUS=2
+
+	run bash "${repo}/s/gitleaks/scan-commits" base
+
+	[ "$status" -ne 0 ]
+	[[ "$output" == *"could not complete"* ]]
+	[[ "$output" != *"found something that looks like a secret"* ]]
+}
+
+@test "manual full-history scanning includes the initial commit" {
+	run bash "${repo}/s/gitleaks/scan-commits" --all
+
+	[ "$status" -eq 0 ]
+	[[ "$output" == *"Scanning 2 commit(s)"* ]]
+	grep -q -- "--log-opts=$(git -C "${repo}" rev-parse HEAD)" "${calls}"
+}
+
+@test "a new-history push with an all-zero base scans full history" {
+	run bash "${repo}/s/gitleaks/scan-commits" 0000000000000000000000000000000000000000
+
+	[ "$status" -eq 0 ]
+	[[ "$output" == *"Scanning 2 commit(s)"* ]]
+}
+
+@test "an invalid explicit head stops before the canary or real scan" {
+	run bash "${repo}/s/gitleaks/scan-commits" base missing-head
+
+	[ "$status" -ne 0 ]
+	[[ "$output" == *"head is not a commit"* ]]
+	[ ! -s "${calls}" ]
+}
+
+@test "option-shaped refs cannot become scanner log options" {
+	run bash "${repo}/s/gitleaks/scan-commits" --not-a-ref
+
+	[ "$status" -ne 0 ]
+	[ ! -s "${calls}" ]
+}
+
+@test "an explicit head is not silently replaced by a newer HEAD" {
+	local selected base
+	selected=$(git -C "${repo}" rev-parse HEAD)
+	base=$(git -C "${repo}" rev-parse base)
+	git -C "${repo}" commit -q --allow-empty -m newer
+
+	run bash "${repo}/s/gitleaks/scan-commits" base "${selected}"
+
+	[ "$status" -eq 0 ]
+	[[ "$output" == *"Scanning 1 commit(s)"* ]]
+	grep -q -- "--log-opts=${base}..${selected}" "${calls}"
 }
