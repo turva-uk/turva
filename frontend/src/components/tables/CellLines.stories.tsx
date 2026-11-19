@@ -2,7 +2,8 @@
  * CellLines Storybook Stories
  *
  * Shown in a hazard log: a hazard with one, two or three mitigations,
- * with each mitigation's owner on the line beside it.
+ * with each mitigation's owner in the same entry. Independently wrapped
+ * columns cannot preserve title/owner pairing by visual line position.
  */
 
 import type { Meta, StoryObj } from "@storybook/react-vite";
@@ -55,12 +56,12 @@ const hazards: HazardControls[] = [
 const columns: Column<HazardControls>[] = [
   { header: "Hazard", render: (h) => h.title },
   {
-    header: "Mitigation",
-    render: (h) => <CellLines lines={h.mitigations.map((m) => m.title)} />,
-  },
-  {
-    header: "Owner",
-    render: (h) => <CellLines lines={h.mitigations.map((m) => m.owner ?? "-")} />,
+    header: "Mitigation and owner",
+    render: (h) => (
+      <CellLines
+        lines={h.mitigations.map((m) => `${m.title}. Owner: ${m.owner ?? "Not recorded"}.`)}
+      />
+    ),
   },
 ];
 
@@ -69,8 +70,8 @@ function HazardsTable() {
     <Stack gap="sm">
       <DataTable data={hazards} columns={columns} getRowKey={(h) => h.id} />
       <StoryNote>
-        One, two and three mitigations, then none. Each owner is on the line of its mitigation;
-        a mitigation with no owner shows a dash.
+        One, two and three mitigations, then none. Each owner stays in the same entry as its
+        mitigation, even when text wraps. Missing ownership is stated explicitly.
       </StoryNote>
     </Stack>
   );

@@ -88,6 +88,13 @@ export interface HazardInput {
   body: string;
 }
 
+/** An opened form may have unchosen scores; these are never a valid write input. */
+export type AssessmentDraft = { severity: RiskScore | null; likelihood: RiskScore | null };
+export type HazardDraft = Omit<HazardInput, "initial" | "residual"> & {
+  initial: AssessmentDraft;
+  residual: AssessmentDraft;
+};
+
 /** A mitigation as a form edits it. */
 export interface MitigationInput {
   title: string;

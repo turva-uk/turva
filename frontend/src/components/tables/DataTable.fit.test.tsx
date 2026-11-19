@@ -97,6 +97,13 @@ describe("DataTable fit", () => {
     expect(screen.getByRole("table")).toBeInTheDocument();
   });
 
+  it("reserves a full column for native record actions", () => {
+    size.width = 688;
+    render(seven.slice(0, 5), { onRowClick: vi.fn() });
+    expect(screen.queryByRole("table")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Open record 1" })).toBeInTheDocument();
+  });
+
   it("lets a table say its own width with cardsBelow", () => {
     size.width = 500;
     render(three, { cardsBelow: 40 });

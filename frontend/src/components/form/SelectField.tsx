@@ -39,6 +39,9 @@ export default function SelectField({
   return (
     <Select
       {...props}
+      // Mantine hides read-only options but still toggles its expanded state.
+      dropdownOpened={props.readOnly ? false : props.dropdownOpened}
+      aria-readonly={props.readOnly || props["aria-readonly"]}
       scrollAreaProps={dropdownScrollArea(scrollAreaProps)}
       description={description ? <FieldDescription>{description}</FieldDescription> : undefined}
       error={error ? <ErrorMessage>{error}</ErrorMessage> : undefined}
