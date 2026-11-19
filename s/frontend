@@ -16,7 +16,7 @@
 # running in Docker, and `npm` wants a writable node_modules it owns.
 set -euo pipefail
 
-cd "$(dirname "$0")/../frontend"
+cd "$(dirname "$0")/.."
 
 if ! command -v npm >/dev/null 2>&1; then
 	echo "npm not found. The frontend needs Node 26 or newer." >&2
@@ -24,7 +24,19 @@ if ! command -v npm >/dev/null 2>&1; then
 	exit 1
 fi
 
-if [ ! -d node_modules ]; then
+# shellcheck source=s/utils/frontend-directory.sh
+source s/utils/frontend-directory.sh
+prepare_frontend_directory
+cd frontend
+
+if [ "${1:-}" = "install" ]; then
+	shift
+	exec npm ci --no-fund --no-audit "$@"
+fi
+
+# Hook setup and Docker can leave a valid but empty mount point. Its existence
+# is not evidence that the locked packages have been installed on the host.
+if [ ! -x node_modules/.bin/vite ]; then
 	echo "==> installing dependencies"
 	npm ci --no-fund --no-audit
 fi
@@ -38,16 +50,17 @@ if [ "$#" -eq 0 ]; then
 	npm run format
 	echo "==> test"
 	npm run test:ci
-	echo "==> test floor"
-	../s/floors/tests --raise vitest
 	echo "==> build"
 	npm run build
 	echo "==> storybook build"
 	npm run build-storybook
+	echo "==> unit test floor"
+	floor_options=()
+	if [ -z "${CI:-}" ]; then
+		floor_options=(--raise)
+	fi
+	../s/floors/tests "${floor_options[@]}" vitest
 	exit 0
 fi
 
-case "$1" in
-	install) shift && exec npm ci --no-fund --no-audit "$@" ;;
-	*) exec npm run "$@" ;;
-esac
+exec npm run "$@"

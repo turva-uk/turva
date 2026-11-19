@@ -3,18 +3,31 @@
 # addresses and other details of a home or dev set-up in tracked files.
 #
 # Each test builds a scratch repository and runs the check inside it, so the
-# local/ folder it makes is there and the real one is never touched. Every
+# private files used as fixtures stay there and the real clone is never touched. Every
 # address below is made up, and this file is exempt from the check because
 # its name ends .bats. Run with: bats s/tests
 
+# Bats isolates each test's script path, including the linked-tree fixture.
+# shellcheck disable=SC2030,SC2031
+
+bats_require_minimum_version 1.5.0
+
 setup() {
-	script="${BATS_TEST_DIRNAME}/../checks/check-dev-details"
 	repo="${BATS_TEST_TMPDIR}/repo"
+	script="${repo}/s/checks/check-dev-details"
+	unset GIT_DIR GIT_WORK_TREE GIT_COMMON_DIR GIT_INDEX_FILE
+	export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
+	mkdir -p "${repo}/s/checks" "${repo}/s/utils"
+	cp "${BATS_TEST_DIRNAME}/../checks/check-dev-details" "${script}"
+	cp "${BATS_TEST_DIRNAME}/../utils/dev-details.py" "${repo}/s/utils/dev-details.py"
+	cp "${BATS_TEST_DIRNAME}/../../.gitignore" "${repo}/.gitignore"
 
 	git init -q "${repo}"
-	git -C "${repo}" -c user.name=t -c user.email=t@example.com commit -q --allow-empty -m "start"
+	git -C "${repo}" config commit.gpgsign false
+	git -C "${repo}" add s .gitignore
+	git -C "${repo}" -c user.name=t -c user.email=t@example.com commit -q -m "start"
 
-	denylist="$(cd -P "${repo}" && pwd)/local/dev-details-denylist"
+	denylist="$(cd -P "${repo}" && pwd)/.private/dev-details-denylist"
 
 	cd "${repo}" || return 1
 }
@@ -129,7 +142,7 @@ check_in_ci() {
 	check notes.md
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"notes.md:1: dev detail (a literal from local/dev-details-denylist)"* ]]
+	[[ "$output" == *"notes.md:1: dev detail (a supplied personal literal)"* ]]
 	[[ "$output" != *"Example-Laptop"* ]]
 }
 
@@ -141,34 +154,40 @@ check_in_ci() {
 	check notes.md
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"(a literal from local/dev-details-denylist)"* ]]
+	[[ "$output" == *"(a supplied personal literal)"* ]]
 }
 
 @test "the denylist's comments are not literals" {
+	mkdir -p "$(dirname "${denylist}")"
+	printf '# A heading\n\n' >"${denylist}"
 	echo "# A heading" >notes.md
 
 	check notes.md
 
 	[ "$status" -eq 0 ]
-	grep -qx '#' "${denylist}"
+	[ "$(cat "${denylist}")" = '# A heading' ]
 }
 
-@test "the denylist is made with its header when it is missing" {
+@test "a scan never creates a personal list or directory" {
 	echo "Nothing to see here." >notes.md
 
 	check notes.md
 
 	[ "$status" -eq 0 ]
-	head -1 "${denylist}" | grep -q '^# Dev set-up details'
+	[ ! -e "${repo}/.private" ]
+	[ ! -e "${repo}/local" ]
 }
 
-@test "the denylist is ignored by git through info/exclude" {
+@test "the adopted private directory is ignored without editing shared Git exclusions" {
+	local before
+	before=$(cat "${repo}/.git/info/exclude")
 	echo "Nothing to see here." >notes.md
 
 	check notes.md
 
 	[ "$status" -eq 0 ]
-	git check-ignore -q local/dev-details-denylist
+	git check-ignore -q .private/dev-details-denylist
+	[ "$(cat "${repo}/.git/info/exclude")" = "${before}" ]
 }
 
 @test "a denylist that is there is left as it is" {
@@ -181,17 +200,27 @@ check_in_ci() {
 	[ "$(cat "${denylist}")" = "example-laptop" ]
 }
 
-@test "a worktree reads the main checkout's denylist" {
+@test "a worktree uses only its own optional list without changing the main checkout" {
+	local worktree="${BATS_TEST_TMPDIR}/worktree" before
+	before=$(cat "${repo}/.git/info/exclude")
 	mkdir -p "$(dirname "${denylist}")"
 	echo "example-laptop" >"${denylist}"
-	git worktree add -q "${BATS_TEST_TMPDIR}/worktree"
-	cd "${BATS_TEST_TMPDIR}/worktree"
+	git worktree add -q "${worktree}"
+	script="${worktree}/s/checks/check-dev-details"
+	cd "${worktree}" || return 1
 	echo "banners go to example-laptop" >notes.md
 
 	check notes.md
 
+	[ "$status" -eq 0 ]
+	[ ! -e "${worktree}/.private" ]
+	[ ! -e "${worktree}/local" ]
+	mkdir "${worktree}/.private"
+	echo example-laptop >"${worktree}/.private/dev-details-denylist"
+	check notes.md
 	[ "$status" -eq 1 ]
-	[ ! -e "${BATS_TEST_TMPDIR}/worktree/local" ]
+	[ "$(cat "${denylist}")" = example-laptop ]
+	[ "$(cat "${repo}/.git/info/exclude")" = "${before}" ]
 }
 
 @test "CI makes no denylist and checks the patterns" {
@@ -203,40 +232,45 @@ check_in_ci() {
 	[ ! -e "$(dirname "${denylist}")" ]
 }
 
-@test "--warn-if-empty recommends a denylist when there is none" {
+@test "obsolete warning mode is rejected without creating personal state" {
 	check --warn-if-empty
 
-	[ "$status" -eq 0 ]
-	[[ "$output" == *"Strongly recommended"* ]]
-	[[ "$output" == *"${denylist}"* ]]
+	[ "$status" -eq 2 ]
+	[ ! -e "${repo}/.private" ]
+	[ ! -e "${repo}/local" ]
 }
 
-@test "--warn-if-empty recommends entries when the denylist holds only its header" {
+@test "a missing or comment-only optional list never nags" {
 	echo "Nothing to see here." >notes.md
 	check notes.md
-	head -1 "${denylist}" | grep -q '^# Dev set-up details'
-
-	check --warn-if-empty
-
 	[ "$status" -eq 0 ]
-	[[ "$output" == *"Strongly recommended"* ]]
+	[ "${output}" = 'Checked 1 file for dev details' ]
+	mkdir -p "$(dirname "${denylist}")"
+	printf '# Comment only\n\n' >"${denylist}"
+	check notes.md
+	[ "$status" -eq 0 ]
+	[ "${output}" = 'Checked 1 file for dev details' ]
 }
 
-@test "--warn-if-empty is silent once the denylist has an entry" {
+@test "an optional list is not read implicitly in CI" {
 	mkdir -p "$(dirname "${denylist}")"
 	printf '# A comment\nexample-laptop\n' >"${denylist}"
-
-	check --warn-if-empty
+	echo example-laptop >notes.md
+	check_in_ci notes.md
 
 	[ "$status" -eq 0 ]
-	[ -z "$output" ]
+	[ "$output" = 'Checked 1 file for dev details' ]
 }
 
-@test "--warn-if-empty is silent in CI" {
-	check_in_ci --warn-if-empty
+@test "an explicit optional list is honoured without modification even in CI" {
+	mkdir -p "$(dirname "${denylist}")"
+	echo example-laptop >"${denylist}"
+	echo Example-Laptop >notes.md
+	check_in_ci --denylist "${denylist}" notes.md
 
-	[ "$status" -eq 0 ]
-	[ -z "$output" ]
+	[ "$status" -eq 1 ]
+	[[ "$output" != *"Example-Laptop"* ]]
+	[ "$(cat "${denylist}")" = example-laptop ]
 }
 
 @test "--all checks every tracked file" {
@@ -276,4 +310,76 @@ check_in_ci() {
 
 	[ "$status" -eq 0 ]
 	[[ "$output" == *"Checked 1 file for dev details"* ]]
+}
+
+@test "personal literals are checked even in synthetic pattern fixtures" {
+	mkdir -p "$(dirname "${denylist}")"
+	echo example-laptop >"${denylist}"
+	echo 'NAME = "Example-Laptop"' >test_fixture.py
+	check test_fixture.py
+	[ "$status" -eq 1 ]
+	[[ "$output" == *"a supplied personal literal"* ]]
+	[[ "$output" != *"Example-Laptop"* ]]
+}
+
+@test "a missing explicit file fails rather than reporting a clean scan" {
+	check missing.md
+	[ "$status" -eq 2 ]
+	[[ "$output" == *"could not inspect text"* ]]
+}
+
+@test "a failed tracked-file query stops the scan" {
+	local bin="${BATS_TEST_TMPDIR}/bin"
+	mkdir "${bin}"
+	printf '#!/usr/bin/env bash\nexit 128\n' >"${bin}/git"
+	chmod +x "${bin}/git"
+	run env CI=true PATH="${bin}:${PATH}" "${script}" --all
+	[ "$status" -eq 2 ]
+	[[ "$output" == *"Could not list tracked files"* ]]
+}
+
+@test "filenames with spaces or leading dashes remain data" {
+	echo 'reach it at 192.168.1.20' >'two words.md'
+	echo 'reach it at 192.168.1.20' >'--all'
+	check -- 'two words.md' '--all'
+	[ "$status" -eq 1 ]
+	[[ "$output" == *"two words.md:1:"* ]]
+	[[ "$output" == *"--all:1:"* ]]
+	[[ "$output" != *"192.168.1.20"* ]]
+}
+
+@test "an invalid optional list fails without exposing its contents" {
+	printf '\377synthetic-private-value' >invalid-list
+	echo clean >notes.md
+	check --denylist invalid-list notes.md
+	[ "$status" -eq 2 ]
+	[[ "$output" == *"Optional denylist could not be read"* ]]
+	[[ "$output" != *"synthetic-private-value"* ]]
+}
+
+@test "a missing explicitly requested list is a configuration error" {
+	echo clean >notes.md
+	check --denylist missing-private-list notes.md
+	[ "$status" -eq 2 ]
+	[[ "$output" == *"Optional denylist could not be read"* ]]
+	[ ! -e missing-private-list ]
+}
+
+@test "invalid text encoding fails without exposing the file contents" {
+	printf '\377synthetic-private-value' >notes.md
+	check notes.md
+	[ "$status" -eq 2 ]
+	[[ "$output" == *"could not inspect text"* ]]
+	[[ "$output" != *"synthetic-private-value"* ]]
+}
+
+@test "inherited Git routing cannot hide this checkout's tracked findings" {
+	local other="${BATS_TEST_TMPDIR}/other"
+	git init -q "${other}"
+	echo 'reach it at 192.168.1.20' >tracked.md
+	git add tracked.md
+	run env CI=true GIT_DIR="${other}/.git" GIT_WORK_TREE="${other}" GIT_COMMON_DIR="${other}/.git" GIT_INDEX_FILE="${other}/.git/index" "${script}" --all
+	[ "$status" -eq 1 ]
+	[[ "$output" == *"tracked.md:1:"* ]]
+	[[ "$output" != *"192.168.1.20"* ]]
 }

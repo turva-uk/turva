@@ -21,7 +21,7 @@ Documentation for Turva's clinical safety management platform.
 
 Neither of these is in phase one. They are here so that decisions taken now do not foreclose them.
 
-- **[LLM Strategy](llm-strategy.md)** - how AI changes clinical safety work, and why structure and audit still matter
+- **[AI connection and settings strategy](llm-strategy.md)** - planned user-/organisation-supplied inference, provider authentication, local models and human review; see [ADR 0007](adr/0007-user-and-organisation-supplied-inference.md)
 - **[Federation](federation.md)** - sharing and reusing safety cases between organisations. Its mechanism is Git, which is the main argument for the storage architecture
 
 ## Developer Reference

@@ -1,0 +1,25 @@
+/*
+ * MarkdownEditor styles
+ *
+ * An HTML comment, shown in the editor as a note that the published page
+ * leaves out.
+ */
+
+.comment {
+  margin: 0.5em 0;
+  padding: 0.5em 0.75em;
+  border-left: 0.25rem solid var(--mantine-color-default-border);
+  color: var(--mantine-color-dimmed);
+  font-style: italic;
+  white-space: pre-wrap;
+}
+
+.comment strong {
+  font-style: normal;
+}
+
+/* Editor links need a non-colour cue, as the separate Markdown view has. */
+.content a {
+  text-decoration: underline;
+  text-underline-offset: 0.1em;
+}

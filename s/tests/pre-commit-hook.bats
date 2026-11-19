@@ -23,6 +23,7 @@ setup() {
 	git -C "${repo}" init -q
 	git -C "${repo}" config user.name "Test"
 	git -C "${repo}" config user.email "test@example.com"
+	git -C "${repo}" config commit.gpgsign false
 	git -C "${repo}" config core.hooksPath .githooks
 
 	# pre-commit records each call, and exits with $PRE_COMMIT_STATUS.
@@ -48,6 +49,7 @@ write_stand_in() {
 	cat >"${path}" <<EOF
 #!/usr/bin/env bash
 echo "${label}: \$* in \${PWD}" >>"\${BATS_TEST_TMPDIR}/calls.log"
+echo "\${PWD}" >>"\${BATS_TEST_TMPDIR}/pre-commit-cwd.log"
 exit "\${${status_variable}}"
 EOF
 
@@ -183,41 +185,89 @@ stage() {
 	run ! git -C "${repo}" rev-parse --verify -q HEAD
 }
 
-# A stand-in for s/checks/check-dev-details that logs its call and prints
-# the warning, as it does while this machine's denylist is empty.
+@test "direct invocation checks its own checkout rather than the calling folder" {
+	local elsewhere="${BATS_TEST_TMPDIR}/elsewhere"
+	mkdir -p "${elsewhere}"
+	cd "${elsewhere}" || return 1
+
+	run "${hook}"
+
+	[ "$status" -eq 0 ]
+	[ "$(cat "${BATS_TEST_TMPDIR}/pre-commit-cwd.log")" = "${repo}" ]
+}
+
+@test "scratch commits do not inherit the developer's signing setup" {
+	local global_config="${BATS_TEST_TMPDIR}/global.gitconfig"
+	git config --file "${global_config}" commit.gpgsign true
+	git config --file "${global_config}" gpg.format ssh
+	git config --file "${global_config}" user.signingKey "${BATS_TEST_TMPDIR}/missing-test-key"
+	export GIT_CONFIG_GLOBAL="${global_config}" GIT_CONFIG_NOSYSTEM=1
+	git -C "${repo}" config --local commit.gpgsign false
+	stage file.txt
+
+	run git -C "${repo}" commit -q -m "add file"
+
+	[ "$status" -eq 0 ]
+	[ "$(git -C "${repo}" config --local --get commit.gpgsign)" = "false" ]
+	git -C "${repo}" rev-parse --verify -q HEAD
+}
+
+@test "a failed staged-file query stops rather than skipping frontend checks" {
+	stage frontend/src/App.tsx
+	printf '#!/usr/bin/env bash\nexit 128\n' >"${bin}/git"
+	chmod +x "${bin}/git"
+
+	run "${hook}"
+
+	[ "$status" -eq 128 ]
+	[[ "$output" == *"Could not inspect staged frontend files"* ]]
+}
+
+@test "deleting the only frontend file needs no lint-staged executable" {
+	stage frontend/src/App.tsx
+	git -C "${repo}" commit -qm baseline
+	git -C "${repo}" rm -q frontend/src/App.tsx
+	rm "${repo}/frontend/node_modules/.bin/lint-staged"
+
+	run "${hook}"
+
+	[ "$status" -eq 0 ]
+}
+
+# A stand-in that would fail if the hook tried to run personal setup itself.
 write_dev_details_stand_in() {
 	mkdir -p "${repo}/s/checks"
 	cat >"${repo}/s/checks/check-dev-details" <<'EOF'
 #!/usr/bin/env bash
 echo "dev-details: $*" >>"${BATS_TEST_TMPDIR}/calls.log"
-echo "Strongly recommended: fill the denylist" >&2
+exit 99
 EOF
 	chmod +x "${repo}/s/checks/check-dev-details"
 }
 
-@test "recommends filling the dev-details denylist after the checks pass" {
+@test "passing checks do not prompt for personal setup" {
 	write_dev_details_stand_in
 	stage file.txt
 
 	run "${hook}"
 
 	[ "$status" -eq 0 ]
-	[ "$(sed -n 2p "${calls}")" = "dev-details: --warn-if-empty" ]
-	[[ "$output" == *"Strongly recommended"* ]]
+	[ "$(wc -l <"${calls}")" -eq 1 ]
+	[ -z "${output}" ]
 }
 
-@test "git still commits while the dev-details denylist is empty" {
+@test "git still commits without optional personal setup" {
 	write_dev_details_stand_in
 	stage file.txt
 
 	run git -C "${repo}" commit -q -m "add file"
 
 	[ "$status" -eq 0 ]
-	[[ "$output" == *"Strongly recommended"* ]]
+	[ -z "${output}" ]
 	git -C "${repo}" rev-parse --verify -q HEAD
 }
 
-@test "gives no recommendation when a check stops the commit" {
+@test "a failed check does not run separate personal setup" {
 	export PRE_COMMIT_STATUS=1
 	write_dev_details_stand_in
 	stage file.txt

@@ -90,24 +90,7 @@ alias lint := pre-commit
 # `pre-commit install`, whose untracked hook nobody reviews, and which
 # refuses to run once core.hooksPath is set.
 setup:
-    #!/usr/bin/env bash
-    set -euo pipefail
-
-    git config core.hooksPath .githooks
-
-    echo "Git hooks switched on: each commit now runs .githooks/pre-commit"
-
-    # The frontend container mounts a volume over frontend/node_modules, and
-    # Docker creates that folder as root when it is missing. Created here
-    # first, it stays yours, so `./s/frontend install` can fill it with the
-    # packages the hook's lint-staged step needs.
-    mkdir -p frontend/node_modules
-
-    if [ ! -w frontend/node_modules ]; then
-        echo "frontend/node_modules is not writable, so ./s/frontend install will fail. Docker probably created it as root. Fix it once with:" >&2
-        echo "  sudo chown \"\$USER:\$USER\" frontend/node_modules" >&2
-        exit 1
-    fi
+    @./s/install-hooks
 
 
 # Regenerate the pinned dependency locks from the .in declarations
@@ -120,14 +103,31 @@ alias d := docs
 docs:
     @./s/docs
 
-# ./s/lint, ./s/test and ./s/frontend raise a stale floor themselves, so
-# this is only for resetting every floor on purpose, such as after removing
-# a check's files. It needs the dev stack up, for the Django suite's count.
-# Reset every floor in s/floors/minimums to 90% of today's count
+# Explicitly refresh measured floors, without ever lowering an existing floor.
+# The suite-count extension needs the dev stack up for Django collection.
 floors-update:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    { ./s/floors/hook-counts; ./s/floors/test-counts safety-file django vitest; } | ./s/floors/update
+    @./s/floors/refresh
+
+
+# GitHub repository settings, as code in terraform/github/. Each recipe runs
+# ./s/terraform, which reads the rulesets already on GitHub before plan and
+# apply, and takes the token from gh when GITHUB_TOKEN is not set. See
+# docs/docs/github-settings.md.
+
+alias tfi := terraform-init
+# Set up Terraform for the GitHub settings (once, and after a provider bump)
+terraform-init *args:
+    @./s/terraform init {{args}}
+
+alias tfp := terraform-plan
+# Show what would change in the GitHub settings; changes nothing
+terraform-plan *args:
+    @./s/terraform plan {{args}}
+
+alias tfa := terraform-apply
+# Apply the GitHub settings (an admin, after the pull request merges)
+terraform-apply *args:
+    @./s/terraform apply {{args}}
 
 
 alias rb := remove-branches
@@ -155,150 +155,13 @@ abbreviate-just:
     echo "Run 'source ~/.zshrc' to apply the change to this terminal."
 
 
-alias cl := claude-session
-# Go to this checkout's Claude session in tmux, starting it or Claude again if needed
-claude-session:
-    #!/usr/bin/env bash
-    # Opens this checkout's Claude session in this terminal, and makes sure
-    # Claude is running in it.
-    #
-    # The session is claude-turva for the main checkout, and claude-turva-2
-    # for the worktree in turva-2.
-    #
-    # - If there is no claude tmux session, it starts one with Claude in it.
-    # - If Claude has stopped but the tmux session exists, it starts Claude
-    # again.
-    # - You can run it from outside tmux, or from another tmux session.
-    #
-    # Claude started here is linked to the VS Code window. If Claude was
-    # already running, type /ide in it to link it.
-
-    set -euo pipefail
-
-    if ! command -v tmux > /dev/null; then
-        echo "✗ tmux is not installed." >&2
-        exit 1
-    fi
-
-    top={{quote(justfile_directory())}}
-    folder="$(basename "${top}")"
-
-    # The main checkout is turva, and a worktree is turva-2, turva-3 and so
-    # on. The number keeps each one's sessions apart.
-    case "${folder}" in
-        turva) worktree="" ;;
-        turva-[2-9] | turva-[1-9][0-9]) worktree="${folder#turva-}" ;;
-        *)
-            echo "✗ This folder is ${folder}. Sessions are named after turva or turva-<number>, so rename the folder to one of those." >&2
-            exit 1
-            ;;
-    esac
-
-    name="claude-turva${worktree:+-${worktree}}"
-    start_claude="claude --continue --ide --remote-control ${name} || claude --ide --remote-control ${name}"
-
-    if ! tmux has-session -t "=${name}" 2> /dev/null; then
-        tmux new-session -d -s "${name}" -c "${top}" "bash -lc '${start_claude}; exec bash'"
-        echo "Started ${name} in ${top}"
-    else
-        pane_id="$(tmux display-message -p -t "=${name}:" "#{pane_id}")"
-        pane_pid="$(tmux display-message -p -t "=${name}:" "#{pane_pid}")"
-
-        # The pane is its process session's leader, so its pid is the session id.
-        if ! pgrep -x -s "${pane_pid}" claude > /dev/null; then
-
-            # This terminal is the pane, so start Claude here.
-            if [ "${TMUX_PANE:-}" = "${pane_id}" ]; then
-                cd "${top}"
-                bash -c "${start_claude}"
-                exit 0
-            fi
-
-            tmux send-keys -t "${pane_id}" "${start_claude}" Enter
-            echo "Started Claude again in ${name}"
-        fi
-    fi
-
-    if [ -n "${TMUX:-}" ]; then
-        if [ "$(tmux display-message -p "#{session_name}")" = "${name}" ]; then
-            exit 0
-        fi
-
-        exec tmux switch-client -t "=${name}"
-    fi
-
-    exec tmux attach -t "=${name}"
-
-
-alias tw := tmux-window
-# Go to a plain shell in tmux for this checkout, starting it if needed; `just tw 2` for a second
-tmux-window NUMBER="":
-    #!/usr/bin/env bash
-    # Opens a plain shell in tmux for this checkout, so a command run there
-    # keeps going after this terminal closes.
-    #
-    # The session is tmux-turva-1 for the main checkout, and tmux-turva-2
-    # for the worktree in turva-2. A number gives another shell beside the
-    # first: `just tw 2` is tmux-turva-1-2 in the main checkout, and running
-    # it again comes back to it.
-    #
-    # It starts the session, with a login shell in the checkout, if there
-    # is none. Then it attaches from outside tmux, or switches from another
-    # tmux session.
-
-    set -euo pipefail
-
-    number={{quote(NUMBER)}}
-
-    case "${number}" in
-        "" | [2-9] | [1-9][0-9]) ;;
-        *)
-            echo "✗ The number names another shell beside the first, so it runs from 2 to 99: just tw 2" >&2
-            exit 1
-            ;;
-    esac
-
-    if ! command -v tmux > /dev/null; then
-        echo "✗ tmux is not installed." >&2
-        exit 1
-    fi
-
-    top={{quote(justfile_directory())}}
-    folder="$(basename "${top}")"
-
-    # The main checkout is turva, and a worktree is turva-2, turva-3 and so
-    # on. The number keeps each one's sessions apart.
-    case "${folder}" in
-        turva) worktree="" ;;
-        turva-[2-9] | turva-[1-9][0-9]) worktree="${folder#turva-}" ;;
-        *)
-            echo "✗ This folder is ${folder}. Sessions are named after turva or turva-<number>, so rename the folder to one of those." >&2
-            exit 1
-            ;;
-    esac
-
-    # The main checkout counts as 1 here, so its second shell,
-    # tmux-turva-1-2, cannot be mistaken for the first shell of turva-2,
-    # which is tmux-turva-2.
-    name="tmux-turva-${worktree:-1}${number:+-${number}}"
-
-    if ! tmux has-session -t "=${name}" 2> /dev/null; then
-        tmux new-session -d -s "${name}" -c "${top}" "bash -l"
-        echo "Started ${name} in ${top}"
-    fi
-
-    if [ -n "${TMUX:-}" ]; then
-        if [ "$(tmux display-message -p "#{session_name}")" = "${name}" ]; then
-            exit 0
-        fi
-
-        exec tmux switch-client -t "=${name}"
-    fi
-
-    exec tmux attach -t "=${name}"
-
-
 alias sb := storybook
 # Start Storybook, the catalogue of shared components, on port 6006
 storybook:
     @./s/frontend storybook
+
+
+alias sbt := storybook-test
+# Check every story with axe (WCAG 2.2 AA) in light and dark mode, as CI does
+storybook-test:
+    @./s/frontend test-storybook:ci

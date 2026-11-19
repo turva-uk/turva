@@ -50,7 +50,7 @@ cp app/.env.example app/.env    # then edit as needed
 ## Testing and contributing
 
 ```bash
-./s/test      # both suites: safety_file on the host, app in the container
+./s/test      # storage and script tests on the host, Django in the container
 ./s/lint      # everything CI enforces: pre-commit, including the Zizmor Actions audit
 ./s/docs      # serve the documentation site at http://localhost:8001
 ```

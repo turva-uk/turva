@@ -1,10 +1,9 @@
 #!/usr/bin/env bash
 # Git's pre-commit hook: runs the pre-commit checks on the staged files, then
 # lint-staged when frontend files are staged, and stops the commit if any of
-# them fails. Once they pass, it recommends filling this machine's dev-details
-# denylist while that is empty, without stopping the commit.
+# them fails.
 #
-# Usage: git runs it before each commit, once `just setup` has pointed
+# Usage: git runs it before each commit, once ./s/install-hooks has pointed
 # core.hooksPath at .githooks. Run by hand, it checks what is staged now.
 #
 # Safe to run twice: it changes nothing but what the hooks themselves fix.
@@ -33,7 +32,7 @@ find_pre_commit() {
 frontend_staged() {
 	local staged
 
-	staged="$(git -C "${root}" diff --cached --name-only -- frontend/)"
+	staged="$(git -C "${root}" diff --cached --name-only --diff-filter=ACMR -- frontend/)" || return
 
 	[ -n "${staged}" ]
 }
@@ -55,7 +54,8 @@ run_lint_staged() {
 
 main() {
 	local pre_commit
-	local dev_details="${root}/s/checks/check-dev-details"
+	local frontend_status=0
+	cd "${root}"
 
 	if ! pre_commit="$(find_pre_commit)"; then
 		echo "pre-commit not found, so the commit was stopped. Install it with:" >&2
@@ -65,13 +65,15 @@ main() {
 
 	"${pre_commit}" run
 
-	if frontend_staged; then
-		run_lint_staged
-	fi
-
-	if [ -x "${dev_details}" ]; then
-		"${dev_details}" --warn-if-empty
-	fi
+	frontend_staged || frontend_status=$?
+	case "${frontend_status}" in
+		0) run_lint_staged ;;
+		1) ;; # No added or changed frontend files.
+		*)
+			echo "Could not inspect staged frontend files; the commit was stopped." >&2
+			return "${frontend_status}"
+			;;
+	esac
 }
 
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then

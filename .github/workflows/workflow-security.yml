@@ -22,12 +22,24 @@ jobs:
         with:
           persist-credentials: false
 
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.14"
+
+      # PyYAML is already a direct storage dependency and in the application
+      # lock. Install only that constrained package, not the Django stack.
+      - name: Install the locked YAML parser
+        run: |
+          python -m pip install --only-binary=:all: -c app/requirements.txt PyYAML
+
       # One pin for the hook and CI: the zizmor hook's `rev` in
       # .pre-commit-config.yaml. Dependabot's pre-commit updates bump it, which
       # it could not do while the version was an input to the step below.
       - name: Read the pinned zizmor version
         id: zizmor
-        run: echo "version=$(bash s/checks/hook-version https://github.com/zizmorcore/zizmor-pre-commit)" >>"$GITHUB_OUTPUT"
+        run: |
+          version="$(bash s/checks/hook-version https://github.com/zizmorcore/zizmor-pre-commit)"
+          printf 'version=%s\n' "$version" >>"$GITHUB_OUTPUT"
 
       # install-action downloads the upstream release binary and verifies its
       # checksum. `fallback: none` stops it silently switching to cargo-binstall

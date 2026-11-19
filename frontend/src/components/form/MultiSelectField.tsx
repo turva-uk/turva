@@ -34,6 +34,9 @@ export default function MultiSelectField({
   return (
     <MultiSelect
       {...props}
+      // Keep the announced state consistent with the hidden read-only options.
+      dropdownOpened={props.readOnly ? false : props.dropdownOpened}
+      aria-readonly={props.readOnly || props["aria-readonly"]}
       disabled={disabled}
       scrollAreaProps={dropdownScrollArea(scrollAreaProps)}
       rightSection={<SortChevron direction="neutral" />}

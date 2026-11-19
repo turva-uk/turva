@@ -106,7 +106,7 @@ Without this the application starts but every query fails with `relation "tbl_us
 - **Hot Reload**: the Django development server reloads on Python and template changes
 - **Code Formatting**: `ruff format .`
 - **Linting**: `ruff check .`, or `./s/lint` for everything CI enforces
-- **Pre-commit Hooks**: run `just setup` once per clone, so every commit runs the pre-commit checks on the staged files, and ESLint and Prettier on staged frontend files. Those two need the frontend's packages on the host: `./s/frontend install`
+- **Pre-commit hooks (opt-in)**: run `./s/install-hooks`, or `just setup`, once per clone to check staged files before commits, including ESLint and Prettier on staged frontend files. Install the frontend's packages on the host with `./s/frontend install` for those checks. Hook setup changes the clone's local Git configuration, shared by its linked working trees; it does not install packages or replace a custom hooks path. CI still checks changes without local hooks.
 
 ## Troubleshooting
 

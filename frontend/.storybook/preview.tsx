@@ -3,6 +3,7 @@ import "@fontsource-variable/cormorant-garamond";
 import "@fontsource-variable/cormorant-garamond/wght-italic.css";
 import "@mantine/core/styles.css";
 import "@mantine/dates/styles.css";
+import "@mantine/tiptap/styles.css";
 import "../src/styles/typography.css";
 import "../src/styles/dark-overrides.css";
 import "../src/styles/touch-targets.css";

@@ -45,7 +45,7 @@ repos:
 
   # Strict type checking of the storage layer, with the settings in
   # pyproject.toml's [tool.mypy]. The extra packages are what safety_file/
-  # imports beyond the standard library. jinja2, markupsafe and pytest are
+  # imports beyond the standard library. Runtime and test dependencies are
   # pinned to app/requirements*.txt, so mypy checks against the versions the
   # code runs on. Bump them with the lock, never one without the other.
   - repo: https://github.com/pre-commit/mirrors-mypy
@@ -58,6 +58,7 @@ repos:
         additional_dependencies:
           - jinja2==3.1.6
           - markupsafe==3.0.4
+          - pyyaml==6.0.3
           - pytest==9.2.0
           - types-PyYAML==6.0.12.20261103
 
@@ -66,7 +67,8 @@ repos:
   # tests: pytest is built from assert, which bandit reports everywhere as
   # B101, and application code is still checked for it. The tests are left
   # out here, because bandit's own exclude_dirs is ignored for files that
-  # pre-commit names one by one.
+  # pre-commit names one by one. The wrapper rejects skipped files and
+  # incomplete reports even when Bandit itself returns success.
   - repo: https://github.com/PyCQA/bandit
     rev: 1.9.4
     hooks:
@@ -74,9 +76,11 @@ repos:
         files: ^(app|safety_file|demo)/
         exclude: (^|/)(tests/|conftest\.py$)
         language_version: python3.14
+        entry: python s/utils/bandit-check.py
         # B404 flags every `import subprocess`. Each call is checked on its
         # own as B603, which is where a real problem would show.
-        args: [--skip, B404]
+        # That fixed policy lives in the wrapper; its arguments are filenames.
+        args: []
 
   # ShellCheck finds the mistakes that are easy to make in shell: an unquoted
   # variable, a failure nobody notices, a cd that may not happen. It checks
@@ -88,16 +92,16 @@ repos:
     hooks:
       - id: shellcheck
 
-  # actionlint checks each workflow: expressions, job outputs, needs: and
-  # the shell in every run: step, which it hands to ShellCheck. It skips
-  # those shell checks silently when ShellCheck is missing, so shellcheck-py
-  # is installed beside it here rather than relied on from the machine.
-  # Dependabot bumps the rev above but not the pin below: keep that pin at
-  # the ShellCheck hook's version by hand.
+  # This reviewed wrapper verifies upstream release checksums at installation.
+  # Install ShellCheck beside it; our entry refuses a missing checker instead
+  # of letting actionlint silently skip run: scripts. A test aligns both pins.
   - repo: https://github.com/Mateusz-Grzelinski/actionlint-py
     rev: v1.7.12.25
     hooks:
       - id: actionlint
+        entry: bash s/checks/actionlint
+        args: []
+        files: ^\.github/workflows/.*\.ya?ml$
         additional_dependencies:
           - shellcheck-py==0.11.0.1
 
@@ -137,14 +141,24 @@ repos:
         args: [--fix]
       - id: ruff-format
 
+  # Terraform's own formatter, for terraform/github/. It runs in the same
+  # pinned image as ./s/terraform, which reads the pin from here, so CI and a
+  # developer's machine need Docker but not Terraform.
+  - repo: local
+    hooks:
+      - id: terraform-fmt
+        name: Terraform format check
+        language: docker_image
+        entry: hashicorp/terraform:1.17.2@sha256:6e9c1e647c31a960dc9b59e13272f9111d90010c10b717f77ffb324767660475 fmt -check -diff
+        files: \.tf$
+
   - repo: local
     hooks:
       # The repository is public, so a private network address or a MAC
-      # address must not reach it. CI runs the patterns; a developer's
-      # machine also refuses the literals in local/dev-details-denylist,
-      # such as a hostname or a VPN network's name.
+      # address must not reach it. CI runs shared patterns; optional personal
+      # literals are read-only and local to the checkout, never initialised here.
       - id: check-dev-details
         name: Check for home and dev set-up details
-        entry: s/checks/check-dev-details
+        entry: s/checks/check-dev-details --
         language: system
         types: [text]

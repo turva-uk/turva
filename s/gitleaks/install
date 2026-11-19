@@ -7,41 +7,32 @@
 # CI uses it before s/gitleaks/scan-commits. The version is read from the
 # gitleaks `rev` in .pre-commit-config.yaml, so the hook and CI scan with the
 # same release, and Dependabot's pre-commit updates bump both at once.
+# This release installer supports Linux x86-64 only; the native pre-commit
+# hook builds its pinned release independently on other supported platforms.
 #
 # Safe to run twice: it overwrites the copy it installed before.
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
-# The version after `rev: v` on the line below the gitleaks repository in
-# .pre-commit-config.yaml, such as 8.30.1.
+# The shared YAML boundary validates and decodes the manifest pin before it
+# can enter a release URL. No independent pin or partial YAML reader here.
 pinned_version() {
-	local config="${root}/.pre-commit-config.yaml"
-	local version
-
-	version="$(awk '
-		/repo: https:\/\/github.com\/gitleaks\/gitleaks$/ { found = 1; next }
-		found && /rev:/ { sub(/.*rev: *v?/, ""); print; exit }
-	' "${config}")"
-
-	if [ -z "${version}" ]; then
-		echo "Could not read the gitleaks rev from ${config}." >&2
-		return 1
-	fi
-
-	echo "${version}"
+	bash "${root}/s/checks/hook-version" https://github.com/gitleaks/gitleaks
 }
 
-main() {
-	local folder="${1:-}"
-	local version
-	local base_url
-	local archive
-	local checksums
-	local work
+main() (
+	set -euo pipefail
+	folder="${1:-}"
+	staging=""
+	umask 077
 
-	if [ -z "${folder}" ]; then
+	if [ -z "${folder}" ] || [ "$#" -ne 1 ]; then
 		echo "No folder given. Usage: s/gitleaks/install <folder>" >&2
+		exit 1
+	fi
+	if [ "$(uname -s)" != Linux ] || [ "$(uname -m)" != x86_64 ]; then
+		echo "This release installer supports Linux x86-64 only; no download or installation was attempted." >&2
 		exit 1
 	fi
 
@@ -50,24 +41,32 @@ main() {
 	archive="gitleaks_${version}_linux_x64.tar.gz"
 	checksums="gitleaks_${version}_checksums.txt"
 	work="$(mktemp -d)"
-	# shellcheck disable=SC2064
-	trap "rm -rf '${work}'" EXIT
+	trap 'rm -rf -- "${work}"; if [ -n "${staging}" ]; then rm -f -- "${staging}"; fi' EXIT
 
 	echo "Downloading gitleaks ${version}"
-	curl -fsSL --retry 1 --retry-delay 30 -o "${work}/${archive}" "${base_url}/${archive}"
-	curl -fsSL --retry 1 --retry-delay 30 -o "${work}/${checksums}" "${base_url}/${checksums}"
+	curl -fsSL --connect-timeout 10 --max-time 120 --retry 1 --retry-delay 2 -o "${work}/${archive}" "${base_url}/${archive}"
+	curl -fsSL --connect-timeout 10 --max-time 120 --retry 1 --retry-delay 2 -o "${work}/${checksums}" "${base_url}/${checksums}"
 
-	if ! (cd "${work}" && grep " ${archive}\$" "${checksums}" | sha256sum -c - >/dev/null); then
+	if ! checksum=$(awk -v name="${archive}" '$2 == name { count++; digest = $1; if (NF != 2) invalid = 1 } END { if (count != 1 || invalid) exit 1; print digest }' "${work}/${checksums}") ||
+		[[ ! "${checksum}" =~ ^[a-fA-F0-9]{64}$ ]] ||
+		! (cd "${work}" && printf '%s  %s\n' "${checksum}" "${archive}" | sha256sum -c - >/dev/null); then
 		echo "The download of ${archive} does not match gitleaks' published checksum." >&2
 		exit 1
 	fi
 
 	tar -xzf "${work}/${archive}" -C "${work}" gitleaks
+	if [ "$("${work}/gitleaks" version)" != "${version}" ]; then
+		echo "The downloaded binary does not report the pinned gitleaks version; no installation changed." >&2
+		exit 1
+	fi
 	mkdir -p "${folder}"
-	install -m 0755 "${work}/gitleaks" "${folder}/gitleaks"
+	folder="$(cd "${folder}" && pwd -P)"
+	staging="$(mktemp "${folder}/.gitleaks.XXXXXX")"
+	install -m 0755 "${work}/gitleaks" "${staging}"
+	mv -f -- "${staging}" "${folder}/gitleaks"
 
 	echo "Installed gitleaks ${version} in ${folder}"
-}
+)
 
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
 	main "$@"
