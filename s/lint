@@ -71,3 +71,15 @@ if [ ${#untracked[@]} -gt 0 ]; then
 
 	[ "$status" -eq 0 ] || exit "$status"
 fi
+
+# A hook that looks in the wrong place still passes, so CI holds each one to
+# its floor and its reach. A local full run may raise an outgrown floor,
+# ready to commit with the work. CI remains read-only: see s/floors/check.
+if [ "$#" -eq 0 ]; then
+	echo "==> hook floors and reach"
+	floor_options=()
+	if [ -z "${CI:-}" ]; then
+		floor_options=(--raise)
+	fi
+	s/floors/hooks "${floor_options[@]}"
+fi

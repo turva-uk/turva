@@ -232,6 +232,9 @@ site/
 # See https://github.com/pacharanero/house-style/blob/main/private-workspace.md
 /.private
 
+# Same-directory temporary files used only for atomic floor publication.
+/s/floors/.minimums-*
+
 # Safety file repositories created at runtime. Each one is its own Git
 # repository, so they must never be nested inside this one. In deployment this
 # path is a mounted volume on the VPS; locally it is where ./s/seed-demo writes

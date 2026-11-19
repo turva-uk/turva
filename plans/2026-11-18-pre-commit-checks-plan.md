@@ -2,7 +2,7 @@
 
 Turva's `.pre-commit-config.yaml` checks formatting, spelling, Markdown and Python style in CI. Local hooks from #109 and #110 are optional, enabled deliberately with `./s/install-hooks`; CI still checks changes made without them. This plan adds secret scanning, network-detail checks, Python type checking and security linting, and brings the existing Zizmor audit into the hook configuration.
 
-Each check has its own branch in the `pre-commit` stack above #110: `check-toml`, gitleaks, the dev-details check, Zizmor as a hook, mypy, bandit and ShellCheck. Each phase must pass before merging. Fix real findings; document and justify any deliberate scope limit or narrowly identified false positive rather than weakening a check to get a green result.
+Each check has its own branch in the `pre-commit` stack above #110: `check-toml`, gitleaks, the dev-details check, Zizmor as a hook, mypy, bandit and ShellCheck, followed by count floors and reach checks. Each phase must pass before merging. Fix real findings; document and justify any deliberate scope limit or narrowly identified false positive rather than weakening a check to get a green result.
 
 ## Agreed boundaries
 
@@ -13,6 +13,15 @@ Each check has its own branch in the `pre-commit` stack above #110: `check-toml`
 - **TOML:** add `check-toml` beside the existing YAML and JSON hooks, at their existing reviewed repository pin.
 - **Personal literals:** a private denylist is optional. Never require personal setup, create it automatically in another working tree, or edit shared Git exclusions during a scan. Use the adopted ignored `.private/` directory for an explicitly supplied local list.
 - **Tool installation:** use the hooks' isolated environments, or a reviewed checksum-verified copy of the same pinned release, for one-off scans. Nothing installs packages merely because local hooks were enabled.
+
+## Floor decisions
+
+- **Scope:** hook floors measure reported lines/files; reach checks verify routing and explicit policies. These complement real fault/canary tests and do not prove arbitrary scanner execution. Test-suite floors are Phase 8b.
+- **Thresholds:** a count below its recorded floor fails. A floor below 70% of the measured count is stale; a successful local full run may raise it to at least 90%. CI reports staleness without changing source.
+- **Publication:** validate the entire expected measurement scope and every existing floor before one atomic, monotonic update. Missing, duplicate or malformed counts fail. Producer and reach failures leave all floors unchanged. No command lowers a floor; any reduction needs a separate justified review.
+- **Compatibility:** use pre-commit's own classifier rather than copying its matching logic. This is an internal API and fails visibly if incompatible. CI currently permits `pre-commit>=3,<5`; it is not an exact pin.
+- **Shared entry points:** `./s/floors/refresh`, optionally `just floors-update`, captures complete successful measurements before publishing. Hook checks run after pre-commit in the existing styling job. Script tests are flat in `s/tests/` and already run on the host and in CI through the merged Terraform work.
+- **Partial tests:** full-suite floors must not be applied to deliberately filtered runs. Add the Bats count alongside the other suite counts in Phase 8b, now its runner is established.
 
 ## Phase 1: check-toml
 
@@ -74,6 +83,37 @@ Branch `feature/pre-commit-shellcheck`. Added on 18 November 2026, after the fir
 - [x] Run ShellCheck once over every shell file, using the hook's own copy through `pre-commit run shellcheck --all-files`, and triage what it reports. Ran on 18 November 2026: the 20 scripts in `s/` and `.githooks/` all passed. The findings were all in three bats tests: one `cd` without a fallback, fixed, and two kinds of false alarm, each turned off with a comment saying why.
 - [x] Add the `shellcheck` hook from `https://github.com/shellcheck-py/shellcheck-py` at `v0.11.0.1`, which installs its own ShellCheck, so nobody needs it on their machine.
 - [x] Confirm that the hook sees every script. pre-commit recognises a file with no extension as shell only when it is executable and starts with a shell shebang. The reviewed classifier inventory and actual configured hook cover all 36 current tracked scripts and Bats files in `s/` and `.githooks/`, including the merged Terraform tooling. A copied executable script with no extension and spaces in its filename fails for an unquoted expansion (SC2086), then passes when quoted. Existing Bats process-isolation directives remain narrow and explained; no new suppression was needed.
+
+## Phase 8: floors under every check
+
+Added on 19 November 2026. Count floors detect unexpected losses of reported scope, and explicit policies detect missing routing. They supplement, rather than replace, the complete-report Bandit guard, real fault probes and Gitleaks canaries. Hook checks and test-suite checks land separately because their reports and execution surfaces differ.
+
+### Phase 8a: floors and reach checks for the hooks
+
+Branch `feature/pre-commit-hook-floors`.
+
+- [x] **A floor for each hook whose tool reports a count**, read from the hook's own output through `pre-commit run <id> --all-files --verbose`, so the hook is checked exactly as it is configured, wrong arguments included:
+  - **bandit:** "Total lines of code", and a failure if "Files skipped" is above 0. Bandit leaves out a file written for a newer Python than it runs on, while the line count can stay above its floor.
+  - **mypy:** the number in "no issues found in N source files".
+  - **cspell:** "Files checked".
+  - **Zizmor:** the number of files it reports auditing.
+  - **check-dev-details:** our own script, so it gains a line saying how many files it checked.
+- [x] **An explicit policy for every configured hook**, including Terraform formatting and filename-free Gitleaks. The latter checks all-file trigger candidates plus its reviewed native staged entry, not imaginary filename-based scan coverage. Unknown/duplicate hooks and incomplete inventories fail. The separate frontend npm/CI surface retains types, lint, format, tooling/unit tests and builds, backed by its existing real tooling regressions.
+- [x] Put the scripts in `s/floors/`, with bats tests that stand in for each tool, so that every floor is shown to fail below its minimum.
+- [x] Keep every floor, for the hooks and the test suites, in one file, `s/floors/minimums`, one line per check, each set at 90% of the count measured when this phase is built, with a comment saying when. One file gives the update recipe one place to rewrite.
+- [x] **Make floors a complete transaction.** A bounded shared parser rejects invalid/duplicate floor and count records and checks all expected keys before publication. A same-directory replacement preserves permissions and serialises cooperating updates through a directory lock. Later failures, failed replacement and concurrent writers have regression tests. Unterminated final records are inspected, not silently dropped. Existing floors never decrease.
+- [x] Keep `just floors-update` as a thin optional alias to `s/floors/refresh`. Every first-party producer is captured successfully before a mutating consumer is invoked; a pipeline's EOF alone cannot convey producer failure. A failed reach check prevents a floor raise too.
+- [x] Run both as a `Check the hooks' floors and reach` step after `Run pre-commit` in the styling job. `./s/lint` requests a ratchet only outside CI. Bats regressions run through the established host/runner script gate.
+- [x] Review evidence on 19 November 2026: native reports cover 6,219 Bandit lines, 21 mypy sources, 50 cspell files, five unique Zizmor completions and 578 pattern/literal-checked text files under the documented privacy scope. The classifier validates 19 policies over 752 then-tracked files. Isolated actual-classifier probes reject narrowed Bandit/Terraform routing, a changed Gitleaks entry policy and a missing script executable bit. Original baseline floors are retained or raised, never lowered.
+
+### Phase 8b: floors for the test suites
+
+Branch `feature/pre-commit-test-floors`.
+
+- [ ] **A floor on the number of tests each suite collects**, kept in `s/floors/minimums` and ratcheted as in Phase 8a, checked on a full run only, in CI and in `./s/test` or `./s/frontend` with no path: the `safety_file` suite (161 on 18 November 2026), the Django suite (485) and the frontend's Vitest suite. A suite that collects fewer tests still passes, so the count is what shows a test went missing.
+- [ ] Open an issue for the bats floor, to be added once #105 has merged and its `Script tests (bats)` job runs `bats s/tests` in CI.
+- [ ] **A test that fails on a test file pytest would never collect**. It reads the syntax tree of every Python file under `app/`, `safety_file/` and `demo/`, and fails on one that defines a test and has a name pytest does not collect. None does today.
+- [ ] Prove each floor and the naming test fail, by planting a missing test or a misnamed file, then removing it.
 
 ## Decisions
 

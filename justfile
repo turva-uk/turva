@@ -103,6 +103,10 @@ alias d := docs
 docs:
     @./s/docs
 
+# Explicitly refresh measured floors, without ever lowering an existing floor.
+floors-update:
+    @./s/floors/refresh
+
 
 # GitHub repository settings, as code in terraform/github/. Each recipe runs
 # ./s/terraform, which reads the rulesets already on GitHub before plan and

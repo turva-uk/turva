@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# Validate a complete count scope against its floors. --raise publishes one
+# atomic monotonic ratchet only if every measurement is valid and passes.
+# Usage: <counts> | s/floors/check [--raise] [--expect CHECK...]
+set -euo pipefail
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+python=python3
+if [ -x "${root}/.venv/bin/python" ]; then
+	python="${root}/.venv/bin/python"
+fi
+exec "${python}" "${root}/s/utils/floors.py" check "$@"

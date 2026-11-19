@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+# Checks that every pre-commit hook still checks what it should: each
+# counting hook against its floor, then every hook's reach.
+#
+# Usage: s/floors/hooks [--raise]
+#
+# CI's `Styling (pre-commit)` job runs it after pre-commit itself, with
+# every hook already installed. ./s/lint runs it with --raise, which raises
+# a stale floor instead of only reporting it: see s/floors/check. Both
+# halves always run, so one failure does not hide the other.
+#
+# Safe to run twice: it changes nothing but a stale floor.
+set -euo pipefail
+
+here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+main() {
+	local options=("$@")
+	local failed=0
+	local counts="" measured=0
+	local keys=(bandit-lines mypy-files cspell-files zizmor-files dev-details-files)
+
+	if [ "$#" -gt 1 ] || { [ "$#" -eq 1 ] && [ "$1" != --raise ]; }; then
+		echo 'Usage: s/floors/hooks [--raise]' >&2
+		return 1
+	fi
+	# Check producer status before any mutating consumer sees its output.
+	if counts="$("${here}/hook-counts")"; then
+		measured=1
+	else
+		failed=1
+	fi
+
+	if ! "${here}/reach"; then
+		failed=1
+	fi
+
+	# A failed reach check must not leave an otherwise valid floor raise behind.
+	if [ "${failed}" -ne 0 ]; then
+		options=()
+	fi
+	if [ "${measured}" -eq 1 ]; then
+		printf '%s\n' "${counts}" | "${here}/check" "${options[@]}" --expect "${keys[@]}" || failed=1
+	fi
+
+	exit "${failed}"
+}
+
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+	main "$@"
+fi

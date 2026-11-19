@@ -1,0 +1,15 @@
+# Floors under Turva's checks: the least each one must report checking.
+#
+# A check that looks in the wrong place, or is given nothing, still passes,
+# so CI also fails when a count falls below its floor here. Each floor is
+# at least 90% of the count measured on the date beside it. A successful
+# local full lint run raises stale hook floors below 70% of the count.
+# CI reports staleness without writing. Explicit refreshes never lower a
+# floor; commit increases with the work. Test-suite floors follow separately.
+#
+# One line per check: <check> <floor>  # how it was set
+bandit-lines 5597  # 90% of 6219, measured 2026-11-19
+mypy-files 18  # 90% of 21, measured 2026-11-19
+cspell-files 45  # 90% of 50, measured 2026-11-19
+zizmor-files 4  # 90% of 5, measured 2026-11-19
+dev-details-files 520  # 90% of 578, measured 2026-11-19
