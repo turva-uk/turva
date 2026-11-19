@@ -11,8 +11,10 @@ setup() {
 	release="${BATS_TEST_TMPDIR}/release"
 	target="${BATS_TEST_TMPDIR}/installed"
 
-	mkdir -p "${repo}/s/gitleaks" "${bin}" "${release}/build"
+	mkdir -p "${repo}/s/gitleaks" "${repo}/s/checks" "${repo}/s/utils" "${bin}" "${release}/build"
 	cp "${BATS_TEST_DIRNAME}/../gitleaks/install" "${repo}/s/gitleaks/install"
+	cp "${BATS_TEST_DIRNAME}/../checks/hook-version" "${repo}/s/checks/hook-version"
+	cp "${BATS_TEST_DIRNAME}/../utils/hook-version.py" "${repo}/s/utils/hook-version.py"
 
 	cat >"${repo}/.pre-commit-config.yaml" <<'EOF'
 repos:
@@ -90,7 +92,7 @@ EOF
 	run bash "${repo}/s/gitleaks/install" "${target}"
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"Could not read the gitleaks rev"* ]]
+	[[ "$output" == *"Could not read a unique release pin"* ]]
 }
 
 @test "fails without a folder to install into" {
@@ -102,7 +104,7 @@ EOF
 
 @test "invalid, duplicate or misplaced pins stop before downloading" {
 	local pin
-	for pin in 'v8.30.1 extra' '"v8.30.1"' '../elsewhere'; do
+	for pin in 'v8.30.1 extra' '../elsewhere' '"v8.30.1\nINJECTED=value"'; do
 		printf 'repos:\n  - repo: https://github.com/gitleaks/gitleaks\n    rev: %s\n' "$pin" >"${repo}/.pre-commit-config.yaml"
 		run bash "${repo}/s/gitleaks/install" "${target}"
 		[ "$status" -ne 0 ]
@@ -127,6 +129,25 @@ repos:
 EOF
 	run bash "${repo}/s/gitleaks/install" "${target}"
 	[ "$status" -ne 0 ]
+	[ ! -e "${BATS_TEST_TMPDIR}/curl.log" ]
+}
+
+@test "the installer decodes quoted pins and comments through the shared reader" {
+	cat >"${repo}/.pre-commit-config.yaml" <<'EOF'
+repos:
+  - repo: "https://github.com/gitleaks/gitleaks"
+    rev: 'v8.30.1' # same reviewed release
+EOF
+	run bash "${repo}/s/gitleaks/install" "${target}"
+	[ "$status" -eq 0 ]
+	[ "$("${target}/gitleaks" version)" = 8.30.1 ]
+	grep -q 'download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz' "${BATS_TEST_TMPDIR}/curl.log"
+}
+
+@test "duplicate revision keys fail before any installer download" {
+	printf 'repos:\n  - repo: https://github.com/gitleaks/gitleaks\n    rev: v8.30.1\n    rev: v9.0.0\n' >"${repo}/.pre-commit-config.yaml"
+	run bash "${repo}/s/gitleaks/install" "${target}"
+	[ "$status" -eq 1 ]
 	[ ! -e "${BATS_TEST_TMPDIR}/curl.log" ]
 }
 

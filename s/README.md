@@ -81,7 +81,7 @@ An argument naming the `safety_file` package or `s/tests` routes to the host; an
 
 ### `./s/lint`
 
-Runs every check CI enforces: `pre-commit run --all-files`, then the Zizmor GitHub Actions audit. Run before committing.
+Runs every check CI enforces: `pre-commit run --all-files`, whose hooks include the Zizmor GitHub Actions audit. Run before committing.
 
 ### `./s/frontend`
 
@@ -147,7 +147,7 @@ The shared patterns retain deliberate synthetic-fixture filename exceptions, CID
 
 ### `./s/gitleaks/install` and `./s/gitleaks/scan-commits`
 
-Install the pinned, checksum-verified Gitleaks release into an explicitly chosen directory, then scan this clone's history with a positive synthetic-canary check. The release installer supports Linux x86-64 and needs `curl`, `sha256sum`, `tar` and `install`. The scan needs Git, Python 3 and Gitleaks on `PATH`. The native pre-commit hook independently builds the pinned release on its supported platforms.
+Install the pinned, checksum-verified Gitleaks release into an explicitly chosen directory, then scan this clone's history with a positive synthetic-canary check. The release installer supports Linux x86-64 and needs `curl`, `sha256sum`, `tar`, `install` and the shared YAML reader's Python/PyYAML environment described below. The scan needs Git, Python 3 and Gitleaks on `PATH`. The native pre-commit hook independently builds the pinned release on its supported platforms.
 
 ```bash
 ./s/gitleaks/install .private/gitleaks-bin
@@ -156,6 +156,12 @@ PATH="$PWD/.private/gitleaks-bin:$PATH" ./s/gitleaks/scan-commits origin/main HE
 ```
 
 The local pre-commit hook checks staged content only; `./s/lint` is not a full-history secret scan. CI separately scans immutable event SHAs, with full history for manual or new-history runs. Scanner errors never count as detected canaries or clean results. Output is redacted; stop publication on a real finding, report its commit and rule without the value, and obtain authorised rotation and exception review. Never rewrite history or add broad exceptions to get a green scan.
+
+### `./s/checks/hook-version`
+
+Prints the requested repository's decoded release pin from `.pre-commit-config.yaml`, without its optional leading `v`. Zizmor's online CI audit and the Gitleaks installer use this one reader. It selects `.venv/bin/python` when available, otherwise `python3`, and requires the project's existing direct PyYAML dependency. Install that package deliberately with the selected interpreter, for example `python3 -m pip install -c app/requirements.txt PyYAML`; CI explicitly installs only that locked package, not Django. The reader never installs packages itself.
+
+Quoted scalars, comments and flow-style YAML are supported. Missing, duplicate, malformed, multiline and non-release pins fail before a URL or workflow output is written. Input is limited to `1 MiB`, 40 composition levels and 20,000 nodes. YAML aliases/merge keys are deliberately refused; full pre-commit schema validation remains a separate gate. A successful result is exactly one three-component release version, not an arbitrary Git reference.
 
 ### `./s/terraform`
 
@@ -191,6 +197,7 @@ The seeding step refuses to run with `DEBUG` off. It creates an account whose pa
 - **`s/utils/frontend-directory.sh`** - prepares the caller-owned frontend mount point for hook setup, host npm and Compose. It never installs packages or changes ownership automatically.
 - **`s/utils/dev-details.py`** - read-only standard-library privacy scanner behind the shell entry point, with bounded file reads and explicit scope/error handling.
 - **`s/utils/gitleaks-report.py`** - validates the bounded, redacted report for the synthetic canary. A findings exit code without the expected rule, file and line is not evidence that the scan worked.
+- **`s/utils/hook-version.py`** - shared duplicate-aware safe YAML boundary for release pins used by tool installers and CI outputs.
 - **`s/utils/github-rulesets.py`** - validates and selects repository-owned ruleset identities for `s/terraform`. Its refusal paths are covered by `s/tests/terraform.bats`.
 
 - **`s/utils/logging.sh`** - `log` and `error`, each printing the script's name in front, such as `[terraform] ERROR: ...`. Errors go to standard error, in red only in a terminal. Source it straight after the `set` line at the top, and always pass the name:
