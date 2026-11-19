@@ -13,3 +13,6 @@ mypy-files 18  # 90% of 21, measured 2026-11-19
 cspell-files 44  # 90% of 49, measured 2026-11-19
 zizmor-files 4  # 90% of 5, measured 2026-11-19
 dev-details-files 410  # 90% of 456, measured 2026-11-19
+safety-file-tests 144  # 90% of 161, measured 2026-11-19
+django-tests 439  # 90% of 488, measured 2026-11-19
+vitest-tests 648  # 90% of 721, measured 2026-11-19

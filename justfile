@@ -122,12 +122,12 @@ docs:
 
 # ./s/lint, ./s/test and ./s/frontend raise a stale floor themselves, so
 # this is only for resetting every floor on purpose, such as after removing
-# a check's files.
+# a check's files. It needs the dev stack up, for the Django suite's count.
 # Reset every floor in s/floors/minimums to 90% of today's count
 floors-update:
     #!/usr/bin/env bash
     set -euo pipefail
-    ./s/floors/hook-counts | ./s/floors/update
+    { ./s/floors/hook-counts; ./s/floors/test-counts safety-file django vitest; } | ./s/floors/update
 
 
 alias rb := remove-branches

@@ -1,0 +1,93 @@
+#!/usr/bin/env bash
+# Prints how many tests each named suite collects, one "<suite>-tests <count>"
+# line each, for s/floors/check and s/floors/update.
+#
+# Usage: s/floors/test-counts <suite>...
+#
+# Suites:
+#   safety-file  the storage layer's pytest suite, on the host
+#   django       the application's pytest suite, in the `web` container
+#   vitest       the frontend's Vitest suite, on the host
+#
+# A suite that collects fewer tests still passes, so the count is what shows
+# a test file went missing. Each count is collected without running the
+# tests, in the same place the suite runs.
+#
+# Safe to run twice: it runs no test.
+set -euo pipefail
+
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+
+# The same Python as ./s/test: the repository's .venv first, then python3.
+host_python() {
+	if [ -x "${root}/.venv/bin/python" ]; then
+		echo "${root}/.venv/bin/python"
+		return
+	fi
+
+	echo "python3"
+}
+
+# Read pytest's --collect-only -q report on stdin and print its count, such
+# as 161 from "161 tests collected in 0.03s".
+pytest_count() {
+	sed -n -E 's/^([0-9]+) tests? collected.*$/\1/p' | tail -n 1
+}
+
+count_safety_file() {
+	local python
+
+	python="$(host_python)"
+
+	(cd "${root}" && "${python}" -m pytest safety_file --collect-only -q) | pytest_count
+}
+
+count_django() {
+	(cd "${root}" && docker compose exec -T web pytest app --collect-only -q) | pytest_count
+}
+
+# Vitest lists every test it would run as a JSON array.
+count_vitest() {
+	(cd "${root}/frontend" && npx vitest list --json) |
+		python3 -c 'import json, sys; print(len(json.load(sys.stdin)))'
+}
+
+# Print one suite's line, or fail when it gave no count.
+print_count() {
+	local suite="$1"
+	local count
+
+	case "${suite}" in
+		safety-file) count="$(count_safety_file)" || count="" ;;
+		django) count="$(count_django)" || count="" ;;
+		vitest) count="$(count_vitest)" || count="" ;;
+		*)
+			echo "Unknown suite '${suite}'. Usage: s/floors/test-counts <safety-file|django|vitest>..." >&2
+			return 1
+			;;
+	esac
+
+	if [ -z "${count}" ]; then
+		echo "The ${suite} suite did not say how many tests it collected, so nothing can be said to have been tested. Run the suite to see why." >&2
+		return 1
+	fi
+
+	echo "${suite}-tests ${count}"
+}
+
+main() {
+	local suite
+
+	if [ "$#" -eq 0 ]; then
+		echo "No suite given. Usage: s/floors/test-counts <safety-file|django|vitest>..." >&2
+		exit 1
+	fi
+
+	for suite in "$@"; do
+		print_count "${suite}"
+	done
+}
+
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+	main "$@"
+fi

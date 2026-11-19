@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# Checks that each named test suite still collects at least its floor of
+# tests, from s/floors/minimums.
+#
+# Usage: s/floors/tests [--raise] <safety-file|django|vitest>...
+#
+# Run after a full run of the suites: by ./s/test and ./s/frontend with no
+# arguments, and by CI after each suite's own job. A run of part of a suite
+# is never held to a floor. The local runners pass --raise, which raises a
+# stale floor instead of only reporting it: see s/floors/check.
+#
+# Safe to run twice: it runs no test.
+set -euo pipefail
+
+here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+main() {
+	local options=()
+
+	if [ "${1:-}" = "--raise" ]; then
+		options=(--raise)
+		shift
+	fi
+
+	if [ "$#" -eq 0 ]; then
+		echo "No suite given. Usage: s/floors/tests [--raise] <safety-file|django|vitest>..." >&2
+		exit 1
+	fi
+
+	"${here}/test-counts" "$@" | "${here}/check" "${options[@]}"
+}
+
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+	main "$@"
+fi
