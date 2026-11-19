@@ -2,7 +2,7 @@
 # Checks that each named test suite still collects at least its floor of
 # tests, from s/floors/minimums.
 #
-# Usage: s/floors/tests [--raise] <safety-file|django|vitest>...
+# Usage: s/floors/tests [--raise] <safety-file|django|vitest|bats>...
 #
 # Run after a full run of the suites: by ./s/test and ./s/frontend with no
 # arguments, and by CI after each suite's own job. A run of part of a suite
@@ -16,6 +16,8 @@ here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 main() {
 	local options=()
+	local counts suite
+	local keys=()
 
 	if [ "${1:-}" = "--raise" ]; then
 		options=(--raise)
@@ -23,11 +25,17 @@ main() {
 	fi
 
 	if [ "$#" -eq 0 ]; then
-		echo "No suite given. Usage: s/floors/tests [--raise] <safety-file|django|vitest>..." >&2
+		echo "No suite given. Usage: s/floors/tests [--raise] <safety-file|django|vitest|bats>..." >&2
 		exit 1
 	fi
 
-	"${here}/test-counts" "$@" | "${here}/check" "${options[@]}"
+	# EOF cannot convey a producer's exit status. Capture the complete scope
+	# successfully before a consumer is permitted to publish any floor raise.
+	counts="$("${here}/test-counts" "$@")"
+	for suite in "$@"; do
+		keys+=("${suite}-tests")
+	done
+	printf '%s\n' "${counts}" | "${here}/check" "${options[@]}" --expect "${keys[@]}"
 }
 
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then

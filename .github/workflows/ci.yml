@@ -187,6 +187,9 @@ jobs:
       - name: Run tests
         run: bats s/tests
 
+      - name: Check the test floor
+        run: bash s/floors/tests bats
+
   terraform:
     name: GitHub settings (Terraform validate)
     runs-on: ubuntu-latest

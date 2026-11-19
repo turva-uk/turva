@@ -50,12 +50,16 @@ if [ "$#" -eq 0 ]; then
 	npm run format
 	echo "==> test"
 	npm run test:ci
-	echo "==> test floor"
-	../s/floors/tests --raise vitest
 	echo "==> build"
 	npm run build
 	echo "==> storybook build"
 	npm run build-storybook
+	echo "==> unit test floor"
+	floor_options=()
+	if [ -z "${CI:-}" ]; then
+		floor_options=(--raise)
+	fi
+	../s/floors/tests "${floor_options[@]}" vitest
 	exit 0
 fi
 

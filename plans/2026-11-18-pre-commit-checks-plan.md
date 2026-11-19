@@ -16,7 +16,7 @@ Each check has its own branch in the `pre-commit` stack above #110: `check-toml`
 
 ## Floor decisions
 
-- **Scope:** hook floors measure reported lines/files; reach checks verify routing and explicit policies. These complement real fault/canary tests and do not prove arbitrary scanner execution. Test-suite floors are Phase 8b.
+- **Scope:** hook floors measure reported lines/files; reach checks verify routing and explicit policies. These complement real fault/canary tests and do not prove arbitrary scanner execution. Phase 8b adds storage, Django, unit Vitest and host Bats collection floors; Node tooling and browser execution remain separate gates.
 - **Thresholds:** a count below its recorded floor fails. A floor below 70% of the measured count is stale; a successful local full run may raise it to at least 90%. CI reports staleness without changing source.
 - **Publication:** validate the entire expected measurement scope and every existing floor before one atomic, monotonic update. Missing, duplicate or malformed counts fail. Producer and reach failures leave all floors unchanged. No command lowers a floor; any reduction needs a separate justified review.
 - **Compatibility:** use pre-commit's own classifier rather than copying its matching logic. This is an internal API and fails visibly if incompatible. CI currently permits `pre-commit>=3,<5`; it is not an exact pin.
@@ -110,11 +110,12 @@ Branch `feature/pre-commit-hook-floors`.
 
 Branch `feature/pre-commit-test-floors`.
 
-- [x] **A floor on the number of tests each suite collects**, kept in `s/floors/minimums` and ratcheted as in Phase 8a, checked on a full run only, in CI and in `./s/test` or `./s/frontend` with no path: the `safety_file` suite (161 on 18 November 2026), the Django suite (485) and the frontend's Vitest suite. A suite that collects fewer tests still passes, so the count is what shows a test went missing.
-- [x] Open an issue for the bats floor, to be added once #105 has merged and its `Script tests (bats)` job runs `bats s/tests` in CI. Opened as #126.
-- [x] **A test that fails on a test file pytest would never collect**. It reads the syntax tree of every Python file under `app/`, `safety_file/` and `demo/`, and fails on one that defines a test and has a name pytest does not collect. None does today.
-- [x] Prove each floor and the naming test fail, by planting a missing test or a misnamed file, then removing it.
-- [x] Built on 19 November 2026. `s/floors/test-counts` collects each suite without running it, where it runs: 161 `safety_file` tests, 488 Django tests (485 and the naming test's 3) and 721 Vitest tests. Vitest lists 721 although a run reports 804, because some tests expand into several cases only when they run, so the floor is on the list, which is stable and needs no second run. The floors are 144, 439 and 648. The naming test lives in `app/config/tests/test_test_file_names.py`, because the container mounts `app/`, `safety_file/` and `demo/` together. Planting a misnamed `planted_checks.py` made it fail, and removing it made it pass.
+- [x] **Floors on collected tests**, checked after successful full runs: storage pytest, Django pytest, explicitly selected unit Vitest and host Bats. Local full runners may ratchet stale floors; CI remains read-only. Filtered runs retain their arguments without full-suite floors.
+- [x] Add the Bats floor now its host/CI runner is established. Existing #126 records that follow-up; it is not closed automatically by this review. Count it with `bats --count s/tests`, without containers or automatic installation.
+- [x] **Use active pytest naming settings**, not a guessed fallback. The AST check reads pytest's actual file/function/class settings and covers ordinary top-level functions and async methods. Dynamic test construction is outside this policy. Real pytest probes reject a misnamed async test and pass after correcting its filename; custom-pattern regressions also pass. Compose already mounts `pyproject.toml`.
+- [x] **Require complete report evidence.** Buffer all requested producers, validate suite identities before collection, reject duplicate/filtered pytest summaries and malformed/duplicate Vitest identities, and pass the complete expected key set to the atomic floor boundary. The canonical refresh captures every hook/suite producer and reach before one update. A later failure cannot leave earlier increases behind.
+- [x] **Separate frontend scopes.** Native unit collection has 1,139 unique project/file/name/location records, distinct from 1,358 parameter-expanded executed cases. Invoke installed Vitest through Node with `--project=unit`, never an implicitly installing `npx` call. Explicit Storybook browser-list probes show generated registrations without reliable source locations and counts unlike executed cases; retain their independent light/dark/canary execution gate, not an inflated unit or browser floor.
+- [x] **Refresh from native evidence.** The complete hook/suite/reach refresh measures 161 storage tests, 524 Django tests, 1,139 unit records and 278 script tests. It retains existing floors or raises them, with suite floors 144/471/1,025/250 and privacy 524 from 583 checked text files. No floor decreases; the owned validation backend is stopped afterwards with named volumes retained.
 
 ## Decisions
 
