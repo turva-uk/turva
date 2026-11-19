@@ -1,12 +1,18 @@
 import fs from "node:fs";
 import path from "node:path";
 
-import { Anchor, DEFAULT_THEME, MantineProvider, mergeMantineTheme } from "@mantine/core";
+import {
+  Anchor,
+  DEFAULT_THEME,
+  MantineProvider,
+  defaultCssVariablesResolver,
+  mergeMantineTheme,
+} from "@mantine/core";
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import { legacyCssVariablesResolver, legacyTheme } from "./legacyTheme";
-import { BRAND_TEXT, linkColourVariables } from "./theme";
+import { BRAND_TEXT, cssVariablesResolver, linkColourVariables, theme } from "./theme";
 
 /** WCAG 2.2 relative luminance of a `#rrggbb` colour. */
 function luminance(colour: string): number {
@@ -29,6 +35,7 @@ function contrast(foreground: string, background: string): number {
 
 const merged = mergeMantineTheme(DEFAULT_THEME, legacyTheme);
 const resolved = legacyCssVariablesResolver(merged);
+const shared = mergeMantineTheme(DEFAULT_THEME, theme);
 
 describe("the existing pages keep their look", () => {
   it("uses Mantine's own fonts, sizes, headings and breakpoints", () => {
@@ -46,11 +53,40 @@ describe("the existing pages keep their look", () => {
     expect(legacyTheme.components?.["Button"]?.defaultProps).toEqual({ radius: 0 });
   });
 
-  it("adds none of the shared components' variables", () => {
+  it("does not import shared layout or status variables", () => {
     expect(resolved.variables).toEqual({});
     expect(resolved.light["--card-bg"]).toBeUndefined();
-    expect(resolved.light["--error-color"]).toBeUndefined();
-    expect(resolved.dark["--mantine-color-dimmed"]).toBeUndefined();
+    expect(resolved.dark["--card-bg"]).toBeUndefined();
+  });
+});
+
+describe.each([
+  ["existing pages", merged, resolved],
+  ["shared components", shared, cssVariablesResolver(shared)],
+] as const)("readable text on the %s", (_themeName, currentTheme, currentResolved) => {
+  const defaults = defaultCssVariablesResolver(currentTheme);
+  describe.each([
+    ["guidance and form descriptions", "--mantine-color-dimmed"],
+    ["validation errors", "--mantine-color-error"],
+  ] as const)("%s", (_description, variable) => {
+    it.each([
+      ["light", "body", "#ffffff"],
+      ["light", "surface", currentTheme.colors.gray[0]],
+      ["dark", "body", currentTheme.colors.dark[7]],
+      ["dark", "surface", currentTheme.colors.dark[6]],
+    ] as const)("keep normal-text contrast on the %s %s", (scheme, _surface, background) => {
+      const variables: Record<string, string> = {
+        ...defaults.variables,
+        ...defaults[scheme],
+        ...currentResolved[scheme],
+      };
+      const colour = variables[variable] ?? "";
+      const foreground = colour.startsWith("var(")
+        ? (variables[colour.slice(4, -1)] ?? "")
+        : colour;
+      expect(foreground).toMatch(/^#[0-9a-f]{6}$/i);
+      expect(contrast(foreground, background)).toBeGreaterThanOrEqual(4.5);
+    });
   });
 });
 

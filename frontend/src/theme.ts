@@ -216,6 +216,21 @@ export const linkColourVariables = {
   },
 } as const;
 
+/** Readable validation text and invalid fields in both application themes. */
+export const errorColourVariables = {
+  light: {
+    "--mantine-color-error": "var(--error-color)",
+    // 5.5:1 on white, 4.7:1 on gray.2; distinct from the brand colour.
+    "--error-color": "#c4320a",
+    "--error-focus-color": "#ffb3b3",
+  },
+  dark: {
+    "--mantine-color-error": "var(--error-color)",
+    "--error-color": "#ff8a65",
+    "--error-focus-color": "#ffb3b3",
+  },
+} as const;
+
 /**
  * Turva's CSS variables, layered on Mantine's.
  *
@@ -256,11 +271,7 @@ export const cssVariablesResolver: CSSVariablesResolver = (theme) => ({
   light: {
     "--mantine-color-dimmed": theme.colors.gray[7],
     "--mantine-color-placeholder": "var(--mantine-color-gray-6)",
-    // An orange-red that colour-blind readers can tell from the brand:
-    // 5.5:1 on white, 4.7:1 on gray.2.
-    "--mantine-color-error": "var(--error-color)",
-    "--error-color": "#c4320a",
-    "--error-focus-color": "#ffb3b3",
+    ...errorColourVariables.light,
     ...linkColourVariables.light,
     "--card-bg": "var(--mantine-color-white)",
     "--card-border": "var(--mantine-color-gray-3)",
@@ -272,10 +283,7 @@ export const cssVariablesResolver: CSSVariablesResolver = (theme) => ({
     // 4.1:1 on its dark body, under AA; dark.1 is 7.9:1 there and 7.1:1 on
     // the card surface, dark.6.
     "--mantine-color-dimmed": theme.colors.dark[1],
-    // A light coral in dark mode, where the light-mode red is too dark.
-    "--mantine-color-error": "var(--error-color)",
-    "--error-color": "#ff8a65",
-    "--error-focus-color": "#ffb3b3",
+    ...errorColourVariables.dark,
     ...linkColourVariables.dark,
     "--card-bg": "var(--mantine-color-dark-6)",
     "--card-border": "var(--mantine-color-dark-4)",
