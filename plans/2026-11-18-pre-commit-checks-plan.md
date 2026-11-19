@@ -110,10 +110,11 @@ Branch `feature/pre-commit-hook-floors`.
 
 Branch `feature/pre-commit-test-floors`.
 
-- [ ] **A floor on the number of tests each suite collects**, kept in `s/floors/minimums` and ratcheted as in Phase 8a, checked on a full run only, in CI and in `./s/test` or `./s/frontend` with no path: the `safety_file` suite (161 on 18 November 2026), the Django suite (485) and the frontend's Vitest suite. A suite that collects fewer tests still passes, so the count is what shows a test went missing.
-- [ ] Open an issue for the bats floor, to be added once #105 has merged and its `Script tests (bats)` job runs `bats s/tests` in CI.
-- [ ] **A test that fails on a test file pytest would never collect**. It reads the syntax tree of every Python file under `app/`, `safety_file/` and `demo/`, and fails on one that defines a test and has a name pytest does not collect. None does today.
-- [ ] Prove each floor and the naming test fail, by planting a missing test or a misnamed file, then removing it.
+- [x] **A floor on the number of tests each suite collects**, kept in `s/floors/minimums` and ratcheted as in Phase 8a, checked on a full run only, in CI and in `./s/test` or `./s/frontend` with no path: the `safety_file` suite (161 on 18 November 2026), the Django suite (485) and the frontend's Vitest suite. A suite that collects fewer tests still passes, so the count is what shows a test went missing.
+- [x] Open an issue for the bats floor, to be added once #105 has merged and its `Script tests (bats)` job runs `bats s/tests` in CI. Opened as #126.
+- [x] **A test that fails on a test file pytest would never collect**. It reads the syntax tree of every Python file under `app/`, `safety_file/` and `demo/`, and fails on one that defines a test and has a name pytest does not collect. None does today.
+- [x] Prove each floor and the naming test fail, by planting a missing test or a misnamed file, then removing it.
+- [x] Built on 19 November 2026. `s/floors/test-counts` collects each suite without running it, where it runs: 161 `safety_file` tests, 488 Django tests (485 and the naming test's 3) and 721 Vitest tests. Vitest lists 721 although a run reports 804, because some tests expand into several cases only when they run, so the floor is on the list, which is stable and needs no second run. The floors are 144, 439 and 648. The naming test lives in `app/config/tests/test_test_file_names.py`, because the container mounts `app/`, `safety_file/` and `demo/` together. Planting a misnamed `planted_checks.py` made it fail, and removing it made it pass.
 
 ## Decisions
 

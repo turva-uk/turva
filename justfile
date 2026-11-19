@@ -104,6 +104,7 @@ docs:
     @./s/docs
 
 # Explicitly refresh measured floors, without ever lowering an existing floor.
+# The suite-count extension needs the dev stack up for Django collection.
 floors-update:
     @./s/floors/refresh
 
