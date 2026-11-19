@@ -217,3 +217,69 @@ it("moves between the documents by keyboard", async () => {
     expect.anything(),
   );
 });
+
+it.each(["#doc-overview%", "#doc-%E0%A4%A"])(
+  "does not crash when a fragment has malformed percent encoding: %s",
+  async (hash) => {
+    vi.spyOn(api, "get").mockResolvedValue(detail([text("Recorded evidence")]));
+    show(`/safety-files/demo/documents/overview${hash}`);
+    expect(await screen.findByText("Recorded evidence")).toBeInTheDocument();
+  },
+);
+
+it("encodes document fragments once and scrolls to the literal heading id", async () => {
+  const scroll = vi.fn();
+  Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {
+    configurable: true,
+    value: scroll,
+  });
+  const fragment = "100% reviewed";
+  vi.spyOn(api, "get").mockResolvedValue(
+    detail([
+      { type: "element", tag: "h2", attrs: { id: fragment }, children: [text("Section")] },
+      { type: "anchor", fragment, children: [text("Here")] },
+      {
+        type: "document",
+        document: "risk-management-plan",
+        fragment,
+        children: [text("There")],
+      },
+    ]),
+  );
+  show("/safety-files/demo/documents/overview#doc-100%25%20reviewed");
+  await screen.findByText("Section");
+  expect(scroll).toHaveBeenCalled();
+  expect(screen.getByRole("link", { name: "Here" })).toHaveAttribute(
+    "href",
+    "#doc-100%25%20reviewed",
+  );
+  expect(screen.getByRole("link", { name: "There" })).toHaveAttribute(
+    "href",
+    "/safety-files/demo/documents/risk-management-plan#doc-100%25%20reviewed",
+  );
+});
+
+it("shows omitted heading content in both ordinary and collapsible admonitions", async () => {
+  vi.spyOn(api, "get").mockResolvedValue(
+    detail(
+      [false, true].map((collapsible) => ({
+        type: "admonition",
+        kind: "warning",
+        title: "Warning",
+        title_nodes: [
+          text("Warning "),
+          { type: "unsupported", description: "An image (Diagram) is not displayed in Turva." },
+        ],
+        collapsible,
+        children: [text("Recorded evidence")],
+      })),
+      { unsupported: 2 },
+    ),
+  );
+  show();
+  await screen.findByRole("heading", { name: "Overview" });
+  expect(screen.getAllByText(/Not shown: An image \(Diagram\)/)).toHaveLength(2);
+  expect(document.querySelector("summary")).toHaveTextContent("Not shown: An image (Diagram)");
+  expect(screen.getByText("Some content is not shown")).toBeInTheDocument();
+  expect(document.querySelector(".safety-document img")).toBeNull();
+});

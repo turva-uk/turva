@@ -247,6 +247,8 @@ export type DocumentNode =
       type: "admonition";
       kind: string;
       title: string;
+      /** The title uses the same sanitised tree and omission accounting as the body. */
+      title_nodes?: DocumentNode[];
       collapsible: boolean;
       children: DocumentNode[];
     }

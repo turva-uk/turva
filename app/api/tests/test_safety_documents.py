@@ -395,3 +395,74 @@ def test_tables_admonitions_and_heading_anchors_are_structured():
         "children": [{"type": "text", "text": "Plan"}],
     }
     assert rendered["unsupported"] == 0
+
+
+@pytest.mark.parametrize(
+    "href", ["http://[broken", "https://[::1", "https://example.org\uff0fsource"]
+)
+def test_malformed_links_are_reported_without_losing_the_document(client, owner, file, href):
+    commit_change(file, "docs/index.md", f'# Overview\n\n<a href="{href}">Source evidence</a>\n')
+    client.force_login(owner)
+    response = client.get(url(file, "overview"))
+    assert response.status_code == 200
+    document = response.json()["document"]
+    assert document["available"] is True
+    assert document["unsupported"] == 1
+    assert "Source evidence" in text_of(document["blocks"])
+    assert "unsupported address" in text_of(document["blocks"])
+    assert not any(node["type"] == "external" for node in walk(document["blocks"]))
+
+
+@pytest.mark.parametrize("attribute", ["start", "colspan", "rowspan"])
+@pytest.mark.parametrize("value", ["\u00b2", "1" * 5000, "0" * 5000 + "2"])
+def test_unusable_numeric_attributes_do_not_crash_the_reader(attribute, value):
+    source = (
+        f'<ol start="{value}"><li>Recorded evidence</li></ol>'
+        if attribute == "start"
+        else f'<table><tr><td {attribute}="{value}">Recorded evidence</td></tr></table>'
+    )
+    rendered = render_document(source, "index.md")
+    assert "Recorded evidence" in text_of(rendered["blocks"])
+    assert all(attribute not in node.get("attrs", {}) for node in walk(rendered["blocks"]))
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        '<details><summary>Warning <img src="https://example.org/warning.png" alt="Diagram"></summary>Body</details>',
+        '<div class="admonition warning"><p class="admonition-title">Warning <img src="https://example.org/warning.png" alt="Diagram"></p><p>Body</p></div>',
+    ],
+)
+def test_omitted_content_in_admonition_titles_is_counted_and_retained_as_a_placeholder(source):
+    rendered = render_document(source, "index.md")
+    assert rendered["unsupported"] == 1
+    admonition = rendered["blocks"][0]
+    assert any(node["type"] == "unsupported" for node in walk(admonition["title_nodes"]))
+    assert "An image (Diagram) is not displayed" in text_of(admonition["title_nodes"])
+    assert text_of(admonition["children"]) == "Body"
+
+
+def test_admonition_titles_share_the_document_node_limit(client, owner, file, monkeypatch):
+    title = "".join("<strong>Recorded heading</strong>" for _ in range(20))
+    commit_change(file, "docs/index.md", f"<details><summary>{title}</summary>Body</details>")
+    monkeypatch.setattr("app.safetyfiles.documents.MAX_NODES", 10)
+    client.force_login(owner)
+    response = client.get(url(file, "overview"))
+    assert response.status_code == 200
+    document = response.json()["document"]
+    assert document["available"] is False
+    assert document["reason"] == "too-complex"
+    assert document["blocks"] == []
+
+
+@pytest.mark.parametrize(
+    ("attribute", "value"), [("start", "99999"), ("colspan", "100"), ("rowspan", "100")]
+)
+def test_supported_numeric_attributes_retain_their_upper_bounds(attribute, value):
+    source = (
+        f'<ol start="{value}"><li>Recorded evidence</li></ol>'
+        if attribute == "start"
+        else f'<table><tr><td {attribute}="{value}">Recorded evidence</td></tr></table>'
+    )
+    nodes = list(walk(render_document(source, "index.md")["blocks"]))
+    assert any(node.get("attrs", {}).get(attribute) == int(value) for node in nodes)

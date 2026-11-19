@@ -111,10 +111,11 @@ function renderNode(node: DocumentNode, key: number, context: Context): ReactNod
           ? "success"
           : "note";
       const body = children(node.children, context);
+      const title = node.title_nodes?.length ? children(node.title_nodes, context) : node.title;
       if (node.collapsible) {
         return (
           <details key={key} className={`document-admonition document-admonition-${tone}`}>
-            <summary>{node.title}</summary>
+            <summary>{title}</summary>
             {body}
           </details>
         );
@@ -125,14 +126,14 @@ function renderNode(node: DocumentNode, key: number, context: Context): ReactNod
           className={`document-admonition document-admonition-${tone}`}
           aria-label={node.title}
         >
-          <p className="document-admonition-title">{node.title}</p>
+          <p className="document-admonition-title">{title}</p>
           {body}
         </aside>
       );
     }
     case "anchor":
       return (
-        <a key={key} href={`#${documentAnchor(node.fragment)}`}>
+        <a key={key} href={`#${encodeURIComponent(documentAnchor(node.fragment))}`}>
           {children(node.children, context)}
         </a>
       );
@@ -152,7 +153,7 @@ function renderNode(node: DocumentNode, key: number, context: Context): ReactNod
           key={key}
           component={Link}
           to={`/safety-files/${context.slug}/documents/${encodeURIComponent(node.document)}${
-            node.fragment ? `#${documentAnchor(node.fragment)}` : ""
+            node.fragment ? `#${encodeURIComponent(documentAnchor(node.fragment))}` : ""
           }`}
         >
           {children(node.children, context)}

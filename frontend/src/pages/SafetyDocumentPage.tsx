@@ -21,7 +21,14 @@ export function SafetyDocumentPage() {
   // loaded, so the browser cannot scroll to it by itself.
   useEffect(() => {
     if (!data || !hash) return;
-    document.getElementById(decodeURIComponent(hash.slice(1)))?.scrollIntoView();
+    let id = hash.slice(1);
+    try {
+      id = decodeURIComponent(id);
+    } catch {
+      // A malformed pasted/source fragment must not unmount the evidence page.
+      // Retain it literally rather than guessing a repaired heading address.
+    }
+    document.getElementById(id)?.scrollIntoView();
   }, [data, hash]);
 
   if (error) {

@@ -7,10 +7,9 @@ at the snapshot's HEAD, so the view cites exactly the version it shows.
 Markdown is converted to HTML here and then into an **allowlisted tree of
 typed nodes**; the browser builds React elements from that tree and never
 receives an HTML string. Nothing in a document can execute, load a resource,
-or style the page. Content Turva does not display (images, embedded or active
-HTML, unsupported link schemes) becomes a visible placeholder rather than
-silently disappearing, so a reader is never shown less than the record while
-believing it complete.
+or style the page. Images, embedded or active HTML and unsupported link schemes
+become visible placeholders rather than silently disappearing. Other formatting
+and unsupported attributes are stripped; this is not a full-fidelity HTML view.
 """
 
 from __future__ import annotations
@@ -176,6 +175,19 @@ class _TooComplex(Exception):
     pass
 
 
+def _bounded_integer(value, maximum: int) -> int | None:
+    """Only short ASCII decimal attributes, before attempting integer conversion."""
+    if (
+        not isinstance(value, str)
+        or not value.isascii()
+        or not value.isdecimal()
+        or len(value) > len(str(maximum))
+    ):
+        return None
+    number = int(value)
+    return number if 0 < number <= maximum else None
+
+
 class _Converter:
     def __init__(self, source_path: str) -> None:
         self.source_path = source_path
@@ -252,14 +264,14 @@ class _Converter:
         if name in {"h1", "h2", "h3", "h4", "h5", "h6"} and isinstance(tag.get("id"), str):
             attrs["id"] = tag["id"]
         if name == "ol":
-            start = tag.get("start")
-            if isinstance(start, str) and start.isdigit() and 0 < int(start) < 100_000:
-                attrs["start"] = int(start)
+            start = _bounded_integer(tag.get("start"), 99_999)
+            if start is not None:
+                attrs["start"] = start
         if name in {"th", "td"}:
             for span in ("colspan", "rowspan"):
-                value = tag.get(span)
-                if isinstance(value, str) and value.isdigit() and 1 < int(value) <= 100:
-                    attrs[span] = int(value)
+                value = _bounded_integer(tag.get(span), 100)
+                if value is not None and value > 1:
+                    attrs[span] = value
             style = tag.get("style") or ""
             align = tag.get("align") or ""
             for candidate in ("left", "center", "right"):
@@ -274,13 +286,18 @@ class _Converter:
             if collapsible
             else tag.find("p", class_="admonition-title", recursive=False)
         )
-        title = title_tag.get_text(" ", strip=True) if title_tag else kind.capitalize()
+        title = title_tag.get_text(" ", strip=True) if title_tag else ""
+        title = title or kind.capitalize()
+        # Titles are evidence too. Do not flatten them before checking for
+        # unsupported images, active content and links through the same boundary.
+        title_nodes = self.children(title_tag, depth) if title_tag is not None else []
         if title_tag is not None:
             title_tag.extract()
         return {
             "type": "admonition",
             "kind": kind,
             "title": title,
+            "title_nodes": title_nodes,
             "collapsible": collapsible,
             "children": self.children(tag, depth),
         }
@@ -291,7 +308,12 @@ class _Converter:
         if not isinstance(href, str) or not href.strip():
             return children
         href = href.strip()
-        parsed = urlsplit(href)
+        try:
+            parsed = urlsplit(href)
+        except ValueError:
+            # Invalid bracketed hosts and Unicode authority characters are
+            # untrusted addresses, not reasons to fail the entire evidence read.
+            return self.unsupported_link(children)
         if href.startswith("#"):
             return [{"type": "anchor", "fragment": unquote(href[1:]), "children": children}]
         if parsed.scheme in {"http", "https"} and parsed.netloc:
@@ -299,11 +321,7 @@ class _Converter:
         if parsed.scheme == "mailto":
             return [{"type": "external", "href": href, "children": children}]
         if parsed.scheme or parsed.netloc:
-            self.unsupported += 1
-            return [
-                *children,
-                {"type": "reference", "text": "link with an unsupported address, not followed"},
-            ]
+            return self.unsupported_link(children)
         target = self.resolve(unquote(parsed.path))
         if target is not None:
             node = {"type": "document", "document": target.key, "children": children}
@@ -313,6 +331,13 @@ class _Converter:
         # A page or attachment outside the controlled scope: a reference to
         # the source, not a link into the repository or a build directory.
         return [*children, {"type": "reference", "text": f"source reference: {href}"}]
+
+    def unsupported_link(self, children: list[dict]) -> list[dict]:
+        self.unsupported += 1
+        return [
+            *children,
+            {"type": "reference", "text": "link with an unsupported address, not followed"},
+        ]
 
     def resolve(self, path: str) -> SafetyDocument | None:
         if not path:
