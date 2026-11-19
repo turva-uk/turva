@@ -184,17 +184,14 @@ jobs:
       - name: Install dependencies
         run: npm ci --no-fund --no-audit
 
-      # The browser the test-runner drives, at the version the lockfile's
+      # The browser Vitest drives, at the version the lockfile's
       # Playwright expects, with the system libraries it needs.
       - name: Install Chromium for Playwright
         run: npx playwright install --with-deps chromium
 
-      - name: Build Storybook
-        run: npm run build-storybook
-
-      # Serves the static build and visits every story. axe checks each one
-      # against WCAG 2.2 AA in light mode, then again in dark
-      # (.storybook/a11y-dark-mode.ts). Any violation fails the job.
+      # Separate browser projects replay each story and its interactions in
+      # light and dark. Missing results and axe errors fail, too. No static
+      # server or fixed Storybook port is needed; the frontend job still builds it.
       - name: Check every story with axe
         run: npm run test-storybook:ci
 

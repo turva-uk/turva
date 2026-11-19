@@ -74,6 +74,12 @@ This plan brings across Storybook, shared helpers and general components: typogr
 
 ## Decisions
 
+### Accessibility gate review, 19 November 2026
+
+The original Jest-based runner is superseded by the supported Storybook Vitest addon. Independent light/dark browser projects replay the stories and interactions without building or serving a static catalogue. The existing contrast fixes remain. A completed story must provide a valid axe report; absent reports, engine errors and malformed results fail the gate instead of being treated as zero violations. Explicit per-story `off`/`todo` exceptions remain visible policies. Unit regressions and real-browser canaries cover successful scans, known contrast failures, engine failure and skipped scans.
+
+The new addon is pinned to 10.6.2, matching the existing Storybook core and including its origin-validation security fixes; the older 10.6.1 addon has published advisories and is not admitted. Its peers explicitly support Vitest 5; `@vitest/browser-playwright` is pinned to the existing Vitest 5.1.0 version. Both are MIT-licensed upstream packages. This replaces the unsupported test runner and its Jest/server/wait tooling, rather than adding a second browser runner. Production dependency resolutions are unchanged. See `./s/frontend test-storybook:ci`, `frontend/vitest.config.ts` and the [local command notes](../s/README.md#sfrontend).
+
 - **npm, not yarn** - Turva's frontend already uses npm with a `package-lock.json`, and `./s/frontend` runs it. Quill's yarn lock is not brought across; versions are taken from its `package.json` and locked afresh.
 - **A frontend-only review stack** - rebased onto `main` on 18 November 2026. The former dependency on the personal Claude/tooling stack was removed; it is not an adoption requirement.
 - **Foundations first** - the general components are what every later screen is built from, and what the rules name. The Quill-only folders are left behind, and the `safety` components wait for a later plan.

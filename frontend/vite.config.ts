@@ -1,7 +1,5 @@
 import react from "@vitejs/plugin-react";
-// From `vitest/config`, not `vite`: Vite's own `defineConfig` does not know
-// about the `test` key and rejects it at typecheck time.
-import { defineConfig } from "vitest/config";
+import { defineConfig } from "vite";
 
 export default defineConfig({
   plugins: [react()],
@@ -29,10 +27,5 @@ export default defineConfig({
         changeOrigin: false,
       },
     },
-  },
-  test: {
-    environment: "jsdom",
-    globals: true,
-    setupFiles: ["./src/test-setup.ts"],
   },
 });

@@ -224,6 +224,8 @@ site/
 /playwright-report
 /blob-report
 /test-results
+/.vitest
+/frontend/.vitest
 /.claude
 
 # A local reference copy kept beside the personal Claude Code files in

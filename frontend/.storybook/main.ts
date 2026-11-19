@@ -23,6 +23,7 @@ const config: StorybookConfig = {
       },
     },
     "@storybook/addon-a11y",
+    "@storybook/addon-vitest",
     // Forces :hover, :focus and the rest on a story, for StateRow.
     "storybook-addon-pseudo-states",
   ],
