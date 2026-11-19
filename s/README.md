@@ -132,6 +132,18 @@ Serves the documentation site with hot reload at <http://localhost:8001>.
 
 Opts this clone into the tracked `.githooks/pre-commit`, which runs pre-commit on staged files, then ESLint and Prettier through lint-staged for frontend changes. `just setup` is an optional alias. Run it deliberately once per clone; the local Git setting is shared by linked working trees and each branch supplies its own hook. It prepares a caller-owned `frontend/node_modules` directory but does not install packages, alter global Git configuration or replace an existing custom hooks path. Install host packages explicitly with `./s/frontend install`. Existing hook files are not deleted. CI remains the backstop when local hooks are not installed.
 
+### `./s/gitleaks/install` and `./s/gitleaks/scan-commits`
+
+Install the pinned, checksum-verified Gitleaks release into an explicitly chosen directory, then scan this clone's history with a positive synthetic-canary check. The release installer supports Linux x86-64 and needs `curl`, `sha256sum`, `tar` and `install`. The scan needs Git, Python 3 and Gitleaks on `PATH`. The native pre-commit hook independently builds the pinned release on its supported platforms.
+
+```bash
+./s/gitleaks/install .private/gitleaks-bin
+PATH="$PWD/.private/gitleaks-bin:$PATH" ./s/gitleaks/scan-commits --all
+PATH="$PWD/.private/gitleaks-bin:$PATH" ./s/gitleaks/scan-commits origin/main HEAD
+```
+
+The local pre-commit hook checks staged content only; `./s/lint` is not a full-history secret scan. CI separately scans immutable event SHAs, with full history for manual or new-history runs. Scanner errors never count as detected canaries or clean results. Output is redacted; stop publication on a real finding, report its commit and rule without the value, and obtain authorised rotation and exception review. Never rewrite history or add broad exceptions to get a green scan.
+
 ### `./s/terraform`
 
 Runs Terraform for Turva's GitHub repository settings in `terraform/github/`, in a pinned container. The host needs Docker, `curl` and Python 3.10 or later. `plan` and `apply` use `GITHUB_TOKEN`, falling back to `gh auth token`; see [GitHub settings](../docs/docs/github-settings.md) for the local-state limitations and explicit administrative approval boundary.
@@ -164,6 +176,7 @@ The seeding step refuses to run with `DEBUG` off. It creates an account whose pa
 `s/utils/` holds internal helpers, not commands to type.
 
 - **`s/utils/frontend-directory.sh`** - prepares the caller-owned frontend mount point for hook setup, host npm and Compose. It never installs packages or changes ownership automatically.
+- **`s/utils/gitleaks-report.py`** - validates the bounded, redacted report for the synthetic canary. A findings exit code without the expected rule, file and line is not evidence that the scan worked.
 - **`s/utils/github-rulesets.py`** - validates and selects repository-owned ruleset identities for `s/terraform`. Its refusal paths are covered by `s/tests/terraform.bats`.
 
 - **`s/utils/logging.sh`** - `log` and `error`, each printing the script's name in front, such as `[terraform] ERROR: ...`. Errors go to standard error, in red only in a terminal. Source it straight after the `set` line at the top, and always pass the name:
