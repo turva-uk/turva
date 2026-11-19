@@ -232,41 +232,40 @@ stage() {
 	[ "$status" -eq 0 ]
 }
 
-# A stand-in for s/checks/check-dev-details that logs its call and prints
-# the warning, as it does while this machine's denylist is empty.
+# A stand-in that would fail if the hook tried to run personal setup itself.
 write_dev_details_stand_in() {
 	mkdir -p "${repo}/s/checks"
 	cat >"${repo}/s/checks/check-dev-details" <<'EOF'
 #!/usr/bin/env bash
 echo "dev-details: $*" >>"${BATS_TEST_TMPDIR}/calls.log"
-echo "Strongly recommended: fill the denylist" >&2
+exit 99
 EOF
 	chmod +x "${repo}/s/checks/check-dev-details"
 }
 
-@test "recommends filling the dev-details denylist after the checks pass" {
+@test "passing checks do not prompt for personal setup" {
 	write_dev_details_stand_in
 	stage file.txt
 
 	run "${hook}"
 
 	[ "$status" -eq 0 ]
-	[ "$(sed -n 2p "${calls}")" = "dev-details: --warn-if-empty" ]
-	[[ "$output" == *"Strongly recommended"* ]]
+	[ "$(wc -l <"${calls}")" -eq 1 ]
+	[ -z "${output}" ]
 }
 
-@test "git still commits while the dev-details denylist is empty" {
+@test "git still commits without optional personal setup" {
 	write_dev_details_stand_in
 	stage file.txt
 
 	run git -C "${repo}" commit -q -m "add file"
 
 	[ "$status" -eq 0 ]
-	[[ "$output" == *"Strongly recommended"* ]]
+	[ -z "${output}" ]
 	git -C "${repo}" rev-parse --verify -q HEAD
 }
 
-@test "gives no recommendation when a check stops the commit" {
+@test "a failed check does not run separate personal setup" {
 	export PRE_COMMIT_STATUS=1
 	write_dev_details_stand_in
 	stage file.txt

@@ -254,6 +254,6 @@ storybook-static/
 /terraform/github/*.tfvars.json
 /terraform/github/crash*.log
 
-# Files kept on one machine only, such as local/dev-details-denylist, which
-# s/checks/check-dev-details reads. Never committed.
+# Keep legacy private files ignored during migration. Scanners neither create
+# nor implicitly read this directory; new optional files belong in .private/.
 /local/

@@ -82,11 +82,10 @@ repos:
   - repo: local
     hooks:
       # The repository is public, so a private network address or a MAC
-      # address must not reach it. CI runs the patterns; a developer's
-      # machine also refuses the literals in local/dev-details-denylist,
-      # such as a hostname or a VPN network's name.
+      # address must not reach it. CI runs shared patterns; optional personal
+      # literals are read-only and local to the checkout, never initialised here.
       - id: check-dev-details
         name: Check for home and dev set-up details
-        entry: s/checks/check-dev-details
+        entry: s/checks/check-dev-details --
         language: system
         types: [text]

@@ -132,6 +132,19 @@ Serves the documentation site with hot reload at <http://localhost:8001>.
 
 Opts this clone into the tracked `.githooks/pre-commit`, which runs pre-commit on staged files, then ESLint and Prettier through lint-staged for frontend changes. `just setup` is an optional alias. Run it deliberately once per clone; the local Git setting is shared by linked working trees and each branch supplies its own hook. It prepares a caller-owned `frontend/node_modules` directory but does not install packages, alter global Git configuration or replace an existing custom hooks path. Install host packages explicitly with `./s/frontend install`. Existing hook files are not deleted. CI remains the backstop when local hooks are not installed.
 
+### `./s/checks/check-dev-details`
+
+Checks this checkout's text files for the shared private-address and MAC patterns. It never creates personal files, changes Git exclusions or prompts for personal setup. Git enumeration, missing files, invalid text and unreadable lists fail visibly instead of producing a clean result.
+
+```bash
+./s/checks/check-dev-details --all
+./s/checks/check-dev-details --denylist .private/dev-details-denylist -- notes.md
+```
+
+Personal literal checks are optional. Create your own ignored `.private/dev-details-denylist` only if wanted: one case-insensitive literal per line, with blank lines and `#` comments allowed. Outside CI, an existing list in this checkout is read automatically; another working tree's list is not. CI ignores that default but honours an explicitly supplied `--denylist`. Legacy `local/` files stay ignored and untouched; use an explicit path if deliberately reusing one.
+
+The shared patterns retain deliberate synthetic-fixture filename exceptions, CIDRs and addresses ending `.0`. They do not cover IPv6 or binary attachments and are not proof that test content is fictional. Supplied personal literals apply to every requested text file, including fixtures. Text files above `16 MiB` and lists above `1 MiB` fail rather than being truncated. Reports show the public path, line and rule, never matched content or private list paths.
+
 ### `./s/gitleaks/install` and `./s/gitleaks/scan-commits`
 
 Install the pinned, checksum-verified Gitleaks release into an explicitly chosen directory, then scan this clone's history with a positive synthetic-canary check. The release installer supports Linux x86-64 and needs `curl`, `sha256sum`, `tar` and `install`. The scan needs Git, Python 3 and Gitleaks on `PATH`. The native pre-commit hook independently builds the pinned release on its supported platforms.
@@ -176,6 +189,7 @@ The seeding step refuses to run with `DEBUG` off. It creates an account whose pa
 `s/utils/` holds internal helpers, not commands to type.
 
 - **`s/utils/frontend-directory.sh`** - prepares the caller-owned frontend mount point for hook setup, host npm and Compose. It never installs packages or changes ownership automatically.
+- **`s/utils/dev-details.py`** - read-only standard-library privacy scanner behind the shell entry point, with bounded file reads and explicit scope/error handling.
 - **`s/utils/gitleaks-report.py`** - validates the bounded, redacted report for the synthetic canary. A findings exit code without the expected rule, file and line is not evidence that the scan worked.
 - **`s/utils/github-rulesets.py`** - validates and selects repository-owned ruleset identities for `s/terraform`. Its refusal paths are covered by `s/tests/terraform.bats`.
 
