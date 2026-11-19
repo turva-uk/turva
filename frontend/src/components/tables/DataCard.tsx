@@ -33,6 +33,8 @@ import { Group, Skeleton, Stack } from "@mantine/core";
 import Divider from "@/components/divider/Divider";
 import { BodyTextBold } from "@/components/typography";
 import CellContent from "./CellContent";
+import RowAction from "./RowAction";
+import { shouldActivateRow } from "./rowInteraction";
 import type { Column } from "./DataTable";
 import BaseCard from "@/components/base-card/BaseCard";
 import classes from "./DataCard.module.css";
@@ -43,7 +45,9 @@ export interface DataCardProps<T> {
   /** Column definitions (header labels + render functions) */
   columns: Column<T>[];
   /** Click handler - receives the row data */
-  onClick: (row: T) => void;
+  onClick?: (row: T) => void;
+  /** Accessible record-action name, preferably including its identifier. */
+  actionLabel?: string;
   /** Loading state - shows skeleton placeholders */
   loading?: boolean;
   /**
@@ -76,12 +80,14 @@ export function DataCardSkeleton() {
  * DataCard renders a single data row as a bordered card with labelled fields.
  *
  * Each column is shown as a bold header label followed by the rendered content,
- * separated by dividers. The entire card is clickable.
+ * separated by dividers. An optional record callback adds a native Open
+ * button and a pointer shortcut; nested controls retain their own actions.
  */
 export default function DataCard<T>({
   row,
   columns,
   onClick,
+  actionLabel = "Open record",
   loading = false,
   footer,
 }: DataCardProps<T>) {
@@ -106,7 +112,7 @@ export default function DataCard<T>({
                 beneath still runs the card's full width. */}
             <Group
               gap="xs"
-              wrap="nowrap"
+              wrap="wrap"
               align="center"
               className={besideAction ? classes.besideAction : undefined}
             >
@@ -119,7 +125,7 @@ export default function DataCard<T>({
           </div>
         );
       })}
-      {footer && (
+      {footer !== null && footer !== undefined && typeof footer !== "boolean" && (
         <>
           <Divider />
           {footer}
@@ -129,7 +135,16 @@ export default function DataCard<T>({
   );
 
   return (
-    <BaseCard onClick={() => onClick(row)} style={{ cursor: "pointer" }}>
+    <BaseCard
+      onClick={
+        onClick
+          ? (event) => {
+              if (shouldActivateRow(event)) onClick(row);
+            }
+          : undefined
+      }
+      style={onClick ? { cursor: "pointer" } : undefined}
+    >
       {action ? (
         <div className={classes.withAction}>
           {body}
@@ -139,6 +154,11 @@ export default function DataCard<T>({
         </div>
       ) : (
         body
+      )}
+      {onClick && (
+        <Group justify="flex-end" mt="sm">
+          <RowAction label={actionLabel} onOpen={() => onClick(row)} />
+        </Group>
       )}
     </BaseCard>
   );

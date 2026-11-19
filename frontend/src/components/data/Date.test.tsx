@@ -63,6 +63,21 @@ describe("FormattedDate Component", () => {
   });
 
   describe("Edge cases", () => {
+    it.each([
+      "2026-02-29",
+      "2026-02-30",
+      "2026-04-31",
+      "1900-02-29",
+      "0000-01-01",
+      "2026-1-2",
+      "05/06/2026",
+      "May 5, 2026",
+      "2026-05-06T15:00:00Z",
+    ])("refuses a non-canonical or impossible calendar date: %s", (date) => {
+      renderWithMantine(<FormattedDate date={date} />);
+      expect(screen.getByText("Invalid date")).toBeInTheDocument();
+    });
+
     it("returns null for empty string", () => {
       renderWithMantine(<FormattedDate date="" />);
       // Component returns null, so no text should be rendered

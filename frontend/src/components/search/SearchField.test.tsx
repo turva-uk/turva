@@ -156,6 +156,20 @@ describe("SearchField Component", () => {
   });
 
   describe("Text input", () => {
+    it("keeps uncontrolled input editable when an onChange observer is supplied", async () => {
+      const user = userEvent.setup();
+      const onChange = vi.fn();
+      renderWithMantine(<SearchField onChange={onChange} />);
+      await user.click(screen.getByLabelText("Open search"));
+      await user.type(screen.getByRole("textbox", { name: "Search" }), "hazard");
+      expect(screen.getByRole("textbox", { name: "Search" })).toHaveValue("hazard");
+      expect(onChange).toHaveBeenLastCalledWith("hazard");
+      await user.click(screen.getByLabelText("Close search"));
+      expect(onChange).toHaveBeenLastCalledWith("");
+      await user.click(screen.getByLabelText("Open search"));
+      expect(screen.getByRole("textbox", { name: "Search" })).toHaveValue("");
+    });
+
     it("allows typing in search field", async () => {
       const user = userEvent.setup();
       renderWithMantine(<SearchField />);

@@ -23,6 +23,32 @@ beforeEach(() => {
 });
 
 describe("EllipsisMenu", () => {
+  it("does not offer an empty action menu", () => {
+    renderWithMantine(<EllipsisMenu aria-label="Actions" items={[]} />);
+    expect(screen.queryByRole("button", { name: "Actions" })).not.toBeInTheDocument();
+  });
+
+  it("uses readable status foregrounds instead of filled-badge colours", async () => {
+    const user = userEvent.setup();
+    renderWithMantine(
+      <EllipsisMenu
+        aria-label="Actions"
+        items={[
+          { label: "Delete", color: "var(--alert-color)", onClick: vi.fn() },
+          { label: "Custom", color: "#123456", onClick: vi.fn() },
+        ]}
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: "Actions" }));
+    expect((await screen.findByRole("menuitem", { name: "Delete" })).style.color).toBe(
+      "var(--alert-text-color)",
+    );
+    expect(screen.getByRole("menuitem", { name: "Custom" })).toHaveStyle({ color: "#123456" });
+    expect(
+      screen.getByRole("menu").querySelector('[role="presentation"][tabindex]'),
+    ).toBeNull();
+  });
+
   describe("Touch target", () => {
     const renderMenu = () =>
       renderWithMantine(

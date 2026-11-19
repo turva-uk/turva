@@ -70,9 +70,12 @@ function PageSize({ value, onChange }: TablePaginationPageSizeProps) {
   return (
     <Group gap="xs">
       <BodyText>Items per page:</BodyText>
-      <Menu>
+      <Menu withInitialFocusPlaceholder={false}>
         <Menu.Target>
-          <UnstyledButton className={classes.pageSizeButton}>
+          <UnstyledButton
+            className={classes.pageSizeButton}
+            aria-label={`Items per page: ${value}`}
+          >
             <Group gap={4}>
               <BodyText>{value}</BodyText>
               <IconChevronDown size={20} />
@@ -80,8 +83,12 @@ function PageSize({ value, onChange }: TablePaginationPageSizeProps) {
           </UnstyledButton>
         </Menu.Target>
         <Menu.Dropdown>
-          {PAGE_SIZE_OPTIONS.map((option) => (
-            <Menu.Item key={option} onClick={() => onChange(option)}>
+          {PAGE_SIZE_OPTIONS.map((option, index) => (
+            <Menu.Item
+              key={option}
+              data-autofocus={index === 0 || undefined}
+              onClick={() => onChange(option)}
+            >
               {option}
             </Menu.Item>
           ))}

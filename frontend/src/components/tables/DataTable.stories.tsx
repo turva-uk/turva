@@ -6,7 +6,7 @@
  */
 
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { fn } from "storybook/test";
+import { expect, fn, userEvent, within } from "storybook/test";
 import { Container } from "@mantine/core";
 import BaseCard from "@/components/base-card/BaseCard";
 import { StoryNote } from "@/stories/variants";
@@ -137,6 +137,27 @@ export const ManyRows: Story = {
     columns: userColumns,
     onRowClick: fn(),
     getRowKey: (user) => user.id,
+  },
+};
+
+/** A small result set must still expose its second page. */
+export const SmallPaginatedSet: Story = {
+  ...Default,
+  args: {
+    ...Default.args,
+    data: Array.from({ length: 8 }, (_, index) => ({
+      id: index + 1,
+      username: `reviewer${index + 1}`,
+      email: `reviewer${index + 1}@example.test`,
+    })),
+    pageSize: 5,
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText("reviewer5")).toBeVisible();
+    await userEvent.click(canvas.getByRole("button", { name: "Next page" }));
+    await expect(canvas.getByText("reviewer8")).toBeVisible();
+    await expect(canvas.getByText("Page 2 of 2")).toBeVisible();
   },
 };
 

@@ -9,6 +9,7 @@
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { renderWithMantine } from "@/test/test-utils";
 import DataTable, { type Column } from "./DataTable";
 
@@ -59,6 +60,28 @@ function render(
 describe("DataTable fit", () => {
   beforeEach(() => {
     size.width = 0;
+  });
+
+  it.each([0, -1, 1.5, NaN, Infinity])("refuses an invalid page size: %s", (pageSize) => {
+    expect(() => render(three, { pageSize })).toThrow(/positive integer/);
+  });
+
+  it.each([0, 100])("keeps every paginated record reachable at width %i", async (width) => {
+    size.width = width;
+    const user = userEvent.setup();
+    const data = Array.from({ length: 8 }, (_, index) => ({
+      ...rows[0]!,
+      id: index + 1,
+      a: `Hazard ${index + 1}`,
+    }));
+    renderWithMantine(
+      <DataTable data={data} columns={[col("a")]} getRowKey={(row) => row.id} pageSize={5} />,
+    );
+    expect(screen.getByText("Hazard 5")).toBeInTheDocument();
+    expect(screen.queryByText("Hazard 8")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Next page" }));
+    expect(screen.getByText("Hazard 8")).toBeInTheDocument();
+    expect(screen.getByText("Page 2 of 2")).toBeInTheDocument();
   });
 
   it("draws seven columns as cards in 500px, since they need 896px", () => {

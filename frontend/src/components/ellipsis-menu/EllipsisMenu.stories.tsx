@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { fn } from "storybook/test";
+import { expect, fn, userEvent, waitFor, within } from "storybook/test";
 import { Stack } from "@mantine/core";
 import { IconPencil, IconTrash } from "@/components/icons/appIcons";
 import BaseCard from "@/components/base-card/BaseCard";
@@ -50,4 +50,25 @@ export const DarkMode: Story = {
       <EllipsisMenu {...args} />
     </Stack>
   ),
+};
+
+/** Leave the portalled menu open so the accessibility gate scans its real states. */
+export const KeyboardOpenMenu: Story = {
+  ...Default,
+  play: async ({ canvasElement }) => {
+    const trigger = within(canvasElement).getByRole("button", { name: "Actions" });
+    const body = within(canvasElement.ownerDocument.body);
+    trigger.focus();
+    await userEvent.keyboard("{Enter}");
+    const edit = await body.findByRole("menuitem", { name: "Edit" });
+    await waitFor(() => expect(edit).toHaveFocus());
+    await userEvent.keyboard("{ArrowDown}");
+    await expect(body.getByRole("menuitem", { name: "Delete" })).toHaveFocus();
+    await userEvent.keyboard("{Escape}");
+    await waitFor(() => expect(trigger).toHaveFocus());
+    await userEvent.keyboard("{Enter}");
+    await waitFor(() => expect(body.getByRole("menuitem", { name: "Edit" })).toHaveFocus());
+    await userEvent.keyboard("{ArrowDown}");
+    await expect(body.getByRole("menuitem", { name: "Delete" })).toHaveFocus();
+  },
 };

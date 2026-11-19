@@ -6,7 +6,7 @@
  */
 
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { fn } from "storybook/test";
+import { expect, fn, within } from "storybook/test";
 import { Container } from "@mantine/core";
 import DataCard, { DataCardSkeleton } from "./DataCard";
 import EllipsisMenu from "@/components/ellipsis-menu/EllipsisMenu";
@@ -153,6 +153,44 @@ export const WithRowAction: Story = {
       },
     ],
     onClick: fn(),
+  },
+};
+
+export const NarrowLongLabels: Story = {
+  args: {
+    row: { id: 1, username: "Dr Alex Patel, fictional CSO", email: "alex.patel@example.test" },
+    columns: [
+      {
+        header: "Accountable Clinical Safety Officer for this deployment",
+        render: (user) => user.username,
+      },
+      {
+        header: "Evidence location",
+        render: () =>
+          "https://evidence.example.test/a-long-reference-to-the-reviewed-source-document",
+      },
+      {
+        header: "",
+        render: () => (
+          <EllipsisMenu
+            aria-label="Record actions"
+            items={[{ label: "Review", onClick: fn() }]}
+          />
+        ),
+      },
+    ],
+    onClick: fn(),
+    actionLabel: "Open record HAZ-001",
+  },
+  render: (args) => (
+    <div data-testid="narrow-record" style={{ width: 320, maxWidth: "100%" }}>
+      <DataCard {...args} />
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    await canvasElement.ownerDocument.fonts.ready;
+    const record = within(canvasElement).getByTestId("narrow-record");
+    await expect(record.scrollWidth).toBeLessThanOrEqual(record.clientWidth);
   },
 };
 

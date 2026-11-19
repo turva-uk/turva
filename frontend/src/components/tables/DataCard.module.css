@@ -4,6 +4,7 @@
 
 .header {
   flex-shrink: 0;
+  max-width: 100%;
 }
 
 /* A row action sits in the card's top right corner. It is placed there

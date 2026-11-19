@@ -41,8 +41,8 @@ export default function SearchField({ value, onChange, variant = "dark" }: Searc
 
   const currentValue = value ?? internalValue;
   const handleChange = (newValue: string) => {
-    if (onChange) onChange(newValue);
-    else setInternalValue(newValue);
+    if (value === undefined) setInternalValue(newValue);
+    onChange?.(newValue);
   };
 
   // Auto-expand when controlled value becomes non-empty

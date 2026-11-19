@@ -13,6 +13,7 @@ import { ActionIcon, Menu, useMantineTheme } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { IconDots } from "@/components/icons/appIcons";
 import Icon from "@/components/icons";
+import { statusColours } from "@/styles/semanticColours";
 import classes from "./EllipsisMenu.module.css";
 
 export interface EllipsisMenuItem {
@@ -20,7 +21,7 @@ export interface EllipsisMenuItem {
   label: string;
   /** Icon element to show before the label */
   icon?: ReactElement;
-  /** CSS variable for destructive actions (e.g. "var(--alert-color)") */
+  /** CSS text colour. Known status-fill tokens resolve to their readable foreground. */
   color?: string;
   /** Click handler */
   onClick: () => void;
@@ -38,13 +39,13 @@ export default function EllipsisMenu({ items, "aria-label": ariaLabel }: Ellipsi
   const isMobile = useMediaQuery(`(max-width: ${theme.breakpoints.sm})`, false, {
     getInitialValueInEffect: false,
   });
+  if (items.length === 0) return null;
 
   return (
-    <Menu position="bottom-end" shadow="md">
+    <Menu position="bottom-end" shadow="md" withInitialFocusPlaceholder={false}>
       <Menu.Target>
         <ActionIcon
-          variant="transparent"
-          color="gray"
+          variant="default"
           size={isMobile ? 44 : 30}
           className={classes.trigger}
           onClick={(e: React.MouseEvent) => e.stopPropagation()}
@@ -54,20 +55,29 @@ export default function EllipsisMenu({ items, "aria-label": ariaLabel }: Ellipsi
         </ActionIcon>
       </Menu.Target>
       <Menu.Dropdown>
-        {items.map((item) => (
-          <Menu.Item
-            key={item.label}
-            className={classes.touchItem}
-            color={item.color}
-            leftSection={item.icon ? <Icon icon={item.icon} size="md" /> : undefined}
-            onClick={(e) => {
-              e.stopPropagation();
-              item.onClick();
-            }}
-          >
-            {item.label}
-          </Menu.Item>
-        ))}
+        {items.map((item, index) => {
+          // Older callers supply a status fill as the text colour. Use the
+          // palette's foreground token; arbitrary CSS colours remain explicit.
+          const foreground =
+            Object.values(statusColours).find((status) => status.bg === item.color)?.fg ??
+            item.color;
+          return (
+            <Menu.Item
+              key={item.label}
+              className={classes.touchItem}
+              color={foreground}
+              style={foreground ? { color: foreground } : undefined}
+              data-autofocus={index === 0 || undefined}
+              leftSection={item.icon ? <Icon icon={item.icon} size="md" /> : undefined}
+              onClick={(e) => {
+                e.stopPropagation();
+                item.onClick();
+              }}
+            >
+              {item.label}
+            </Menu.Item>
+          );
+        })}
       </Menu.Dropdown>
     </Menu>
   );

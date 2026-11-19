@@ -1,10 +1,10 @@
 /**
  * CellLines
  *
- * Several values in one table cell, one to a line. Two columns given
- * lists of the same length line up, so a value and the one beside it in
- * the next column read across: a hazard's mitigations, and each
- * mitigation's owner.
+ * Several values in one table cell, one to a line. Wrapped text means
+ * independent cells do not reliably line up. Show paired values in
+ * shared rows or include matching identifiers; do not infer an owner
+ * from its visual position beside a mitigation in another cell.
  *
  * Bare text, like `FormattedDate`, so `CellContent` gives it the body
  * text style; `cellText.ts` names it for that reason.

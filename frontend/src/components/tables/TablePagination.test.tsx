@@ -111,6 +111,15 @@ describe("TablePagination", () => {
   });
 
   describe("PageSize", () => {
+    it("names the picker and exposes only actual menu items", async () => {
+      const user = userEvent.setup();
+      renderWithMantine(<TablePagination.PageSize value={10} onChange={vi.fn()} />);
+      await user.click(screen.getByRole("button", { name: "Items per page: 10" }));
+      expect(
+        screen.getByRole("menu").querySelector('[role="presentation"][tabindex]'),
+      ).toBeNull();
+    });
+
     it("renders page size button", () => {
       renderWithMantine(
         <TablePagination>

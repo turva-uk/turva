@@ -33,6 +33,8 @@ import {
   Center,
   useMantineTheme,
   useComputedColorScheme,
+  NativeSelect,
+  VisuallyHidden,
 } from "@mantine/core";
 import { useElementSize, useMediaQuery } from "@mantine/hooks";
 import { BodyText, BodyTextBold } from "@/components/typography";
@@ -42,6 +44,8 @@ import SortHeader, { type SortDirection } from "./SortHeader";
 import TablePagination from "./TablePagination";
 import DataCard, { DataCardSkeleton } from "./DataCard";
 import CellContent from "./CellContent";
+import RowAction from "./RowAction";
+import { shouldActivateRow } from "./rowInteraction";
 import classes from "./DataTable.module.css";
 
 /**
@@ -53,10 +57,9 @@ export interface Column<T> {
   /**
    * Render function for cell content.
    *
-   * Return plain text (string/number) or a simple component (Badge,
-   * FormattedDate, ActiveStatusBadge, etc.). Do NOT wrap output in Text or
-   * other typography components: text is styled for you, and a control is
-   * rendered as it is, centred in the row. See `CellContent`.
+   * Plain text is styled for you. Links, specialist controls and custom
+   * typography are supported when a column needs them; see `CellContent`
+   * for automatic text wrapping.
    */
   render: (row: T) => React.ReactNode;
   /** Optional: custom width */
@@ -170,10 +173,12 @@ function rootFontSizePx(): number {
  * empty and loaded states, which is what makes a change announced.
  */
 export default function DataTable<T>(props: DataTableProps<T>) {
-  const { loading = false, statusMessage = "" } = props;
+  const { loading = false, statusMessage = "", error } = props;
   return (
     <>
-      <LiveStatus message={loading ? "Loading" : statusMessage} />
+      <LiveStatus
+        message={error ? `Error loading data: ${error}` : loading ? "Loading" : statusMessage}
+      />
       <DataTableView {...props} />
     </>
   );
@@ -193,6 +198,12 @@ function DataTableView<T>({
   minColumnWidth = 8,
   cardsBelow,
 }: DataTableProps<T>) {
+  if (
+    initialPageSize !== undefined &&
+    (!Number.isSafeInteger(initialPageSize) || initialPageSize < 1)
+  ) {
+    throw new Error("DataTable pageSize must be a positive integer");
+  }
   const theme = useMantineTheme();
   const isMobile = useMediaQuery(`(max-width: ${theme.breakpoints.sm})`);
 
@@ -219,7 +230,8 @@ function DataTableView<T>({
   }, []);
   const width = observedWidth || firstWidth;
   const remPx = useMemo(() => rootFontSizePx(), []);
-  const needPx = (cardsBelow ?? columns.length * minColumnWidth) * remPx;
+  const needPx =
+    (cardsBelow ?? columns.length * minColumnWidth + (onRowClick ? 2.75 : 0)) * remPx;
   const [tooNarrow, setTooNarrow] = useState(false);
   // Derived state with a margin, set during render as `page` is below:
   // once on cards, stay on cards until there is comfortably room.
@@ -262,6 +274,15 @@ function DataTableView<T>({
     }
   };
 
+  const cardSortOptions = columns.flatMap((column, index) =>
+    column.accessor
+      ? [
+          { value: `${index}:asc`, label: `${column.header} ascending` },
+          { value: `${index}:desc`, label: `${column.header} descending` },
+        ]
+      : [],
+  );
+
   const sortedData = useMemo(() => {
     if (sortColumnIndex === null) return data;
     const accessor = columns[sortColumnIndex]?.accessor;
@@ -302,8 +323,9 @@ function DataTableView<T>({
     ? sortedData.slice((activePage - 1) * pageSize, activePage * pageSize)
     : sortedData;
 
-  // Show pagination footer when data exceeds the default threshold (10 items)
-  const showPagination = pageSize && sortedData.length > 10;
+  // Never slice away records without a way to reach their page. Keep the
+  // existing controls for larger datasets, even when they fit on one page.
+  const showPagination = pageSize !== undefined && (totalPages > 1 || sortedData.length > 10);
   // Only show nav buttons when there are multiple pages
   const showNav = totalPages > 1;
 
@@ -347,6 +369,11 @@ function DataTableView<T>({
                   <BodyTextBold>{column.header}</BodyTextBold>
                 </Table.Th>
               ))}
+              {onRowClick && (
+                <Table.Th scope="col">
+                  <VisuallyHidden>Record actions</VisuallyHidden>
+                </Table.Th>
+              )}
             </Table.Tr>
           </Table.Thead>
           <Table.Tbody>
@@ -357,6 +384,11 @@ function DataTableView<T>({
                     <Skeleton height={25} mt={4} mb={4} />
                   </Table.Td>
                 ))}
+                {onRowClick && (
+                  <Table.Td>
+                    <Skeleton height={25} w={50} mt={4} mb={4} />
+                  </Table.Td>
+                )}
               </Table.Tr>
             ))}
           </Table.Tbody>
@@ -391,12 +423,32 @@ function DataTableView<T>({
             {controls}
           </Group>
         )}
+        {cardSortOptions.length > 0 && (
+          <NativeSelect
+            label="Sort rows"
+            value={sortColumnIndex === null ? "" : `${sortColumnIndex}:${sortDirection}`}
+            data={[{ value: "", label: "Original order" }, ...cardSortOptions]}
+            onChange={(event) => {
+              const [index, direction] = event.currentTarget.value.split(":");
+              const column = Number(index);
+              if (
+                (direction === "asc" || direction === "desc") &&
+                Number.isInteger(column) &&
+                columns[column]?.accessor
+              ) {
+                setSortColumnIndex(column);
+                setSortDirection(direction);
+              } else setSortColumnIndex(null);
+            }}
+          />
+        )}
         {visibleData.map((row) => (
           <DataCard
             key={getRowKey(row)}
             row={row}
             columns={columns}
-            onClick={onRowClick ?? (() => {})}
+            onClick={onRowClick}
+            actionLabel={`Open record ${getRowKey(row)}`}
           />
         ))}
         {showPagination && (
@@ -430,7 +482,20 @@ function DataTableView<T>({
         <Table.Thead>
           <Table.Tr>
             {columns.map((column, index) => (
-              <Table.Th key={index} className={classes.header} style={{ width: column.width }}>
+              <Table.Th
+                key={index}
+                className={classes.header}
+                style={{ width: column.width }}
+                aria-sort={
+                  column.accessor
+                    ? sortColumnIndex === index
+                      ? sortDirection === "asc"
+                        ? "ascending"
+                        : "descending"
+                      : "none"
+                    : undefined
+                }
+              >
                 {column.accessor ? (
                   <SortHeader
                     label={column.header}
@@ -442,13 +507,24 @@ function DataTableView<T>({
                 )}
               </Table.Th>
             ))}
+            {onRowClick && (
+              <Table.Th scope="col">
+                <VisuallyHidden>Record actions</VisuallyHidden>
+              </Table.Th>
+            )}
           </Table.Tr>
         </Table.Thead>
         <Table.Tbody>
           {visibleData.map((row) => (
             <Table.Tr
               key={getRowKey(row)}
-              onClick={onRowClick ? () => onRowClick(row) : undefined}
+              onClick={
+                onRowClick
+                  ? (event) => {
+                      if (shouldActivateRow(event)) onRowClick(row);
+                    }
+                  : undefined
+              }
               style={onRowClick ? { cursor: "pointer" } : undefined}
             >
               {columns.map((column, index) => (
@@ -460,6 +536,14 @@ function DataTableView<T>({
                   <CellContent>{column.render(row)}</CellContent>
                 </Table.Td>
               ))}
+              {onRowClick && (
+                <Table.Td>
+                  <RowAction
+                    label={`Open record ${getRowKey(row)}`}
+                    onOpen={() => onRowClick(row)}
+                  />
+                </Table.Td>
+              )}
             </Table.Tr>
           ))}
         </Table.Tbody>

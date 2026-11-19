@@ -6,6 +6,7 @@
 
 import { useState } from "react";
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 import { VariantStack, VariantRow } from "@/stories/variants";
 import TablePagination from "./TablePagination";
 
@@ -39,6 +40,26 @@ function InteractivePagination() {
 
 export const Default: Story = {
   render: () => <InteractivePagination />,
+};
+
+export const KeyboardOpenPageSize: Story = {
+  ...Default,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const body = within(canvasElement.ownerDocument.body);
+    const trigger = canvas.getByRole("button", { name: "Items per page: 10" });
+    trigger.focus();
+    await userEvent.keyboard("{Enter}");
+    await waitFor(() => expect(body.getByRole("menuitem", { name: "10" })).toHaveFocus());
+    await userEvent.keyboard("{ArrowDown}");
+    await expect(body.getByRole("menuitem", { name: "20" })).toHaveFocus();
+    await userEvent.keyboard("{Enter}");
+    await expect(canvas.getByText("Page 1 of 5")).toBeVisible();
+    const updated = canvas.getByRole("button", { name: "Items per page: 20" });
+    updated.focus();
+    await userEvent.keyboard("{Enter}");
+    await waitFor(() => expect(body.getByRole("menuitem", { name: "10" })).toHaveFocus());
+  },
 };
 
 export const AllStates: Story = {

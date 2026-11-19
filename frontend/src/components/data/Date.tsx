@@ -2,7 +2,7 @@
  * Date Component
  *
  * Pure formatter - returns bare text with no wrapping element.
- * Accepts ISO 8601 date strings (YYYY-MM-DD) from the backend (FHIR format).
+ * Accepts canonical calendar dates (YYYY-MM-DD), not timestamp instants.
  */
 
 type FormattedDateProps = {
@@ -42,10 +42,13 @@ export default function FormattedDate({
 
   /* eslint-disable react-hooks/error-boundaries -- try/catch guards date parsing, not React rendering */
   try {
-    const dateObj = new globalThis.Date(date);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || date.startsWith("0000-")) {
+      return <>Invalid date</>;
+    }
+    const dateObj = new globalThis.Date(`${date}T00:00:00.000Z`);
 
-    // Check if date is valid
-    if (Number.isNaN(dateObj.getTime())) {
+    // Date parsing can normalise impossible days into the following month.
+    if (Number.isNaN(dateObj.getTime()) || dateObj.toISOString().slice(0, 10) !== date) {
       return <>Invalid date</>;
     }
 
@@ -75,7 +78,11 @@ export default function FormattedDate({
                 weekday: "long",
               };
 
-    const formattedDate = new Intl.DateTimeFormat(locale, formatOptions).format(dateObj);
+    // A calendar date must not become the previous day west of UTC.
+    const formattedDate = new Intl.DateTimeFormat(locale, {
+      ...formatOptions,
+      timeZone: "UTC",
+    }).format(dateObj);
 
     return <>{formattedDate}</>;
   } catch (error) {

@@ -31,10 +31,13 @@ import {
   Table,
   useComputedColorScheme,
   useMantineTheme,
+  VisuallyHidden,
 } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import DataCard, { DataCardSkeleton } from "./DataCard";
 import CellContent from "./CellContent";
+import RowAction from "./RowAction";
+import { shouldActivateRow } from "./rowInteraction";
 import { BodyText, BodyTextBold } from "@/components/typography";
 
 // ------------------------------------------------------------------
@@ -122,6 +125,11 @@ function DataTableWithResultsView<T>({
                 <BodyTextBold>{column.header}</BodyTextBold>
               </Table.Th>
             ))}
+            {onRowClick && (
+              <Table.Th scope="col">
+                <VisuallyHidden>Record actions</VisuallyHidden>
+              </Table.Th>
+            )}
           </Table.Tr>
         </Table.Thead>
         <Table.Tbody>
@@ -132,6 +140,11 @@ function DataTableWithResultsView<T>({
                   <Skeleton height={25} mt={4} mb={4} />
                 </Table.Td>
               ))}
+              {onRowClick && (
+                <Table.Td>
+                  <Skeleton height={25} w={50} mt={4} mb={4} />
+                </Table.Td>
+              )}
             </Table.Tr>
           ))}
         </Table.Tbody>
@@ -156,7 +169,8 @@ function DataTableWithResultsView<T>({
             key={getRowKey(row)}
             row={row}
             columns={columns}
-            onClick={onRowClick ?? (() => {})}
+            onClick={onRowClick}
+            actionLabel={`Open record ${getRowKey(row)}`}
             footer={getSubRow?.(row) ?? null}
           />
         ))}
@@ -173,11 +187,17 @@ function DataTableWithResultsView<T>({
               <BodyTextBold>{column.header}</BodyTextBold>
             </Table.Th>
           ))}
+          {onRowClick && (
+            <Table.Th scope="col">
+              <VisuallyHidden>Record actions</VisuallyHidden>
+            </Table.Th>
+          )}
         </Table.Tr>
       </Table.Thead>
       <Table.Tbody>
         {data.map((row, rowIndex) => {
           const subRowContent = getSubRow?.(row) ?? null;
+          const hasSubRow = subRowContent !== null && typeof subRowContent !== "boolean";
           const isStriped = rowIndex % 2 === 1;
           const rowBg = isStriped ? stripeBg : undefined;
           return (
@@ -185,24 +205,43 @@ function DataTableWithResultsView<T>({
               <Table.Tr
                 bg={rowBg}
                 style={{
-                  ...(subRowContent ? { borderBottom: "none" } : {}),
+                  ...(hasSubRow ? { borderBottom: "none" } : {}),
                   ...(onRowClick ? { cursor: "pointer" } : {}),
                 }}
-                onClick={onRowClick ? () => onRowClick(row) : undefined}
+                onClick={
+                  onRowClick
+                    ? (event) => {
+                        if (shouldActivateRow(event)) onRowClick(row);
+                      }
+                    : undefined
+                }
               >
                 {columns.map((column, index) => (
                   <Table.Td
                     key={index}
                     style={{ verticalAlign: "middle" }}
-                    pb={subRowContent ? 0 : undefined}
+                    pb={hasSubRow ? 0 : undefined}
                   >
                     <CellContent>{column.render(row)}</CellContent>
                   </Table.Td>
                 ))}
+                {onRowClick && (
+                  <Table.Td>
+                    <RowAction
+                      label={`Open record ${getRowKey(row)}`}
+                      onOpen={() => onRowClick(row)}
+                    />
+                  </Table.Td>
+                )}
               </Table.Tr>
-              {subRowContent && (
+              {hasSubRow && (
                 <Table.Tr bg={rowBg} style={{ borderTop: "none" }}>
-                  <Table.Td colSpan={columns.length} pt={0} pb="sm" px="md">
+                  <Table.Td
+                    colSpan={columns.length + (onRowClick ? 1 : 0)}
+                    pt={0}
+                    pb="sm"
+                    px="md"
+                  >
                     {subRowContent}
                   </Table.Td>
                 </Table.Tr>
