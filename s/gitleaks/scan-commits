@@ -102,6 +102,10 @@ main() {
 		exit 1
 	fi
 
+	# This is a history scan of the checkout containing the script, not a staged
+	# hook. Inherited routing from another Git command must not change its scope.
+	unset GIT_DIR GIT_WORK_TREE GIT_COMMON_DIR GIT_INDEX_FILE
+
 	if ! head=$(git -C "${root}" rev-parse --verify --quiet --end-of-options "${head_ref}^{commit}"); then
 		echo "The head is not a commit this checkout has. CI needs fetch-depth: 0." >&2
 		exit 1

@@ -212,3 +212,15 @@ EOF
 	[[ "$output" == *"Scanning 1 commit(s)"* ]]
 	grep -q -- "--log-opts=${base}..${selected}" "${calls}"
 }
+
+@test "inherited Git routing cannot scan another repository's clean history" {
+	local other="${BATS_TEST_TMPDIR}/other"
+	git init -q "${other}"
+	git -C "${other}" -c user.name=Fixture -c user.email=fixture@example.invalid -c commit.gpgsign=false commit -qm foreign --allow-empty
+
+	run env GIT_DIR="${other}/.git" GIT_WORK_TREE="${other}" GIT_COMMON_DIR="${other}/.git" GIT_INDEX_FILE="${other}/.git/index" bash "${repo}/s/gitleaks/scan-commits" --all
+
+	[ "$status" -eq 0 ]
+	[[ "$output" == *"Scanning 2 commit(s)"* ]]
+	grep -q -- "--log-opts=$(git -C "${repo}" rev-parse HEAD)" "${calls}"
+}
