@@ -79,6 +79,8 @@ Runs the test suites. There are three, because they need different environments:
 
 An argument naming the `safety_file` package or `s/tests` routes to the host; anything else goes to the container.
 
+After all three suites pass, a full run checks their collected-test floors together. Local full runs may raise stale floors; CI stays read-only. Any explicit arguments, including test filters, skip the full-suite floor transaction.
+
 ### `./s/lint`
 
 Runs every check CI enforces: `pre-commit run --all-files`, whose hooks include the Zizmor GitHub Actions audit. Run before committing.
@@ -99,7 +101,15 @@ A full run also checks the hook floors and reach below. Outside CI it may raise 
 
 `./s/floors/check` and `./s/floors/update` accept an explicit subset on stdin; `--expect CHECK...` requires exactly that key set. A stdin consumer cannot discover whether its producer failed after printing rows. Capture and check the producer's exit status before invoking a mutating consumer, as the shared hooks/refresh commands do.
 
-Reach uses pre-commit's own classifier, a fail-visible compatibility boundary, rather than copied matcher logic. It checks Terraform sources and native filename-free Gitleaks trigger/entry policy, plus the separate frontend npm/CI commands. These are routing/configuration checks, not proof that scanners or tests executed. Real fault probes, staged/history Gitleaks canaries and frontend tooling tests remain separate evidence. Test-suite floors land in the following phase.
+Reach uses pre-commit's own classifier, a fail-visible compatibility boundary, rather than copied matcher logic. It checks Terraform sources and native filename-free Gitleaks trigger/entry policy, plus the separate frontend npm/CI commands. These are routing/configuration checks, not proof that scanners or tests executed. Real fault probes, staged/history Gitleaks canaries and frontend tooling tests remain separate evidence.
+
+### Test-suite floors
+
+`./s/floors/test-counts safety-file django vitest bats` collects counts without running tests. It uses host pytest for storage, the existing `web` container for Django, the installed local Vitest module with `--project=unit`, and host `bats --count s/tests`. Django collection requires the development stack to be up. Count commands never install tools or packages; install frontend dependencies deliberately with `./s/frontend install` if missing.
+
+`./s/floors/tests [--raise] SUITE...` checks exactly the requested suites after their successful full runs. Reports are bounded to `16 MiB` with a 180-second process limit. Failed producers, duplicate suites, ambiguous or filtered pytest summaries, malformed Vitest records and non-positive Bats counts fail before emitting measurements or changing floors. Unit identities include project, file, test name and source location; the collection count can differ from parameter-expanded executed cases.
+
+The refresh command above measures all hooks and all four suites before one monotonic update. Full frontend runs check the unit floor only after tests and both builds pass. Explicit scripts and filtered runs do not apply full-unit floors. Node tooling tests and Storybook light/dark/browser canaries remain separate execution gates: the generated Storybook static list does not reliably represent executed cases, so it is not included in the unit count or presented as a browser test floor.
 
 ### `./s/frontend`
 
@@ -231,6 +241,7 @@ The seeding step refuses to run with `DEBUG` off. It creates an account whose pa
 - **`s/utils/dev-details.py`** - read-only standard-library privacy scanner behind the shell entry point, with bounded file reads and explicit scope/error handling.
 - **`s/utils/floors.py`** - complete count/floor validation and atomic, monotonic publication shared by check/update.
 - **`s/utils/hook-counts.py`** - bounded native-report collection which emits counts only after every counting hook succeeds.
+- **`s/utils/test-counts.py`** - validates explicitly selected suite reports and buffers every successful count before emitting a complete measurement stream.
 - **`s/utils/gitleaks-report.py`** - validates the bounded, redacted report for the synthetic canary. A findings exit code without the expected rule, file and line is not evidence that the scan worked.
 - **`s/utils/hook-version.py`** - shared duplicate-aware safe YAML boundary for release pins used by tool installers and CI outputs.
 - **`s/utils/github-rulesets.py`** - validates and selects repository-owned ruleset identities for `s/terraform`. Its refusal paths are covered by `s/tests/terraform.bats`.

@@ -7,6 +7,7 @@ if [ "$#" -ne 0 ]; then
 	echo 'Usage: s/floors/refresh (no arguments)' >&2
 	exit 1
 fi
-counts="$("${here}/hook-counts")"
+hook_counts="$("${here}/hook-counts")"
+test_counts="$("${here}/test-counts" safety-file django vitest bats)"
 "${here}/reach"
-printf '%s\n' "${counts}" | "${here}/update" --expect bandit-lines mypy-files cspell-files zizmor-files dev-details-files
+printf '%s\n%s\n' "${hook_counts}" "${test_counts}" | "${here}/update" --expect bandit-lines mypy-files cspell-files zizmor-files dev-details-files safety-file-tests django-tests vitest-tests bats-tests

@@ -9,7 +9,8 @@
 #   ./s/frontend build       production bundle
 #   ./s/frontend storybook   Storybook, the shared component catalogue
 #
-# With no arguments, runs the whole gate CI runs, in CI's order.
+# With no arguments, runs the whole gate CI runs, in CI's order, with the
+# Vitest suite held to its floor in s/floors/minimums.
 #
 # Runs on the host rather than in the container: a dev server is already
 # running in Docker, and `npm` wants a writable node_modules it owns.
@@ -53,6 +54,12 @@ if [ "$#" -eq 0 ]; then
 	npm run build
 	echo "==> storybook build"
 	npm run build-storybook
+	echo "==> unit test floor"
+	floor_options=()
+	if [ -z "${CI:-}" ]; then
+		floor_options=(--raise)
+	fi
+	../s/floors/tests "${floor_options[@]}" vitest
 	exit 0
 fi
 

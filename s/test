@@ -11,7 +11,7 @@
 #
 # Routing:
 #
-#   ./s/test                      all three suites
+#   ./s/test                      all three suites, then their floors
 #   ./s/test safety_file          host suite only
 #   ./s/test s/tests              script tests only
 #   ./s/test safety_file -k risk  host suite, filtered
@@ -53,7 +53,14 @@ if [ "$#" -eq 0 ]; then
 	bats s/tests
 	echo
 	echo "==> app (container)"
-	exec docker compose exec -T "$SERVICE" pytest "$CONTAINER_TESTS"
+	docker compose exec -T "$SERVICE" pytest "$CONTAINER_TESTS"
+	echo
+	echo "==> test floors"
+	floor_options=()
+	if [ -z "${CI:-}" ]; then
+		floor_options=(--raise)
+	fi
+	exec s/floors/tests "${floor_options[@]}" safety-file django bats
 fi
 
 case "$1" in

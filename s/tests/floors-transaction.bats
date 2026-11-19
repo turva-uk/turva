@@ -17,6 +17,10 @@ mypy-files 18
 cspell-files 44
 zizmor-files 4
 dev-details-files 410
+safety-file-tests 144
+django-tests 439
+vitest-tests 648
+bats-tests 9
 EOF
 	cp "${minimums}" "${BATS_TEST_TMPDIR}/before"
 	cat >"${repo}/s/floors/hook-counts" <<'EOF'
@@ -30,7 +34,12 @@ EOF
 echo checked >"${BATS_TEST_TMPDIR}/reach-called"
 exit "${REACH_STATUS}"
 EOF
-	chmod +x "${repo}/s/floors/"{hook-counts,reach}
+	cat >"${repo}/s/floors/test-counts" <<'EOF'
+#!/usr/bin/env bash
+printf 'safety-file-tests 161\ndjango-tests 521\nvitest-tests 1139\nbats-tests 10\n'
+exit "${TEST_STATUS:-0}"
+EOF
+	chmod +x "${repo}/s/floors/"{hook-counts,reach,test-counts}
 	export COUNT_STATUS=0 REACH_STATUS=0 COUNT_MODE=valid
 }
 
@@ -77,6 +86,13 @@ EOF
 	[ "$status" -eq 1 ]
 	cmp "${minimums}" "${BATS_TEST_TMPDIR}/before"
 	export REACH_STATUS=0 COUNT_MODE=missing
+	run "${repo}/s/floors/refresh"
+	[ "$status" -eq 1 ]
+	cmp "${minimums}" "${BATS_TEST_TMPDIR}/before"
+}
+
+@test "explicit refresh does not publish hook increases when a later suite producer fails" {
+	export TEST_STATUS=1
 	run "${repo}/s/floors/refresh"
 	[ "$status" -eq 1 ]
 	cmp "${minimums}" "${BATS_TEST_TMPDIR}/before"
