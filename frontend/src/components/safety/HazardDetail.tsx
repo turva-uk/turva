@@ -14,9 +14,10 @@
  * which sanitises what it renders: a safety file's text is untrusted.
  */
 
-import { SimpleGrid, Stack } from "@mantine/core";
+import { Alert, SimpleGrid, Stack } from "@mantine/core";
 
 import BaseCard from "@/components/base-card/BaseCard";
+import FormattedDate from "@/components/data/Date";
 import { ResultMessage } from "@/components/message-cards";
 import { BodyText, BodyTextBold, Heading, MarkdownView } from "@/components/typography";
 import type { Assessment, Hazard, HazardOptions, Mitigation } from "@/lib/safety";
@@ -58,12 +59,10 @@ function AssessmentCard({
 }
 
 function Field({ label, text }: { label: string; text: string }) {
-  if (!text.trim()) return null;
-
   return (
     <Stack gap={4}>
       <BodyTextBold>{label}</BodyTextBold>
-      <BodyText>{text}</BodyText>
+      <BodyText preserveLines>{text.trim() ? text : "Not recorded."}</BodyText>
     </Stack>
   );
 }
@@ -77,15 +76,29 @@ export interface HazardDetailProps {
 }
 
 export default function HazardDetail({ hazard, mitigations, options }: HazardDetailProps) {
-  const named = mitigations.filter((m) => hazard.mitigations.includes(m.id));
+  const named = hazard.mitigations.map((id) => ({
+    id,
+    mitigation: mitigations.find((m) => m.id === id),
+  }));
 
   return (
     <Stack gap="lg">
-      {hazard.requires_elimination && hazard.status === "open" && (
+      <Heading>
+        {hazard.id}: {hazard.title}
+      </Heading>
+      <BodyText>
+        Status: {hazard.status || "Not recorded"}. Responsible person:{" "}
+        {hazard.owner || "Not recorded"}.
+      </BodyText>
+      <BodyText>
+        Created <FormattedDate date={hazard.created} format="medium" />; updated{" "}
+        <FormattedDate date={hazard.updated} format="medium" />.
+      </BodyText>
+      {hazard.requires_elimination && (
         <ResultMessage
           variant="warning"
           title="This hazard blocks go-live"
-          subtitle="Its residual risk level must be reduced before deployment."
+          subtitle="Residual risk requires elimination. A closed or transferred status does not by itself reduce the recorded assessment."
         />
       )}
       <Field label="Cause" text={hazard.cause} />
@@ -100,12 +113,35 @@ export default function HazardDetail({ hazard, mitigations, options }: HazardDet
         {named.length === 0 ? (
           <BodyText c="dimmed">No mitigation is recorded against it.</BodyText>
         ) : (
-          named.map((mitigation) => (
-            <BodyText key={mitigation.id}>
-              {mitigation.id}: {mitigation.title} ({mitigation.control_type},{" "}
-              {mitigation.status})
-            </BodyText>
-          ))
+          named.map(({ id, mitigation }) =>
+            mitigation ? (
+              <Stack
+                component="section"
+                role="region"
+                aria-label={`${id}: ${mitigation.title}`}
+                key={id}
+                gap={4}
+              >
+                <BodyTextBold>
+                  {id}: {mitigation.title}
+                </BodyTextBold>
+                <BodyText>
+                  {mitigation.control_type} control, {mitigation.status}
+                </BodyText>
+                <BodyText>Responsible person: {mitigation.owner || "Not recorded"}</BodyText>
+                <BodyTextBold>Recorded implementation evidence</BodyTextBold>
+                <BodyText preserveLines>
+                  {mitigation.evidence || "Implementation evidence not recorded."}
+                </BodyText>
+                {mitigation.body.trim() && <MarkdownView source={mitigation.body} />}
+              </Stack>
+            ) : (
+              <Alert key={id} role="alert" color="red" title="Linked mitigation unavailable">
+                {id} is recorded against this hazard, but its details were not supplied. The
+                mitigation evidence is incomplete in this view.
+              </Alert>
+            ),
+          )
         )}
       </Stack>
       <Field label="Justification of residual risk" text={hazard.justification} />

@@ -33,8 +33,8 @@ import {
   type BadgeColourConfig,
 } from "@/components/badge/badgeColours";
 import AppTooltip from "@/components/tooltip/AppTooltip";
-import { BodyText } from "@/components/typography";
-import type { Assessment } from "@/lib/safety";
+import { BodyText, ErrorMessage } from "@/components/typography";
+import { isRiskScore, type Assessment } from "@/lib/safety";
 
 type Props = {
   /** The assessment, with the level the server derived */
@@ -59,13 +59,34 @@ function describeAssessment(assessment: Assessment): string {
 }
 
 export default function RiskScoreBadge({ assessment, compact = false }: Props) {
+  if (
+    !isRiskScore(assessment.risk_level) ||
+    !isRiskScore(assessment.severity) ||
+    !isRiskScore(assessment.likelihood) ||
+    typeof assessment.risk_label !== "string" ||
+    !assessment.risk_label.trim()
+  ) {
+    return (
+      <span role="alert">
+        <ErrorMessage>Risk assessment unavailable: unsupported recorded values.</ErrorMessage>
+      </span>
+    );
+  }
   const colour = colourFor(assessment.risk_level);
   const words = describeAssessment(assessment);
 
   if (compact) {
     return (
       <AppTooltip label={words}>
-        <Badge color={colour.bg} c={colour.text} variant={BADGE_VARIANT} aria-label={words}>
+        <Badge
+          color={colour.bg}
+          c={colour.text}
+          variant={BADGE_VARIANT}
+          aria-label={words}
+          tabIndex={0}
+          role="img"
+          className="mantine-focus-auto"
+        >
           {assessment.risk_level}
         </Badge>
       </AppTooltip>

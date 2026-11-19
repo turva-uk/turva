@@ -230,8 +230,10 @@ function DataTableView<T>({
   }, []);
   const width = observedWidth || firstWidth;
   const remPx = useMemo(() => rootFontSizePx(), []);
+  // The native Open button and its cell padding need a full column, not
+  // just the minimum touch-target width.
   const needPx =
-    (cardsBelow ?? columns.length * minColumnWidth + (onRowClick ? 2.75 : 0)) * remPx;
+    (cardsBelow ?? (columns.length + (onRowClick ? 1 : 0)) * minColumnWidth) * remPx;
   const [tooNarrow, setTooNarrow] = useState(false);
   // Derived state with a margin, set during render as `page` is below:
   // once on cards, stay on cards until there is comfortably room.

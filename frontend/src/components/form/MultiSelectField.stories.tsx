@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { Stack } from "@mantine/core";
 import BaseCard from "@/components/base-card/BaseCard";
 import MultiSelectField from "./MultiSelectField";
-import { expect, within } from "storybook/test";
+import { expect, fn, userEvent, within } from "storybook/test";
 
 const meta: Meta<typeof MultiSelectField> = {
   title: "Form/Multi select field",
@@ -154,6 +154,34 @@ export const Disabled: Story = {
     value: ["1", "2", "3"],
     disabled: true,
   },
+};
+
+export const ReadOnly: Story = {
+  args: {
+    label: "Related hazards",
+    data: longHazards,
+    defaultValue: [longHazards[0]!],
+    readOnly: true,
+    onChange: fn(),
+  },
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement);
+    const input = canvas.getByRole("combobox", { name: "Related hazards" });
+    await userEvent.click(canvas.getByText(longHazards[0]!));
+    await userEvent.click(canvas.getByText("Related hazards", { selector: "label" }));
+    await userEvent.keyboard("{ArrowDown}{Enter}{Backspace}");
+    await expect(input).not.toBeDisabled();
+    await expect(input).toHaveAttribute("aria-readonly", "true");
+    await expect(input).toHaveAttribute("aria-expanded", "false");
+    await expect(canvas.getByText(longHazards[0]!)).toBeVisible();
+    await expect(within(canvasElement.ownerDocument.body).queryByRole("listbox")).toBeNull();
+    await expect(args.onChange).not.toHaveBeenCalled();
+  },
+};
+
+export const ReadOnlySearchable: Story = {
+  ...ReadOnly,
+  args: { ...ReadOnly.args, searchable: true },
 };
 
 export const WithError: Story = {

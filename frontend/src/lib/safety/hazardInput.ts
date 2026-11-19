@@ -11,11 +11,11 @@
  */
 
 import { isRiskScore } from "./risk";
-import type { Assessment, AssessmentInput, Hazard, HazardInput } from "./types";
+import type { Assessment, AssessmentInput, Hazard, HazardDraft, HazardInput } from "./types";
 import { isHazardStatus } from "./types";
 
 /** What a new hazard starts as. */
-export function blankHazard(owner = ""): HazardInput {
+export function blankHazard(owner = ""): HazardDraft {
   return {
     title: "",
     status: "open",
@@ -23,8 +23,8 @@ export function blankHazard(owner = ""): HazardInput {
     cause: "",
     effect: "",
     harm: "",
-    initial: { severity: 3, likelihood: 3 },
-    residual: { severity: 3, likelihood: 3 },
+    initial: { severity: null, likelihood: null },
+    residual: { severity: null, likelihood: null },
     justification: "",
     body: "",
   };
@@ -67,18 +67,32 @@ export function hazardInputFrom(hazard: Hazard): HazardInput {
 }
 
 /** Turva's layout rules 6 and 7, as the officer would hear them. */
-export function hazardProblems(input: HazardInput): string[] {
+export function hazardProblems(input: HazardDraft): string[] {
   const problems: string[] = [];
 
   if (!input.title.trim()) problems.push("Give the hazard a title.");
 
-  if (input.residual.severity > input.initial.severity) {
+  for (const which of ["initial", "residual"] as const) {
+    for (const score of ["severity", "likelihood"] as const) {
+      if (!isRiskScore(input[which][score])) problems.push(`Choose the ${which} ${score}.`);
+    }
+  }
+
+  if (
+    isRiskScore(input.residual.severity) &&
+    isRiskScore(input.initial.severity) &&
+    input.residual.severity > input.initial.severity
+  ) {
     problems.push(
       "Residual severity cannot be higher than initial severity. If the risk rose, that is a new assessment.",
     );
   }
 
-  if (input.residual.likelihood > input.initial.likelihood) {
+  if (
+    isRiskScore(input.residual.likelihood) &&
+    isRiskScore(input.initial.likelihood) &&
+    input.residual.likelihood > input.initial.likelihood
+  ) {
     problems.push(
       "Residual likelihood cannot be higher than initial likelihood. If the risk rose, that is a new assessment.",
     );

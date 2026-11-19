@@ -3,7 +3,8 @@
  */
 
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { fn } from "storybook/test";
+import { expect, fn, within } from "storybook/test";
+import { Stack } from "@mantine/core";
 import SafetyCaseTable from "./SafetyCaseTable";
 import { SAMPLE_FILES } from "@/test/safetyFile";
 
@@ -27,4 +28,27 @@ export const Empty: Story = {
 export const DarkMode: Story = {
   ...Default,
   globals: { colorScheme: "dark" },
+};
+
+/** The 720px reflow viewport leaves 688px inside Storybook's padding. */
+export const NarrowRecordActions: Story = {
+  ...Default,
+  render: (args) => (
+    <Stack maw={688}>
+      <SafetyCaseTable {...args} />
+    </Stack>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.queryByRole("table")).toBeNull();
+    await expect(canvas.getByRole("button", { name: "Open record bp-at-home" })).toBeVisible();
+    await expect(canvas.getByText("1 Mar 2026")).toHaveAttribute(
+      "datetime",
+      "2026-03-01T09:00:00Z",
+    );
+    await expect(canvas.queryByText(/Invalid date/i)).toBeNull();
+    await expect(canvasElement.ownerDocument.documentElement.scrollWidth).toBeLessThanOrEqual(
+      canvasElement.ownerDocument.defaultView!.innerWidth,
+    );
+  },
 };

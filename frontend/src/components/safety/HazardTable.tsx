@@ -84,16 +84,27 @@ export interface HazardTableProps {
    */
   action?: ReactNode;
   hazards: Hazard[];
+  /** Keep unavailable evidence distinct from a successful empty log. */
+  error?: string | null;
+  loading?: boolean;
   /** Called when a hazard is chosen */
   onSelect?: (hazard: Hazard) => void;
 }
 
-export default function HazardTable({ action, hazards, onSelect }: HazardTableProps) {
+export default function HazardTable({
+  action,
+  hazards,
+  onSelect,
+  error,
+  loading,
+}: HazardTableProps) {
   return (
     <DataTableControlled
       action={action}
       searchFields={(hazard) => [hazard.id, hazard.title, hazard.cause]}
       data={hazards}
+      error={error}
+      loading={loading}
       columns={columns}
       getRowKey={(hazard) => hazard.id}
       onRowClick={onSelect}

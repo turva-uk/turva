@@ -3,6 +3,9 @@
  */
 
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { expect, within } from "storybook/test";
+import { Stack } from "@mantine/core";
+import { StoryNote } from "@/stories/variants";
 import HazardDetail from "./HazardDetail";
 import {
   BLOCKING_HAZARD,
@@ -15,6 +18,17 @@ const meta: Meta<typeof HazardDetail> = {
   title: "Safety/Hazard detail",
   component: HazardDetail,
   parameters: { layout: "padded" },
+  decorators: [
+    (Story) => (
+      <Stack>
+        <Story />
+        <StoryNote>
+          Fictional recorded evidence for interface testing. These sample claims have not been
+          clinically assessed or approved.
+        </StoryNote>
+      </Stack>
+    ),
+  ],
 };
 
 export default meta;
@@ -44,4 +58,29 @@ export const WithoutOptions: Story = {
 export const DarkMode: Story = {
   ...Mitigated,
   globals: { colorScheme: "dark" },
+};
+
+export const MissingLinkedEvidence: Story = {
+  args: { hazard: MITIGATED_HAZARD, mitigations: [] },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole("alert")).toHaveTextContent("MIT-001");
+    await expect(canvas.queryByText("No mitigation is recorded against it.")).toBeNull();
+  },
+};
+
+export const ClosedWithHighResidualRisk: Story = {
+  args: {
+    hazard: {
+      ...BLOCKING_HAZARD,
+      status: "closed",
+      justification: "Fictional recorded closure; the assessment is unchanged.",
+    },
+    mitigations: [],
+  },
+  play: async ({ canvasElement }) => {
+    await expect(
+      within(canvasElement).getByText(/does not by itself reduce the recorded assessment/),
+    ).toBeVisible();
+  },
 };

@@ -6,7 +6,13 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
-import { blankHazard, hazardInputFrom, type Assessment, type HazardInput } from "@/lib/safety";
+import {
+  blankHazard,
+  hazardInputFrom,
+  type Assessment,
+  type HazardDraft,
+  type HazardInput,
+} from "@/lib/safety";
 import { renderWithMantine } from "@/test/test-utils";
 import {
   assessment,
@@ -18,7 +24,7 @@ import {
 import HazardForm, { type PreviewAssessment } from "./HazardForm";
 
 function renderForm({
-  initial = hazardInputFrom(MITIGATED_HAZARD),
+  initial = hazardInputFrom(MITIGATED_HAZARD) as HazardDraft,
   preview = vi.fn<PreviewAssessment>(samplePreview),
   onSubmit = vi.fn<(hazard: HazardInput) => void>(),
   error = null as string | null,
@@ -43,7 +49,7 @@ afterEach(() => {
 
 /** The initial assessment's likelihood select: the first of the two. */
 function initialLikelihood(): HTMLElement {
-  const [first] = screen.getAllByLabelText("Likelihood");
+  const [first] = screen.getAllByLabelText(/^Likelihood/);
   if (!first) throw new Error("No likelihood select");
 
   return first;
@@ -137,7 +143,10 @@ describe("HazardForm", () => {
 
       renderWithMantine(
         <HazardForm
-          initial={blankHazard("cso@example.nhs.uk")}
+          initial={{
+            ...blankHazard("cso@example.nhs.uk"),
+            initial: { severity: 3, likelihood: 3 },
+          }}
           options={SAMPLE_HAZARD_OPTIONS}
           onSubmit={vi.fn()}
           onCancel={vi.fn()}

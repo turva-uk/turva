@@ -13,6 +13,6 @@ import type { RiskScore } from "./types";
 export const RISK_SCORES: readonly RiskScore[] = [1, 2, 3, 4, 5];
 
 /** Narrows a number Turva's API sends to a score on the matrix. */
-export function isRiskScore(value: number): value is RiskScore {
-  return (RISK_SCORES as readonly number[]).includes(value);
+export function isRiskScore(value: unknown): value is RiskScore {
+  return RISK_SCORES.some((score) => score === value);
 }

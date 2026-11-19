@@ -26,11 +26,22 @@ describe("SafetyCaseTable", () => {
     expect(screen.getByText("DCB0160")).toBeInTheDocument();
     expect(screen.getByText("Public")).toBeInTheDocument();
     expect(screen.getByRole("columnheader", { name: /Created/ })).toBeInTheDocument();
+    const created = screen.getByText("1 Mar 2026");
+    expect(created).toHaveAttribute("datetime", growthCharts.created_at);
+    expect(created).toHaveAttribute("title", growthCharts.created_at);
+    expect(screen.queryByText(/Invalid date/i)).not.toBeInTheDocument();
   });
 
   it("has no status column, which Turva's files do not carry yet", () => {
     renderWithRouter(<SafetyCaseTable cases={SAMPLE_FILES} />);
     expect(screen.queryByRole("columnheader", { name: /Status/ })).not.toBeInTheDocument();
+  });
+
+  it("formats the creation instant in the labelled UTC zone, not its source date substring", () => {
+    const file = { ...SAMPLE_FILES[0]!, created_at: "2026-03-01T00:30:00+02:00" };
+    renderWithRouter(<SafetyCaseTable cases={[file]} />);
+    expect(screen.getByRole("columnheader", { name: /Created \(UTC\)/ })).toBeInTheDocument();
+    expect(screen.getByText("28 Feb 2026")).toHaveAttribute("datetime", file.created_at);
   });
 
   it("says so when there are none", () => {

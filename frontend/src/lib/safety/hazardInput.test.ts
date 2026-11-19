@@ -24,13 +24,13 @@ const HAZARD: Hazard = {
 };
 
 describe("blankHazard", () => {
-  it("starts open, mid-matrix, with the owner given", () => {
+  it("starts open with the owner given, without assuming clinical scores", () => {
     const blank = blankHazard("cso@example.nhs.uk");
 
     expect(blank.status).toBe("open");
     expect(blank.owner).toBe("cso@example.nhs.uk");
-    expect(blank.initial).toEqual({ severity: 3, likelihood: 3 });
-    expect(blank.residual).toEqual({ severity: 3, likelihood: 3 });
+    expect(blank.initial).toEqual({ severity: null, likelihood: null });
+    expect(blank.residual).toEqual({ severity: null, likelihood: null });
   });
 
   it("has nothing to say about risk level", () => {
@@ -89,6 +89,15 @@ describe("hazardProblems", () => {
     expect(hazardProblems(valid)).toEqual([]);
   });
 
+  it("requires all four clinical choices in an unassessed draft", () => {
+    expect(hazardProblems({ ...blankHazard(), title: "Fictional draft" })).toEqual([
+      "Choose the initial severity.",
+      "Choose the initial likelihood.",
+      "Choose the residual severity.",
+      "Choose the residual likelihood.",
+    ]);
+  });
+
   it("asks for a title", () => {
     expect(hazardProblems({ ...valid, title: "  " })).toEqual(["Give the hazard a title."]);
   });
@@ -122,5 +131,13 @@ describe("RISK_SCORES", () => {
   it("is the five scores of the matrix, and nothing else is one", () => {
     expect(RISK_SCORES).toEqual([1, 2, 3, 4, 5]);
     expect([0, 1, 5, 6, 2.5].map(isRiskScore)).toEqual([false, true, true, false, false]);
+    expect([null, undefined, "3", true, NaN, Infinity].map(isRiskScore)).toEqual([
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+    ]);
   });
 });

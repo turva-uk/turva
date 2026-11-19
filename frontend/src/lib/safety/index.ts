@@ -28,6 +28,7 @@ export { isRiskScore, RISK_SCORES } from "./risk";
 export { EXTRACTION_FIELDS, isHazardStatus } from "./types";
 export type {
   AssessmentInput,
+  AssessmentDraft,
   AssessmentPreview,
   AssigneeStatus,
   Assessment,
@@ -42,6 +43,7 @@ export type {
   Hazard,
   HazardDetail,
   HazardInput,
+  HazardDraft,
   HazardOptions,
   HazardSource,
   HazardStatus,

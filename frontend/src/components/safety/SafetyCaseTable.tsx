@@ -13,7 +13,6 @@
 
 import type { ReactNode } from "react";
 
-import FormattedDate from "@/components/data/Date";
 import { type Column } from "@/components/tables/DataTable";
 import DataTableControlled from "@/components/tables/DataTableControlled";
 import type { SafetyFile } from "@/lib/safety";
@@ -40,8 +39,18 @@ const columns: Column<SafetyFile>[] = [
     accessor: (file) => file.visibility,
   },
   {
-    header: "Created",
-    render: (file) => <FormattedDate date={file.created_at} format="medium" />,
+    header: "Created (UTC)",
+    // created_at is an instant, not a YYYY-MM-DD safety-record calendar date.
+    render: (file) => (
+      <time dateTime={file.created_at} title={file.created_at}>
+        {new Date(file.created_at).toLocaleDateString("en-GB", {
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+          timeZone: "UTC",
+        })}
+      </time>
+    ),
     accessor: (file) => file.created_at,
   },
 ];
@@ -54,16 +63,26 @@ export interface SafetyCaseTableProps {
   action?: ReactNode;
   /** The files, in the order to show them */
   cases: readonly SafetyFile[];
+  error?: string | null;
+  loading?: boolean;
   /** Called when a file is chosen */
   onSelect?: (file: SafetyFile) => void;
 }
 
-export default function SafetyCaseTable({ action, cases, onSelect }: SafetyCaseTableProps) {
+export default function SafetyCaseTable({
+  action,
+  cases,
+  onSelect,
+  error,
+  loading,
+}: SafetyCaseTableProps) {
   return (
     <DataTableControlled
       action={action}
       searchFields={(file) => [file.name, file.organisation, file.standard]}
       data={[...cases]}
+      error={error}
+      loading={loading}
       columns={columns}
       getRowKey={(file) => file.slug}
       onRowClick={onSelect}

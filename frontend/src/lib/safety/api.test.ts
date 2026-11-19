@@ -20,7 +20,7 @@ import {
   updateHazard,
   updateMitigation,
 } from "./api";
-import { blankHazard, hazardInputFrom } from "./hazardInput";
+import { hazardInputFrom } from "./hazardInput";
 import type { MitigationInput, RiskScore } from "./types";
 
 /**
@@ -164,7 +164,7 @@ describe("files", () => {
 describe("hazards", () => {
   it("adds one with a POST carrying expected_head and the CSRF header", async () => {
     respond(201, {});
-    const input = blankHazard("cso@example.nhs.uk");
+    const input = hazardInputFrom(HAZARD);
     await addHazard("ward-list", input, HEAD);
 
     const request = sent();
@@ -356,7 +356,7 @@ describe("route identity is not URL navigation", () => {
       () => getFile(slug),
       () => downloadPdf(slug, HEAD),
       () => getHazard(slug, "HAZ-001"),
-      () => addHazard(slug, blankHazard(), HEAD),
+      () => addHazard(slug, hazardInputFrom(HAZARD), HEAD),
       () => updateHazard(slug, "HAZ-001", {}, HEAD),
       () => getMitigation(slug, "MIT-001"),
       () => addMitigation(slug, MITIGATION, HEAD),
