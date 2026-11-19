@@ -2,6 +2,7 @@
 # Read-only privacy checks for this Turva checkout's text files. Personal
 # literals are optional; scanning never creates a list or changes Git config.
 # Usage: s/checks/check-dev-details [--all] [--denylist PATH] [FILE...]
+# Keep count reporting in the shared Python scanner, not a second parser.
 set -euo pipefail
 
 main() {

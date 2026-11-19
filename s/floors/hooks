@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+# Checks that every pre-commit hook still checks what it should: each
+# counting hook against its floor, then every hook's reach.
+#
+# Usage: s/floors/hooks [--raise]
+#
+# CI's `Styling (pre-commit)` job runs it after pre-commit itself, with
+# every hook already installed. ./s/lint runs it with --raise, which raises
+# a stale floor instead of only reporting it: see s/floors/check. Both
+# halves always run, so one failure does not hide the other.
+#
+# Safe to run twice: it changes nothing but a stale floor.
+set -euo pipefail
+
+here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+main() {
+	local options=("$@")
+	local failed=0
+
+	if ! "${here}/hook-counts" | "${here}/check" "${options[@]}"; then
+		failed=1
+	fi
+
+	if ! "${here}/reach"; then
+		failed=1
+	fi
+
+	exit "${failed}"
+}
+
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+	main "$@"
+fi

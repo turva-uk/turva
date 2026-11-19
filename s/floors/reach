@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+# Checks that every pre-commit hook is given every file it should check.
+#
+# Usage: s/floors/reach [--hook-files FILE]
+#
+# Runs s/floors/reach.py with the Python that pre-commit is installed in,
+# because it asks pre-commit's own code which files each hook receives. See
+# reach.py for the rules. It runs from the repository it sits in, whatever
+# folder it is called from.
+#
+# Safe to run twice: it changes nothing.
+set -euo pipefail
+
+here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+root="$(cd "${here}/../.." && pwd)"
+
+# The same pre-commit as ./s/lint: the repository's .venv copy first, then
+# the one on PATH.
+find_pre_commit() {
+	if [ -x "${root}/.venv/bin/pre-commit" ]; then
+		echo "${root}/.venv/bin/pre-commit"
+		return
+	fi
+
+	command -v pre-commit
+}
+
+# Print the Python a pre-commit executable runs on, from its #! line.
+pre_commit_python() {
+	local pre_commit
+
+	if ! pre_commit="$(find_pre_commit)"; then
+		echo "pre-commit not found, so it cannot be asked which files each hook receives." >&2
+		return 1
+	fi
+
+	head -n 1 "${pre_commit}" | sed -n 's/^#![[:space:]]*//p'
+}
+
+main() {
+	local python=()
+
+	if [ "${1:-}" = "--hook-files" ]; then
+		python=(python3)
+	else
+		# The #! line may be "/usr/bin/env python3", so it is split into words.
+		read -r -a python <<<"$(pre_commit_python)"
+	fi
+
+	cd "${root}"
+	"${python[@]}" "${here}/reach.py" "$@"
+}
+
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+	main "$@"
+fi

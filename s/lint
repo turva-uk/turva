@@ -71,3 +71,12 @@ if [ ${#untracked[@]} -gt 0 ]; then
 
 	[ "$status" -eq 0 ] || exit "$status"
 fi
+
+# A hook that looks in the wrong place still passes, so CI holds each one to
+# its floor and its reach. Do the same here on a full run, with --raise, so
+# a floor the code has outgrown is raised in s/floors/minimums, ready to
+# commit with the work: see s/floors/check.
+if [ "$#" -eq 0 ]; then
+	echo "==> hook floors and reach"
+	s/floors/hooks --raise
+fi
