@@ -163,6 +163,10 @@ Prints the requested repository's decoded release pin from `.pre-commit-config.y
 
 Quoted scalars, comments and flow-style YAML are supported. Missing, duplicate, malformed, multiline and non-release pins fail before a URL or workflow output is written. Input is limited to `1 MiB`, 40 composition levels and 20,000 nodes. YAML aliases/merge keys are deliberately refused; full pre-commit schema validation remains a separate gate. A successful result is exactly one three-component release version, not an arbitrary Git reference.
 
+### Storage type checking
+
+The mypy pre-commit hook checks `safety_file/`, including its tests, using the strict settings in `pyproject.toml`. Its runtime and test package pins match the application locks; update them together. The temporary test-only override permits missing annotations and untyped calls but still checks test bodies. Completing those annotations is tracked in #117; Django typing is separate work in #118. Neither exception disables strict production checks.
+
 ### `./s/terraform`
 
 Runs Terraform for Turva's GitHub repository settings in `terraform/github/`, in a pinned container. The host needs Docker, `curl` and Python 3.10 or later. `plan` and `apply` use `GITHUB_TOKEN`, falling back to `gh auth token`; see [GitHub settings](../docs/docs/github-settings.md) for the local-state limitations and explicit administrative approval boundary.
