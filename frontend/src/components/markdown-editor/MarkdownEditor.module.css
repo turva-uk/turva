@@ -17,3 +17,9 @@
 .comment strong {
   font-style: normal;
 }
+
+/* Editor links need a non-colour cue, as the separate Markdown view has. */
+.content a {
+  text-decoration: underline;
+  text-underline-offset: 0.1em;
+}

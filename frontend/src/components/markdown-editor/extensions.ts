@@ -13,7 +13,8 @@ import { Editor, type Extensions } from "@tiptap/core";
 import { TableKit } from "@tiptap/extension-table";
 import { Markdown } from "@tiptap/markdown";
 import StarterKit from "@tiptap/starter-kit";
-import { HtmlComment } from "./htmlComment";
+import { Marked } from "marked";
+import { commentBody, HtmlComment } from "./htmlComment";
 
 /**
  * Prose, tables and the notes left as HTML comments. A table's columns
@@ -23,75 +24,82 @@ import { HtmlComment } from "./htmlComment";
 export function markdownEditorExtensions(): Extensions {
   return [
     StarterKit.configure({ link: false }),
-    Link,
+    Link.extend({
+      renderMarkdown(node, helpers, context) {
+        if (!this.parent) throw new Error("The link Markdown serializer is unavailable");
+        const explicit = this.parent(node, helpers, context);
+        const text = helpers.renderChildren(node);
+        // Tiptap renders mark delimiters around a placeholder, exposing the
+        // real span separately in the render context. Compare that span,
+        // while returning the placeholder so delimiter extraction still works.
+        const span = context.meta?.["markText"];
+        const content = typeof span === "string" ? span : text;
+        const reference = this.parent(
+          node,
+          { ...helpers, renderChildren: () => content },
+          context,
+        );
+        // Shorten only real link nodes with the same parsed meaning. A
+        // whole-document regex also rewrites link-like text inside code.
+        return fidelityParser.parseInline(content) === fidelityParser.parseInline(reference)
+          ? text
+          : explicit;
+      },
+    }).configure({ openOnClick: false }),
     TableKit.configure({ table: { resizable: false } }),
     HtmlComment,
     Markdown,
   ];
 }
 
-/** A link in Markdown: its words and where it goes. */
-const LINK = /\[([^\]\n]+)\]\(([^)\s]+)\)/g;
+// Comparison only: this HTML is never inserted into a document. Marked
+// normalises list markers, table padding and final newlines without throwing
+// away punctuation, comments, link targets or document structure.
+const fidelityParser = new Marked({
+  async: false,
+  gfm: true,
+  renderer: {
+    html({ text }) {
+      // Marked 17 includes surrounding blank lines in raw comment tokens.
+      // Ignore only that inter-block spacing, never whitespace inside a note.
+      const body = commentBody(text);
+      return body === null ? text : `<!--${body}-->\n`;
+    },
+  },
+});
 
 /**
- * The editor's Markdown, with the address it turned into a link put back
- * as the address.
- *
- * The editor links a bare email or web address as it reads it, and then
- * writes it as `[a.patel@…](mailto:a.patel@…)`: the same on the page, but
- * a different file, with the address twice. A link whose words are its
- * own address, or the address of a `mailto:` one, is written as the
- * address alone. A link somebody gave words of their own is left be.
- */
-export function tidyMarkdown(markdown: string): string {
-  return markdown.replace(LINK, (whole, text: string, url: string) => {
-    const shown = text.replace(/\\(.)/g, "$1");
-
-    return url === shown || url === `mailto:${shown}` ? text : whole;
-  });
-}
-
-/**
- * The characters the editor writes as entities, `&` as `&amp;`, which
- * Markdown reads as the characters they stand for.
- */
-const ENTITIES: Readonly<Record<string, string>> = {
-  "&amp;": "&",
-  "&lt;": "<",
-  "&gt;": ">",
-  "&quot;": '"',
-  "&#39;": "'",
-};
-
-/** The text's words, in order, without the marks that format them. */
-function words(text: string): string {
-  return text
-    .replace(/&(amp|lt|gt|quot|#39);/g, (entity) => ENTITIES[entity] ?? entity)
-    .replace(/\\(.)/g, "$1")
-    .replace(/[^\p{L}\p{N}]+/gu, " ")
-    .trim();
-}
-
-/**
- * Whether the editor keeps every word of this Markdown.
+ * Whether the editor preserves the parsed Markdown, including punctuation.
  *
  * The text is read into an editor nobody sees and written back, and the
- * words compared. Formatting may be written differently, a `*` list for
- * a `-` one, and that does not count; a word that goes missing does,
- * since saving would then lose it. This is the general form of the check
- * that once kept tables out of the editor: whatever the editor cannot
- * yet hold, a document carrying it is not opened there.
+ * parsed output compared. Harmless source formatting may differ; changes to
+ * content or structure fail closed. Unsupported resources and raw HTML are
+ * rejected before Tiptap can parse HTML into browser elements. Standalone
+ * comments are safe because HtmlComment renders their body as text.
  */
 export function editorKeepsEverything(markdown: string): boolean {
-  const editor = new Editor({
-    extensions: markdownEditorExtensions(),
-    content: markdown,
-    contentType: "markdown",
-  });
-
+  let editor: Editor | null = null;
   try {
-    return words(tidyMarkdown(editor.getMarkdown())) === words(markdown);
+    let unsupported = false;
+    void fidelityParser.walkTokens(fidelityParser.lexer(markdown), (token) => {
+      if (
+        token.type === "image" ||
+        (token.type === "html" && (token.block === false || commentBody(token.raw) === null))
+      ) {
+        unsupported = true;
+      }
+    });
+    if (unsupported) return false;
+    editor = new Editor({
+      extensions: markdownEditorExtensions(),
+      content: markdown,
+      contentType: "markdown",
+    });
+    return fidelityParser.parse(editor.getMarkdown()) === fidelityParser.parse(markdown);
+  } catch {
+    // Refusing rich editing must leave the original source available.
+    return false;
   } finally {
-    editor.destroy();
+    editor?.destroy();
   }
 }

@@ -8,7 +8,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { Editor } from "@tiptap/core";
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { editorKeepsEverything, markdownEditorExtensions, tidyMarkdown } from "./extensions";
+import { editorKeepsEverything, markdownEditorExtensions } from "./extensions";
 
 /**
  * The Clinical Risk Management Plan as a new file has it: the template,
@@ -67,6 +67,7 @@ afterEach(() => {
 
 /** The Markdown the editor writes for *source*, untouched. */
 function throughTheEditor(source: string): string {
+  editor?.destroy();
   editor = new Editor({
     extensions: markdownEditorExtensions(),
     content: source,
@@ -186,10 +187,10 @@ describe("the editor's Markdown", () => {
 
   describe("an address the editor turned into a link", () => {
     it("is written back as the address, an email included", () => {
-      expect(tidyMarkdown("Contact [a.b@x.nhs.uk](mailto:a.b@x.nhs.uk) now.")).toBe(
+      expect(throughTheEditor("Contact [a.b@x.nhs.uk](mailto:a.b@x.nhs.uk) now.")).toBe(
         "Contact a.b@x.nhs.uk now.",
       );
-      expect(tidyMarkdown("See [https://x.nhs.uk/a](https://x.nhs.uk/a) here.")).toBe(
+      expect(throughTheEditor("See [https://x.nhs.uk/a](https://x.nhs.uk/a) here.")).toBe(
         "See https://x.nhs.uk/a here.",
       );
     });
@@ -197,11 +198,11 @@ describe("the editor's Markdown", () => {
     it("leaves a link with words of its own as it is", () => {
       const link = "Read [the guidance](https://x.nhs.uk/guide).";
 
-      expect(tidyMarkdown(link)).toBe(link);
+      expect(throughTheEditor(link)).toBe(link);
     });
 
     it("keeps the officer's address plain through the editor", () => {
-      const back = tidyMarkdown(throughTheEditor(filledPlan()));
+      const back = throughTheEditor(filledPlan());
 
       expect(back).toContain("a.patel@riverbank.example.nhs.uk");
       expect(back).not.toContain("mailto:");
@@ -214,9 +215,9 @@ describe("the editor's Markdown", () => {
     });
 
     it("comes back the same a second time, so saving twice changes nothing", () => {
-      const once = tidyMarkdown(throughTheEditor(filledPlan()));
+      const once = throughTheEditor(filledPlan());
       editor?.destroy();
-      const twice = tidyMarkdown(throughTheEditor(once));
+      const twice = throughTheEditor(once);
 
       expect(twice).toBe(once);
     });
@@ -235,7 +236,7 @@ describe("the editor's Markdown", () => {
       editor.commands.focus("end");
       change(editor);
 
-      return tidyMarkdown(editor.getMarkdown());
+      return editor.getMarkdown();
     }
 
     it("saves an added row, and opens again keeping it", () => {

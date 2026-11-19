@@ -12,8 +12,8 @@
  * a template leaves as HTML comments, and nothing more: every extra
  * feature is another way for a file to carry something its Markdown
  * cannot round-trip. The list is in `extensions.ts`, and
- * `editorKeepsEverything` there says whether a document's words all
- * survive it, so a page can refuse to open one that would lose some.
+ * A fidelity check runs before opening the rich editor. Unsupported content
+ * stays in a source textarea, unchanged, rather than being silently dropped.
  *
  * @example
  * ```tsx
@@ -25,10 +25,10 @@
  * ```
  */
 
-import { Stack } from "@mantine/core";
+import { Alert, Stack, Textarea } from "@mantine/core";
 import { RichTextEditor } from "@mantine/tiptap";
 import { type Editor, useEditor, useEditorState } from "@tiptap/react";
-import type { ReactElement } from "react";
+import { useLayoutEffect, useState, type ReactElement } from "react";
 import Icon from "@/components/icons/Icon";
 import {
   IconColumnInsertLeft,
@@ -41,7 +41,8 @@ import {
 } from "@/components/icons/appIcons";
 import { LAYOUT_STICKY_TOP } from "@/components/layouts/layoutConstants";
 import { BodyTextBold } from "@/components/typography";
-import { markdownEditorExtensions, tidyMarkdown } from "./extensions";
+import { editorKeepsEverything, markdownEditorExtensions } from "./extensions";
+import classes from "./MarkdownEditor.module.css";
 
 /** One of the table's controls: what it says, shows and does. */
 interface TableAction {
@@ -149,7 +150,7 @@ function TableControls({ editor }: { editor: Editor | null }) {
 export interface MarkdownEditorProps {
   /** What the text is, shown above the editor and read by a screen reader */
   label: string;
-  /** The Markdown to start from */
+  /** Initial Markdown for this mounted draft. Key/remount only when intentionally opening another document/version. */
   value: string;
   /** Called with the Markdown after every change */
   onChange: (markdown: string) => void;
@@ -157,12 +158,53 @@ export interface MarkdownEditorProps {
   readOnly?: boolean;
 }
 
-export default function MarkdownEditor({
+export default function MarkdownEditor(props: MarkdownEditorProps) {
+  // A parent acknowledging onChange must not reopen/reparse the draft on each
+  // keystroke, reset undo history or replace a retained clinical judgement.
+  const [opened] = useState(() => ({
+    source: props.value,
+    rich: editorKeepsEverything(props.value),
+  }));
+  return opened.rich ? (
+    <RichMarkdownEditor {...props} value={opened.source} />
+  ) : (
+    <SourceMarkdownEditor {...props} value={opened.source} />
+  );
+}
+
+function SourceMarkdownEditor({
   label,
   value,
   onChange,
   readOnly = false,
 }: MarkdownEditorProps) {
+  const [draft, setDraft] = useState(value);
+  return (
+    <Stack gap="xs">
+      <Alert role="alert" color="yellow" title="Markdown source retained">
+        Rich-text editing cannot preserve all of this content. The source is shown unchanged;
+        review it before saving.
+      </Alert>
+      <Textarea
+        label={label}
+        value={draft}
+        readOnly={readOnly}
+        aria-readonly={readOnly}
+        autosize
+        minRows={8}
+        onChange={(event) => {
+          if (readOnly) return;
+          const next = event.currentTarget.value;
+          setDraft(next);
+          onChange(next);
+        }}
+      />
+    </Stack>
+  );
+}
+
+function RichMarkdownEditor({ label, value, onChange, readOnly = false }: MarkdownEditorProps) {
+  const [clipboardNotice, setClipboardNotice] = useState("");
   const editor = useEditor({
     extensions: markdownEditorExtensions(),
     content: value,
@@ -172,15 +214,64 @@ export default function MarkdownEditor({
       attributes: {
         "aria-label": label,
         "aria-multiline": "true",
+        "aria-readonly": String(readOnly),
         role: "textbox",
       },
+      handleDOMEvents: {
+        // Intercept before ProseMirror parses clipboard HTML into elements:
+        // even a detached image can fetch an unapproved network resource.
+        paste: (view, event) => {
+          event.preventDefault();
+          if (readOnly || !view.editable) return true;
+          const text = event.clipboardData?.getData("text/plain") ?? "";
+          if (text) {
+            if (event.clipboardData?.getData("text/html")) {
+              setClipboardNotice("Pasted as plain text. Review its formatting before saving.");
+            }
+            // Do not pass HTML or arbitrary editor-specific clipboard metadata
+            // to extensions through the original ClipboardEvent.
+            view.pasteText(text);
+          } else {
+            setClipboardNotice(
+              "Nothing was inserted. Paste plain text; images and embedded content are not supported.",
+            );
+          }
+          return true;
+        },
+        drop: (view, event) => {
+          if (readOnly || !view.editable) {
+            event.preventDefault();
+            return true;
+          }
+          if (view.dragging) return false;
+          event.preventDefault();
+          if (!readOnly)
+            setClipboardNotice(
+              "Nothing was inserted. Paste plain text instead of dropping external content.",
+            );
+          return true;
+        },
+      },
     },
-    onUpdate: ({ editor: changed }) => onChange(tidyMarkdown(changed.getMarkdown())),
+    onUpdate: ({ editor: changed }) => {
+      if (!readOnly && changed.isEditable) onChange(changed.getMarkdown());
+    },
   });
+
+  // useEditor intentionally preserves its previous editable flag when options
+  // change. Apply revocation before paint, without emitting a content update.
+  useLayoutEffect(() => {
+    editor?.setEditable(!readOnly, false);
+  }, [editor, readOnly]);
 
   return (
     <Stack gap="xs">
       <BodyTextBold>{label}</BodyTextBold>
+      {clipboardNotice && (
+        <Alert role="status" color="yellow">
+          {clipboardNotice}
+        </Alert>
+      )}
       <RichTextEditor editor={editor}>
         {!readOnly && (
           // Sticky, so a long document can be formatted, and its tables
@@ -208,7 +299,7 @@ export default function MarkdownEditor({
             <TableControls editor={editor} />
           </RichTextEditor.Toolbar>
         )}
-        <RichTextEditor.Content />
+        <RichTextEditor.Content className={classes.content} />
       </RichTextEditor>
     </Stack>
   );

@@ -13,7 +13,7 @@
 import { Editor } from "@tiptap/core";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { editorKeepsEverything, markdownEditorExtensions, tidyMarkdown } from "./extensions";
+import { editorKeepsEverything, markdownEditorExtensions } from "./extensions";
 
 /** A body written the way Turva's hazard files are. */
 const BODY = [
@@ -87,7 +87,7 @@ afterEach(() => {
   editors = [];
 });
 
-/** What the editor saves for *source*: its Markdown, tidied as `onChange` tidies it. */
+/** What the editor saves for *source*: exactly the Markdown `onChange` emits. */
 function saved(source: string): string {
   const editor = new Editor({
     extensions: markdownEditorExtensions(),
@@ -96,7 +96,7 @@ function saved(source: string): string {
   });
   editors.push(editor);
 
-  return tidyMarkdown(editor.getMarkdown());
+  return editor.getMarkdown();
 }
 
 describe("a hazard body through the editor", () => {
