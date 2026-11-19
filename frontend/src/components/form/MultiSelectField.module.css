@@ -1,0 +1,116 @@
+.root {
+  --combobox-chevron-color: var(--mantine-color-text);
+  --pill-fz: var(--mantine-font-size-md);
+  --pill-height: auto;
+}
+
+.input {
+  font-size: var(--mantine-font-size-md);
+  font-weight: 500;
+  min-height: var(--input-height);
+  height: auto;
+  display: flex;
+  align-items: center;
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
+.input:focus-within {
+  border-color: var(--mantine-color-primary-4) !important;
+}
+
+.pillsList {
+  flex-wrap: wrap;
+  gap: 4px;
+  width: 100%;
+}
+
+.inputField {
+  min-width: 0;
+  flex: 0 0 0;
+}
+
+/* Only expand to full width when no pills are selected (inputField is the only child) */
+.inputField:only-child {
+  width: 100%;
+  flex: 1 1 100%;
+}
+
+[data-mantine-color-scheme="dark"] .root :global(.mantine-MultiSelect-input) {
+  border-color: var(--mantine-color-primary-9);
+}
+
+.root :global(.mantine-MultiSelect-input[data-disabled]) {
+  background-color: var(--mantine-color-gray-3);
+
+  /* Mantine fades a disabled input to 60%, which took the pill text
+     below AA; the grey fill already says it is disabled. */
+  opacity: 1;
+}
+
+.disabledPill {
+  background-color: var(--mantine-color-gray-4) !important;
+  color: var(--mantine-color-text) !important;
+  opacity: 1 !important;
+  font-size: var(--mantine-font-size-md) !important;
+  font-weight: 500 !important;
+}
+
+[data-mantine-color-scheme="dark"] .disabledPill {
+  color: var(--mantine-color-primary-8) !important;
+}
+
+.pill {
+  color: var(--mantine-color-text) !important;
+  font-size: var(--mantine-font-size-md) !important;
+  font-weight: 500 !important;
+}
+
+.pill,
+.disabledPill {
+  height: auto;
+  /* Mantine's flex: 0 has a zero basis. Once labels can wrap, that
+     compresses them to one character even on a wide screen. */
+  flex: 0 1 auto;
+  min-height: var(--pill-height-md);
+  max-width: 100%;
+  align-items: flex-start;
+  border-radius: var(--mantine-radius-md);
+  padding-block: 2px;
+}
+
+.pill :global(.mantine-Pill-label),
+.disabledPill :global(.mantine-Pill-label) {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  height: auto;
+  min-width: 0;
+  text-overflow: clip;
+  line-height: 1.4;
+}
+
+.pill :global(.mantine-Pill-remove) {
+  flex-shrink: 0;
+  min-height: 1.5rem;
+}
+
+[data-mantine-color-scheme="dark"] .pill {
+  background-color: var(--mantine-color-primary-7) !important;
+}
+
+.option {
+  font-size: var(--mantine-font-size-md);
+  font-weight: 500;
+}
+
+.root :global(.mantine-MultiSelect-input[data-error]) {
+  /* Softer than the border, so it still reads as a placeholder */
+  --input-placeholder-color: var(--error-placeholder-color);
+
+  border-width: 2px;
+  border-color: var(--error-color) !important;
+}
+
+.root :global(.mantine-MultiSelect-input[data-error]):focus-within {
+  border-color: var(--error-focus-color) !important;
+}

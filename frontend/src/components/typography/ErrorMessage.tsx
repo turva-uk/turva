@@ -25,11 +25,16 @@ export interface ErrorMessageProps {
  */
 export default function ErrorMessage({ children }: ErrorMessageProps) {
   return (
-    <Group gap={6} align="center" wrap="nowrap">
-      <Box className={classes.icon}>
+    <Group component="span" gap={6} align="center" wrap="nowrap">
+      <Box component="span" className={classes.icon} aria-hidden="true">
         <IconAlertCircle size="100%" color="var(--error-color)" />
       </Box>
-      <Text size="md" c="var(--error-color)" fw={typographyTokens.fontWeights.bold}>
+      <Text
+        component="span"
+        size="md"
+        c="var(--error-color)"
+        fw={typographyTokens.fontWeights.bold}
+      >
         {children}
       </Text>
     </Group>

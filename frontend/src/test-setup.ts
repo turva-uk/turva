@@ -15,6 +15,11 @@ Object.defineProperty(globalThis, "ResizeObserver", {
   },
 });
 
+// jsdom does not scroll. Mantine's Select and Combobox, and FormStatus,
+// which brings a new message into view, call scrollIntoView; where the
+// element lands is checked in a real browser.
+window.HTMLElement.prototype.scrollIntoView = () => undefined;
+
 Object.defineProperty(window, "matchMedia", {
   writable: true,
   value: vi.fn().mockImplementation((query: string) => ({

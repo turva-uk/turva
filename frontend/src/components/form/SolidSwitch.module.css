@@ -1,0 +1,31 @@
+.thumb {
+  border: none;
+}
+
+.thumb::before {
+  display: none;
+}
+
+/* Keep primary track colour when switch is checked + disabled */
+.root:has(input:checked:disabled) {
+  --switch-disabled-color: var(--mantine-color-primary-2);
+}
+
+:global([data-mantine-color-scheme="dark"]) .root:has(input:checked:disabled) {
+  --switch-disabled-color: var(--mantine-color-primary-6);
+}
+
+.topLabel {
+  font-size: var(--mantine-font-size-md);
+  color: var(--mantine-color-text);
+  margin-bottom: 0.25rem;
+}
+
+/*
+ * xl is the touch size: its 36px track plus 4px above and below makes a
+ * 44px tap target (WCAG 2.5.5, NHS). The body is the <label> bound to the
+ * input, so its padding is tappable without enlarging the switch drawn.
+ */
+.bodyXl {
+  padding-block: 4px;
+}

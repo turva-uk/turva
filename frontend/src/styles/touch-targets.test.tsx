@@ -11,6 +11,9 @@ import { Button, Modal, PasswordInput, TextInput } from "@mantine/core";
 import { screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
+import FormStatus from "@/components/form/Form/FormStatus";
+import PasswordField from "@/components/form/PasswordField";
+import TextField from "@/components/form/TextField";
 import { renderWithMantine } from "@/test/test-utils";
 
 describe("touch-targets.css selectors", () => {
@@ -46,5 +49,27 @@ describe("touch-targets.css selectors", () => {
     expect(screen.getByRole("button", { name: "Deactivate" })).toHaveClass(
       "mantine-Button-root",
     );
+  });
+
+  it("reaches the FormStatus dismiss button", () => {
+    renderWithMantine(<FormStatus variant="success" title="Saved" onDismiss={vi.fn()} />);
+
+    const dismiss = screen.getByRole("button", { name: "Dismiss" });
+    expect(dismiss).toHaveClass("mantine-CloseButton-root");
+  });
+
+  it("reaches the wrapper of a form text field", () => {
+    renderWithMantine(<TextField label="Hazard title" />);
+
+    const wrapper = screen.getByLabelText("Hazard title").parentElement;
+    expect(wrapper).toHaveClass("mantine-Input-wrapper");
+  });
+
+  it("reaches the visibility toggle of a form password field", () => {
+    const { container } = renderWithMantine(<PasswordField label="Password" />);
+
+    expect(
+      container.querySelector(".mantine-PasswordInput-visibilityToggle"),
+    ).toBeInTheDocument();
   });
 });
