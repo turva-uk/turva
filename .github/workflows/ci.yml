@@ -3,9 +3,10 @@ name: CI
 # Runs on pull requests and on pushes to main.
 #
 # It previously ran on *every branch except* main, which meant the branch this
-# project actually commits to - AGENTS.md permits direct commits to main while
-# there is one contributor - was the one branch with no tests, no lint and no
-# lock check. Only the docs build and the Actions audit ran there.
+# project then committed to directly was the one branch with no tests, no lint
+# and no lock check. Only the docs build and the Actions audit ran there. Changes
+# now reach main only through pull requests, and the push run checks the merged
+# result.
 #
 # `pull_request` plus `push: main` covers both the proposed and the merged state
 # without running twice for a branch that has a PR open.
