@@ -94,6 +94,27 @@ docs:
     @./s/docs
 
 
+# GitHub repository settings, as code in terraform/github/. Each recipe runs
+# ./s/terraform, which reads the rulesets already on GitHub before plan and
+# apply, and takes the token from gh when GITHUB_TOKEN is not set. See
+# docs/docs/github-settings.md.
+
+alias tfi := terraform-init
+# Set up Terraform for the GitHub settings (once, and after a provider bump)
+terraform-init *args:
+    @./s/terraform init {{args}}
+
+alias tfp := terraform-plan
+# Show what would change in the GitHub settings; changes nothing
+terraform-plan *args:
+    @./s/terraform plan {{args}}
+
+alias tfa := terraform-apply
+# Apply the GitHub settings (an admin, after the pull request merges)
+terraform-apply *args:
+    @./s/terraform apply {{args}}
+
+
 alias rb := remove-branches
 # Remove all local branches that have been merged into main
 remove-branches:

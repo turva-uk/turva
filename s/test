@@ -1,21 +1,25 @@
 #!/usr/bin/env bash
 # Run the test suites.
 #
-# Two suites exist because they need different environments:
+# Three suites exist because they need different environments:
 #
 #   safety_file/  pure Python. No database, no web framework, no container.
 #                 Needs only git. Runs on the host in about two seconds.
+#   s/tests/      bats tests for the scripts in s/. Run on the host and
+#                 need bats; nothing they test reaches Docker or GitHub.
 #   app/          needs PostgreSQL and the application container.
 #
 # Routing:
 #
-#   ./s/test                      both suites
+#   ./s/test                      all three suites
 #   ./s/test safety_file          host suite only
+#   ./s/test s/tests              script tests only
 #   ./s/test safety_file -k risk  host suite, filtered
 #   ./s/test -k login             container suite, filtered
 #
-# An argument naming the safety_file package runs on the host; anything else
-# goes to the container, which is where the application tests need a database.
+# An argument naming the safety_file package or s/tests runs on the host;
+# anything else goes to the container, which is where the application tests
+# need a database.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -30,9 +34,23 @@ else
 	PYTHON=python3
 fi
 
+# bats is a host tool. When it is missing, say so rather than skip the suite.
+require_bats() {
+	if ! command -v bats >/dev/null 2>&1; then
+		echo "bats not found, so the s/ script tests cannot run. Install it with:" >&2
+		echo "  sudo apt-get install bats      (or: brew install bats-core)" >&2
+		exit 1
+	fi
+}
+
 if [ "$#" -eq 0 ]; then
+	require_bats
+
 	echo "==> safety_file (host)"
 	"$PYTHON" -m pytest safety_file -q
+	echo
+	echo "==> s/ scripts (host)"
+	bats s/tests
 	echo
 	echo "==> app (container)"
 	exec docker compose exec -T "$SERVICE" pytest "$CONTAINER_TESTS"
@@ -41,6 +59,10 @@ fi
 case "$1" in
 safety_file | safety_file/* | ./safety_file | ./safety_file/*)
 	exec "$PYTHON" -m pytest "$@"
+	;;
+s/tests | s/tests/* | ./s/tests | ./s/tests/*)
+	require_bats
+	exec bats "$@"
 	;;
 esac
 
