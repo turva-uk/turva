@@ -83,6 +83,24 @@ An argument naming the `safety_file` package or `s/tests` routes to the host; an
 
 Runs every check CI enforces: `pre-commit run --all-files`, whose hooks include the Zizmor GitHub Actions audit. Run before committing.
 
+A full run also checks the hook floors and reach below. Outside CI it may raise stale floors after every measurement and reach policy passes; CI reports staleness without changing source. Filtered lint runs do not apply full-scope floors.
+
+### Hook floors and reach
+
+`./s/floors/hooks` measures the native Bandit, mypy, cspell, Zizmor and privacy reports, checks their floors in `s/floors/minimums` and validates every configured hook's routing policy. A count below its floor fails. `--raise` raises a floor below 70% of its measured count to at least 90%, without lowering any existing floor.
+
+```bash
+./s/floors/hooks             # check only
+./s/floors/hooks --raise     # ratchet stale floors after a complete successful check
+./s/floors/refresh           # explicitly refresh measured floors to at least 90%
+```
+
+`just floors-update` is an optional alias to the refresh command. All measurements and reach checks must succeed before one atomic update. The shared parser reads at most `1 MiB` per count/floor stream, rejects missing, duplicate or malformed records and serialises cooperating writers with a directory lock. Replacement preserves file permissions. No command lowers a floor; review any deliberate scope reduction separately.
+
+`./s/floors/check` and `./s/floors/update` accept an explicit subset on stdin; `--expect CHECK...` requires exactly that key set. A stdin consumer cannot discover whether its producer failed after printing rows. Capture and check the producer's exit status before invoking a mutating consumer, as the shared hooks/refresh commands do.
+
+Reach uses pre-commit's own classifier, a fail-visible compatibility boundary, rather than copied matcher logic. It checks Terraform sources and native filename-free Gitleaks trigger/entry policy, plus the separate frontend npm/CI commands. These are routing/configuration checks, not proof that scanners or tests executed. Real fault probes, staged/history Gitleaks canaries and frontend tooling tests remain separate evidence. Test-suite floors land in the following phase.
+
 ### `./s/frontend`
 
 Runs an npm script in `frontend/`, from anywhere in the repository. With no arguments it runs the whole gate CI runs, in CI's order.
@@ -143,7 +161,7 @@ Checks this checkout's text files for the shared private-address and MAC pattern
 
 Personal literal checks are optional. Create your own ignored `.private/dev-details-denylist` only if wanted: one case-insensitive literal per line, with blank lines and `#` comments allowed. Outside CI, an existing list in this checkout is read automatically; another working tree's list is not. CI ignores that default but honours an explicitly supplied `--denylist`. Legacy `local/` files stay ignored and untouched; use an explicit path if deliberately reusing one.
 
-The shared patterns retain deliberate synthetic-fixture filename exceptions, CIDRs and addresses ending `.0`. They do not cover IPv6 or binary attachments and are not proof that test content is fictional. Supplied personal literals apply to every requested text file, including fixtures. Text files above `16 MiB` and lists above `1 MiB` fail rather than being truncated. Reports show the public path, line and rule, never matched content or private list paths.
+The shared patterns retain deliberate synthetic-fixture filename exceptions, CIDRs and addresses ending `.0`. They do not cover IPv6 or binary attachments and are not proof that test content is fictional. Supplied personal literals apply to every requested text file, including fixtures. Text files above `16 MiB` and lists above `1 MiB` fail rather than being truncated. Reports show the public path, line and rule, never matched content or private list paths. A successful summary counts unique text files receiving a pattern or literal check; binary files and fixtures without supplied literals do not inflate that count. The summary never prompts for personal setup.
 
 ### `./s/gitleaks/install` and `./s/gitleaks/scan-commits`
 
@@ -211,6 +229,8 @@ The seeding step refuses to run with `DEBUG` off. It creates an account whose pa
 - **`s/utils/bandit-check.py`** - runs the pinned hook's scanner with fixed policy arguments and validates complete per-file report evidence before claiming success.
 - **`s/utils/frontend-directory.sh`** - prepares the caller-owned frontend mount point for hook setup, host npm and Compose. It never installs packages or changes ownership automatically.
 - **`s/utils/dev-details.py`** - read-only standard-library privacy scanner behind the shell entry point, with bounded file reads and explicit scope/error handling.
+- **`s/utils/floors.py`** - complete count/floor validation and atomic, monotonic publication shared by check/update.
+- **`s/utils/hook-counts.py`** - bounded native-report collection which emits counts only after every counting hook succeeds.
 - **`s/utils/gitleaks-report.py`** - validates the bounded, redacted report for the synthetic canary. A findings exit code without the expected rule, file and line is not evidence that the scan worked.
 - **`s/utils/hook-version.py`** - shared duplicate-aware safe YAML boundary for release pins used by tool installers and CI outputs.
 - **`s/utils/github-rulesets.py`** - validates and selects repository-owned ruleset identities for `s/terraform`. Its refusal paths are covered by `s/tests/terraform.bats`.

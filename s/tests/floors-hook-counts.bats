@@ -4,6 +4,9 @@
 # stand-in for pre-commit that prints a saved report for each hook, so no
 # real hook runs. Run with: bats s/tests
 
+# Bats intentionally isolates each test's exported failing-hook response.
+# shellcheck disable=SC2030,SC2031
+
 bats_require_minimum_version 1.5.0
 
 setup() {
@@ -11,8 +14,9 @@ setup() {
 	bin="${BATS_TEST_TMPDIR}/bin"
 	reports="${BATS_TEST_TMPDIR}/reports"
 
-	mkdir -p "${repo}/s/floors" "${bin}" "${reports}"
+	mkdir -p "${repo}/s/floors" "${repo}/s/utils" "${bin}" "${reports}"
 	cp "${BATS_TEST_DIRNAME}/../floors/hook-counts" "${repo}/s/floors/hook-counts"
+	cp "${BATS_TEST_DIRNAME}/../utils/hook-counts.py" "${repo}/s/utils/hook-counts.py"
 
 	# pre-commit prints the saved report for the hook it is asked to run,
 	# and fails when that hook's report file is named in $FAILING_HOOK.
@@ -48,6 +52,7 @@ EOF
 	cat >"${reports}/zizmor" <<'EOF'
  INFO audit: zizmor: completed .github/dependabot.yml
  INFO audit: zizmor: completed .github/workflows/ci.yml
+No findings to report. Good job!
 EOF
 
 	cat >"${reports}/check-dev-details" <<'EOF'
@@ -127,4 +132,51 @@ EOF
 
 	[ "$status" -eq 1 ]
 	[[ "$output" == *"pre-commit not found"* ]]
+}
+
+@test "a later hook failure emits no partial measurement stream" {
+	export FAILING_HOOK=mypy
+	run --separate-stderr bash "${repo}/s/floors/hook-counts"
+	[ "$status" -eq 1 ]
+	[ -z "${output}" ]
+}
+
+@test "missing per-batch Bandit skip evidence is not silently treated as zero" {
+	printf 'Total lines of code: 4000\nFiles skipped (0):\nTotal lines of code: 2219\n' >"${reports}/bandit"
+	run --separate-stderr bash "${repo}/s/floors/hook-counts"
+	[ "$status" -eq 1 ]
+	[ -z "${output}" ]
+}
+
+@test "duplicate serial mypy summaries and malformed counts are refused" {
+	printf 'Success: no issues found in 21 source files\nSuccess: no issues found in 21 source files\n' >"${reports}/mypy"
+	run --separate-stderr bash "${repo}/s/floors/hook-counts"
+	[ "$status" -eq 1 ]
+	[ -z "${output}" ]
+	echo 'Success: no issues found in many source files' >"${reports}/mypy"
+	run --separate-stderr bash "${repo}/s/floors/hook-counts"
+	[ "$status" -eq 1 ]
+	[ -z "${output}" ]
+}
+
+@test "a truncated Zizmor report and duplicate completion identities are refused" {
+	printf ' INFO audit: zizmor: completed .github/workflows/ci.yml\n' >"${reports}/zizmor"
+	run --separate-stderr bash "${repo}/s/floors/hook-counts"
+	[ "$status" -eq 1 ]
+	[ -z "${output}" ]
+	printf ' INFO audit: zizmor: completed .github/workflows/ci.yml\n INFO audit: zizmor: completed .github/workflows/ci.yml\nNo findings to report.\n' >"${reports}/zizmor"
+	run --separate-stderr bash "${repo}/s/floors/hook-counts"
+	[ "$status" -eq 1 ]
+	[ -z "${output}" ]
+}
+
+@test "coloured Zizmor records are decoded but unrelated completed text is not counted" {
+	printf '\033[32m INFO\033[0m audit: zizmor: completed .github/workflows/ci.yml\nNo findings to report.\n' >"${reports}/zizmor"
+	run bash "${repo}/s/floors/hook-counts"
+	[ "$status" -eq 0 ]
+	[[ "$output" == *'zizmor-files 1'* ]]
+	echo 'some unrelated completed operation' >>"${reports}/zizmor"
+	run --separate-stderr bash "${repo}/s/floors/hook-counts"
+	[ "$status" -eq 1 ]
+	[ -z "${output}" ]
 }

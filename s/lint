@@ -73,10 +73,13 @@ if [ ${#untracked[@]} -gt 0 ]; then
 fi
 
 # A hook that looks in the wrong place still passes, so CI holds each one to
-# its floor and its reach. Do the same here on a full run, with --raise, so
-# a floor the code has outgrown is raised in s/floors/minimums, ready to
-# commit with the work: see s/floors/check.
+# its floor and its reach. A local full run may raise an outgrown floor,
+# ready to commit with the work. CI remains read-only: see s/floors/check.
 if [ "$#" -eq 0 ]; then
 	echo "==> hook floors and reach"
-	s/floors/hooks --raise
+	floor_options=()
+	if [ -z "${CI:-}" ]; then
+		floor_options=(--raise)
+	fi
+	s/floors/hooks "${floor_options[@]}"
 fi

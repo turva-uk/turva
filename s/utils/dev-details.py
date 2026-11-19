@@ -74,7 +74,7 @@ def literals(explicit: Path | None) -> list[str]:
     ]
 
 
-def inspect(name: str, personal: list[str]) -> list[tuple[str, int, str]]:
+def inspect(name: str, personal: list[str]) -> tuple[list[tuple[str, int, str]], str | None]:
     path = ROOT / name
     try:
         relative = path.resolve().relative_to(ROOT)
@@ -89,7 +89,7 @@ def inspect(name: str, personal: list[str]) -> list[tuple[str, int, str]]:
         with path.open("rb") as stream:
             content = stream.read(MAX_FILE_BYTES + 1)
         if b"\0" in content:
-            return []  # The hook's scope is text, not binary attachments.
+            return [], None  # The hook's scope is text, not binary attachments.
         if len(content) > MAX_FILE_BYTES:
             raise ValueError("oversized text file")
         text = content.decode("utf-8")
@@ -106,7 +106,7 @@ def inspect(name: str, personal: list[str]) -> list[tuple[str, int, str]]:
             )
         if any(value in line.casefold() for value in personal):
             findings.append((label, line_number, "a supplied personal literal"))
-    return findings
+    return findings, relative.as_posix() if not fixture or personal else None
 
 
 def main() -> int:
@@ -122,7 +122,12 @@ def main() -> int:
     try:
         personal = literals(args.denylist)
         files = tracked_files() if args.all else args.files
-        findings = sorted({finding for name in files for finding in inspect(name, personal)})
+        findings, checked = set(), set()
+        for name in files:
+            matches, identity = inspect(name, personal)
+            findings.update(matches)
+            if identity is not None:
+                checked.add(identity)
     except (ScanFailure, OSError) as error:
         message = (
             str(error)
@@ -131,13 +136,15 @@ def main() -> int:
         )
         print(message, file=sys.stderr)
         return 2
-    for label, line_number, rule in findings:
+    for label, line_number, rule in sorted(findings):
         print(f"{label}:{line_number}: dev detail ({rule})")
     if findings:
         print(
             "Private development details must not be published in this repository.", file=sys.stderr
         )
         return 1
+    noun = "file" if len(checked) == 1 else "files"
+    print(f"Checked {len(checked)} {noun} for dev details")
     return 0
 
 

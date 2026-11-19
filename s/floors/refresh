@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# Explicitly refresh measured hook floors in one monotonic transaction. Both
+# the producer and reach check must succeed before the updater receives data.
+set -euo pipefail
+here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ "$#" -ne 0 ]; then
+	echo 'Usage: s/floors/refresh (no arguments)' >&2
+	exit 1
+fi
+counts="$("${here}/hook-counts")"
+"${here}/reach"
+printf '%s\n' "${counts}" | "${here}/update" --expect bandit-lines mypy-files cspell-files zizmor-files dev-details-files

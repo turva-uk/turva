@@ -103,14 +103,9 @@ alias d := docs
 docs:
     @./s/docs
 
-# ./s/lint, ./s/test and ./s/frontend raise a stale floor themselves, so
-# this is only for resetting every floor on purpose, such as after removing
-# a check's files.
-# Reset every floor in s/floors/minimums to 90% of today's count
+# Explicitly refresh measured floors, without ever lowering an existing floor.
 floors-update:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    ./s/floors/hook-counts | ./s/floors/update
+    @./s/floors/refresh
 
 
 # GitHub repository settings, as code in terraform/github/. Each recipe runs

@@ -10,8 +10,11 @@ setup() {
 	repo="${BATS_TEST_TMPDIR}/repo"
 	received="${BATS_TEST_TMPDIR}/received.json"
 
-	mkdir -p "${repo}/s/floors" "${repo}/s/tests" "${repo}/app/tests" "${repo}/safety_file" "${repo}/.github/workflows" "${repo}/frontend"
+	unset GIT_DIR GIT_WORK_TREE GIT_COMMON_DIR GIT_INDEX_FILE
+	export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
+	mkdir -p "${repo}/s/floors" "${repo}/s/tests" "${repo}/app/tests" "${repo}/safety_file" "${repo}/.github/workflows" "${repo}/frontend/tests" "${repo}/terraform/github"
 	git -C "${repo}" init -q
+	git -C "${repo}" config commit.gpgsign false
 
 	# One tracked file of each kind a rule covers.
 	printf '#!/usr/bin/env bash\necho up\n' >"${repo}/s/up"
@@ -20,7 +23,10 @@ setup() {
 	echo "x = 1" >"${repo}/app/models.py"
 	echo "x = 1" >"${repo}/app/tests/test_models.py"
 	echo "x = 1" >"${repo}/safety_file/team.py"
-	echo "on: push" >"${repo}/.github/workflows/ci.yml"
+	cp "${BATS_TEST_DIRNAME}/../../.github/workflows/ci.yml" "${repo}/.github/workflows/ci.yml"
+	cp "${BATS_TEST_DIRNAME}/../../frontend/package.json" "${repo}/frontend/package.json"
+	echo '// Synthetic routing fixture, not executed tooling tests.' >"${repo}/frontend/tests/tooling.test.mjs"
+	echo 'terraform {}' >"${repo}/terraform/github/main.tf"
 	echo "version: 2" >"${repo}/.github/dependabot.yml"
 	echo "{}" >"${repo}/package.json"
 	echo "{}" >"${repo}/frontend/tsconfig.json"
@@ -61,6 +67,21 @@ write_received() {
 	"prettier": [".github/workflows/ci.yml", ".github/dependabot.yml", "package.json", "frontend/tsconfig.json", "README.md", "frontend/app.css"]
 }
 EOF
+	python3 - "${received}" "${repo}" <<'PY'
+from pathlib import Path
+import json, subprocess, sys
+path = Path(sys.argv[1])
+data = json.loads(path.read_text())
+extra = ['frontend/package.json', 'frontend/tests/tooling.test.mjs', 'terraform/github/main.tf']
+for hook in ['trailing-whitespace', 'end-of-file-fixer', 'check-merge-conflict', 'check-added-large-files', 'check-dev-details']:
+    data[hook] += extra
+for hook in ['check-json', 'prettier']:
+    data[hook].append('frontend/package.json')
+data['terraform-fmt'] = ['terraform/github/main.tf']
+data['gitleaks'] = subprocess.check_output(['git', '-C', sys.argv[2], 'ls-files', '-z']).decode().strip('\0').split('\0')
+data['_metadata'] = {'gitleaks': {'pass_filenames': False, 'args': [], 'entry': 'gitleaks git --pre-commit --redact --staged --verbose'}}
+path.write_text(json.dumps(data))
+PY
 }
 
 # Take one file away from what one hook receives.
@@ -141,5 +162,103 @@ json.dump(received, open(sys.argv[1], 'w'))" "${received}"
 
 	run bash ../s/floors/reach --hook-files "${received}"
 
+	[ "$status" -eq 0 ]
+}
+
+@test "Terraform formatting has an explicit file policy" {
+	write_received
+	withhold terraform-fmt terraform/github/main.tf
+	run bash "${repo}/s/floors/reach" --hook-files "${received}"
+	[ "$status" -eq 1 ]
+	[[ "$output" == *'terraform-fmt: is not given terraform/github/main.tf'* ]]
+}
+
+@test "filename-free Gitleaks requires every trigger candidate and its native staged policy" {
+	write_received
+	withhold gitleaks app/models.py
+	run bash "${repo}/s/floors/reach" --hook-files "${received}"
+	[ "$status" -eq 1 ]
+	[[ "$output" == *'gitleaks: is not given app/models.py'* ]]
+	write_received
+	python3 - "${received}" <<'PY'
+from pathlib import Path
+import json, sys
+path = Path(sys.argv[1]); data = json.loads(path.read_text())
+data['_metadata']['gitleaks']['pass_filenames'] = True
+path.write_text(json.dumps(data))
+PY
+	run bash "${repo}/s/floors/reach" --hook-files "${received}"
+	[ "$status" -eq 1 ]
+	[[ "$output" == *'native filename-free staged-scan policy'* ]]
+}
+
+@test "new configured hooks cannot silently lack a reach policy" {
+	write_received
+	python3 - "${received}" <<'PY'
+from pathlib import Path
+import json, sys
+path = Path(sys.argv[1]); data = json.loads(path.read_text()); data['unreviewed'] = []
+path.write_text(json.dumps(data))
+PY
+	run bash "${repo}/s/floors/reach" --hook-files "${received}"
+	[ "$status" -eq 1 ]
+	[[ "$output" == *'unreviewed: no explicit reach policy'* ]]
+}
+
+@test "duplicate and malformed inventories cannot substitute for routing evidence" {
+	write_received
+	python3 - "${received}" <<'PY'
+from pathlib import Path
+import sys
+path = Path(sys.argv[1]); content = path.read_text(); path.write_text('{"mypy": [],' + content[1:])
+PY
+	run bash "${repo}/s/floors/reach" --hook-files "${received}"
+	[ "$status" -eq 1 ]
+	[[ "$output" == *'no coverage is claimed'* ]]
+	echo '{"mypy": "not-a-file-list"}' >"${received}"
+	run bash "${repo}/s/floors/reach" --hook-files "${received}"
+	[ "$status" -eq 1 ]
+}
+
+@test "a missing tracked file is a failed inspection rather than silently absent" {
+	write_received
+	rm "${repo}/app/models.py"
+	run bash "${repo}/s/floors/reach" --hook-files "${received}"
+	[ "$status" -eq 1 ]
+	[[ "$output" == *'no coverage is claimed'* ]]
+}
+
+@test "frontend project typechecking is a separate required surface" {
+	write_received
+	python3 - "${repo}/frontend/package.json" <<'PY'
+from pathlib import Path
+import json, sys
+path = Path(sys.argv[1]); data = json.loads(path.read_text()); data['scripts']['typecheck'] = 'tsc --noEmit'
+path.write_text(json.dumps(data))
+PY
+	run bash "${repo}/s/floors/reach" --hook-files "${received}"
+	[ "$status" -eq 1 ]
+	[[ "$output" == *'frontend: typecheck differs'* ]]
+}
+
+@test "removing a frontend CI gate is not mistaken for root-hook coverage" {
+	write_received
+	python3 - "${repo}/.github/workflows/ci.yml" <<'PY'
+from pathlib import Path
+import sys, yaml
+path = Path(sys.argv[1]); data = yaml.safe_load(path.read_text())
+data['jobs']['frontend']['steps'] = [step for step in data['jobs']['frontend']['steps'] if step.get('run') != 'npm run typecheck']
+path.write_text(yaml.safe_dump(data))
+PY
+	run bash "${repo}/s/floors/reach" --hook-files "${received}"
+	[ "$status" -eq 1 ]
+	[[ "$output" == *'frontend: CI no longer calls typecheck'* ]]
+}
+
+@test "inherited Git routing cannot replace this checkout's tracked inventory" {
+	write_received
+	local other="${BATS_TEST_TMPDIR}/other"
+	git init -q "${other}"
+	run env GIT_DIR="${other}/.git" GIT_WORK_TREE="${other}" GIT_COMMON_DIR="${other}/.git" GIT_INDEX_FILE="${other}/.git/index" bash "${repo}/s/floors/reach" --hook-files "${received}"
 	[ "$status" -eq 0 ]
 }

@@ -244,12 +244,12 @@ check_in_ci() {
 	echo "Nothing to see here." >notes.md
 	check notes.md
 	[ "$status" -eq 0 ]
-	[ -z "${output}" ]
+	[ "${output}" = 'Checked 1 file for dev details' ]
 	mkdir -p "$(dirname "${denylist}")"
 	printf '# Comment only\n\n' >"${denylist}"
 	check notes.md
 	[ "$status" -eq 0 ]
-	[ -z "${output}" ]
+	[ "${output}" = 'Checked 1 file for dev details' ]
 }
 
 @test "an optional list is not read implicitly in CI" {
@@ -259,7 +259,7 @@ check_in_ci() {
 	check_in_ci notes.md
 
 	[ "$status" -eq 0 ]
-	[ -z "$output" ]
+	[ "$output" = 'Checked 1 file for dev details' ]
 }
 
 @test "an explicit optional list is honoured without modification even in CI" {

@@ -1,152 +1,17 @@
 #!/usr/bin/env bash
-# Prints how much each counting pre-commit hook says it checked, one
-# "<check> <count>" line each, for s/floors/check and s/floors/update.
-#
-# Usage: s/floors/hook-counts
-#
-# A hook that looks in the wrong place, or is given nothing, still passes. A
-# Bandit hook given `r` where `-r` was meant scans no lines and passes every
-# commit. So each hook here is run exactly as it is configured,
-# through `pre-commit run <id> --all-files --verbose`, and the count is read
-# from its own report. pre-commit splits a long file list into batches, each
-# with its own report, so the counts are added up.
-#
-# It also fails if Bandit skipped a file it could not read. Bandit reads code
-# with the Python it runs on, leaves out a file written for a newer one, and
-# passes.
-#
-# Safe to run twice: the hooks it runs only read files.
+# Read validated native reports for every counting hook. Emit no counts until
+# all reports succeed, so downstream updates cannot mistake partial output for
+# a complete scope. This is an explicit hook run, not a package installer.
 set -euo pipefail
-
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-
-# The same pre-commit as ./s/lint: the repository's .venv copy first, then
-# the one on PATH.
-find_pre_commit() {
-	if [ -x "${root}/.venv/bin/pre-commit" ]; then
-		echo "${root}/.venv/bin/pre-commit"
-		return
-	fi
-
-	if command -v pre-commit >/dev/null 2>&1; then
-		echo "pre-commit"
-		return
-	fi
-
+if [ -x "${root}/.venv/bin/pre-commit" ]; then
+	pre_commit="${root}/.venv/bin/pre-commit"
+elif ! pre_commit="$(command -v pre-commit)"; then
 	echo "pre-commit not found, so no hook could be counted." >&2
-	return 1
-}
-
-# Run one hook over every file and print its verbose report. A hook that
-# fails here has failed its own check, so that is reported first.
-hook_report() {
-	local pre_commit="$1"
-	local hook_id="$2"
-	local report
-
-	if ! report="$(cd "${root}" && "${pre_commit}" run "${hook_id}" --all-files --verbose --color=never 2>&1)"; then
-		echo "${report}" >&2
-		echo "The ${hook_id} hook failed, so its count cannot be trusted. Fix what it reports first." >&2
-		return 1
-	fi
-
-	echo "${report}"
-}
-
-# Add up the first number on each line matching a pattern, with sed's -E
-# syntax and the number as its first group. Prints nothing when no line
-# matches, which the caller treats as the hook not reporting a count.
-sum_matches() {
-	local pattern="$1"
-
-	sed -n -E "s/${pattern}/\\1/p" | awk '{ total += $1; found = 1 } END { if (found) print total }'
-}
-
-# Print one "<check> <count>" line, or fail when the report gave no count.
-print_count() {
-	local check="$1"
-	local hook_id="$2"
-	local count="$3"
-
-	if [ -z "${count}" ]; then
-		echo "The ${hook_id} hook did not say how much it checked, so nothing can be said to have been checked." >&2
-		return 1
-	fi
-
-	echo "${check} ${count}"
-}
-
-count_bandit() {
-	local pre_commit="$1"
-	local report
-	local skipped
-
-	report="$(hook_report "${pre_commit}" bandit)"
-	skipped="$(sum_matches '^Files skipped \(([0-9]+)\):$' <<<"${report}")"
-
-	if [ "${skipped:-0}" -gt 0 ]; then
-		echo "${report}" >&2
-		echo "Bandit could not read ${skipped} files, so they were not scanned. A syntax error usually means Bandit runs on an older Python than the code is written for." >&2
-		return 1
-	fi
-
-	print_count bandit-lines bandit "$(sum_matches '^[[:space:]]*Total lines of code: ([0-9]+)$' <<<"${report}")"
-}
-
-count_mypy() {
-	local pre_commit="$1"
-	local report
-
-	report="$(hook_report "${pre_commit}" mypy)"
-
-	print_count mypy-files mypy "$(sum_matches '^.* in ([0-9]+) source files?$' <<<"${report}")"
-}
-
-count_cspell() {
-	local pre_commit="$1"
-	local report
-
-	report="$(hook_report "${pre_commit}" cspell)"
-
-	print_count cspell-files cspell "$(sum_matches '^CSpell: Files checked: ([0-9]+),.*$' <<<"${report}")"
-}
-
-count_zizmor() {
-	local pre_commit="$1"
-	local report
-	local count
-
-	report="$(hook_report "${pre_commit}" zizmor)"
-	count="$(grep -c 'completed ' <<<"${report}" || true)"
-
-	if [ "${count}" -eq 0 ]; then
-		count=""
-	fi
-
-	print_count zizmor-files zizmor "${count}"
-}
-
-count_dev_details() {
-	local pre_commit="$1"
-	local report
-
-	report="$(hook_report "${pre_commit}" check-dev-details)"
-
-	print_count dev-details-files check-dev-details "$(sum_matches '^Checked ([0-9]+) files? for dev details$' <<<"${report}")"
-}
-
-main() {
-	local pre_commit
-
-	pre_commit="$(find_pre_commit)"
-
-	count_bandit "${pre_commit}"
-	count_mypy "${pre_commit}"
-	count_cspell "${pre_commit}"
-	count_zizmor "${pre_commit}"
-	count_dev_details "${pre_commit}"
-}
-
-if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
-	main "$@"
+	exit 1
 fi
+python=python3
+if [ -x "${root}/.venv/bin/python" ]; then
+	python="${root}/.venv/bin/python"
+fi
+exec "${python}" "${root}/s/utils/hook-counts.py" "${pre_commit}" "$@"
