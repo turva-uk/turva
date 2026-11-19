@@ -14,7 +14,7 @@ const browser = () => ({
 export default mergeConfig(
   viteConfig,
   defineConfig({
-    server: { host: "127.0.0.1" },
+    server: { host: "127.0.0.1", strictPort: false },
     optimizeDeps: { include: ["@mantine/form"] },
     test: {
       projects: [
@@ -38,6 +38,8 @@ export default mergeConfig(
           ],
           test: {
             name: `storybook-${colorScheme}`,
+            // A fixed browser API port would collide with another worktree.
+            api: { host: "127.0.0.1", port: 0 },
             browser: browser(),
             maxWorkers: 2,
             testTimeout: 60000,
@@ -48,6 +50,7 @@ export default mergeConfig(
           extends: true,
           test: {
             name: "storybook-gate",
+            api: { host: "127.0.0.1", port: 0 },
             include: [".storybook/*.browser.test.ts"],
             browser: browser(),
             // Match the addon's standalone browser execution path.
