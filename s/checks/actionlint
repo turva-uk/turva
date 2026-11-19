@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# Check workflow files with the hook's isolated actionlint and ShellCheck.
+# Both tools must already be installed. This entry point installs nothing.
+# Usage: s/checks/actionlint FILE...
+set -euo pipefail
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+cd "${root}"
+if [ "$#" -eq 0 ]; then
+	echo 'No workflow files given. Usage: s/checks/actionlint FILE...' >&2
+	exit 1
+fi
+for file in "$@"; do
+	if [[ "${file}" == -* ]]; then
+		echo 'Only filenames are accepted; actionlint policy flags are not permitted.' >&2
+		exit 1
+	fi
+done
+if ! shellcheck="$(command -v shellcheck)" || [ ! -x "${shellcheck}" ]; then
+	echo 'ShellCheck is missing from the actionlint environment; no workflow shell check is claimed. Use the configured pre-commit hook.' >&2
+	exit 1
+fi
+if ! command -v actionlint >/dev/null 2>&1; then
+	echo 'actionlint is missing. Use the configured pre-commit hook; no packages were installed.' >&2
+	exit 1
+fi
+exec actionlint "-shellcheck=${shellcheck}" -- "$@"

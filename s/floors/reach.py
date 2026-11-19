@@ -119,6 +119,7 @@ RULES = [
     Rule("ruff-check", "every Python file", matches(r"\.pyi?$")),
     Rule("ruff-format", "every Python file", matches(r"\.pyi?$")),
     Rule("shellcheck", "every shell script and bats test", shell_script),
+    Rule("actionlint", "every workflow", matches(r"^\.github/workflows/.*\.ya?ml$")),
     Rule("cspell", "every Markdown file", matches(r"\.(md|markdown)$")),
     Rule("markdownlint", "every Markdown file", matches(r"\.(md|markdown)$")),
     Rule(

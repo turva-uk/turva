@@ -205,6 +205,8 @@ The hook's complete-report wrapper refuses skipped files, missing or inconsisten
 
 The pinned ShellCheck hook checks tracked shell scripts and Bats files through `./s/lint` and CI. Scripts with no extension need their shell shebang and executable bit for pre-commit to recognise them. Local commit-time checks remain optional. Existing Bats process-isolation directives suppress only the known subshell-analysis false positives; no global rule exclusions or ignored script folders are added.
 
+The actionlint hook checks workflow expressions, job dependencies and embedded `run:` scripts. Its isolated environment includes the same pinned ShellCheck release. `s/checks/actionlint` refuses missing ShellCheck instead of allowing a silently skipped shell check, passes its resolved path explicitly and accepts filenames only. A script test keeps the two ShellCheck pins aligned. No tool is installed by that entry point; run it through the configured pre-commit hook.
+
 ### `./s/terraform`
 
 Runs Terraform for Turva's GitHub repository settings in `terraform/github/`, in a pinned container. The host needs Docker, `curl` and Python 3.10 or later. `plan` and `apply` use `GITHUB_TOKEN`, falling back to `gh auth token`; see [GitHub settings](../docs/docs/github-settings.md) for the local-state limitations and explicit administrative approval boundary.

@@ -117,6 +117,20 @@ Branch `feature/pre-commit-test-floors`.
 - [x] **Separate frontend scopes.** Native unit collection has 1,139 unique project/file/name/location records, distinct from 1,358 parameter-expanded executed cases. Invoke installed Vitest through Node with `--project=unit`, never an implicitly installing `npx` call. Explicit Storybook browser-list probes show generated registrations without reliable source locations and counts unlike executed cases; retain their independent light/dark/canary execution gate, not an inflated unit or browser floor.
 - [x] **Refresh from native evidence.** The complete hook/suite/reach refresh measures 161 storage tests, 524 Django tests, 1,139 unit records and 278 script tests. It retains existing floors or raises them, with suite floors 144/471/1,025/250 and privacy 524 from 583 checked text files. No floor decreases; the owned validation backend is stopped afterwards with named volumes retained.
 
+## Phase 9: workflow syntax and embedded shell
+
+Branch `feature/pre-commit-actionlint`.
+
+The reviewed actionlint-py v1.7.12.25 hook supplies upstream actionlint 1.7.12. Its build checks versioned upstream archives against pinned checksums. The community wrapper and actionlint are MIT; the separately installed ShellCheck is GPLv3. This isolated tooling dependency adds no application runtime package.
+
+- [x] Add actionlint and the twentieth explicit reach policy for all workflows. Retain current main's privacy, floor, pin-parser, frontend and security boundaries when reconciling the older stack.
+- [x] Declare ShellCheck 0.11.0.1 in that environment and enforce alignment with the standalone hook through a script test. The checked entry refuses absent tools and policy-lowering arguments before scanning, installs nothing and supplies ShellCheck's resolved path explicitly.
+- [x] Exercise the real configured hook: all tracked workflows and a clean synthetic workflow pass; an unknown expression property and an unquoted shell expansion fail with the expected expression/SC2086 findings. The copied-entry tests also cover missing tools, literal filename forwarding, absent scope, policy flags, tool statuses and pin alignment. Matcher inventories remain routing evidence, not scanner execution. These tooling changes do not alter risk calculation, evidence attribution, permissions or AI content; no `SAFETY.md` change is needed.
+
+## Deferred: shell in Just recipes
+
+The source proposal also records moving substantial recipe logic into tested `s/` entry points, leaving thin Just aliases. Keep this as separately reviewed work; adopting actionlint does not authorise an unrelated task-runner rewrite.
+
 ## Decisions
 
 - **One branch for each check.** Each check can fail the existing code in its own way, and a reviewer can judge one check's findings and exceptions in twenty minutes. Five checks in one pull request would hide one check's exceptions among another's.
