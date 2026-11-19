@@ -89,9 +89,12 @@ Runs an npm script in `frontend/`, from anywhere in the repository. With no argu
 ./s/frontend              # typecheck, lint, format check, tests, build
 ./s/frontend typecheck    # or one step
 ./s/frontend test
+./s/frontend test-storybook:ci # browser stories in light/dark, plus gate canaries
 ```
 
 Installs dependencies first if `node_modules` is missing. Needs Node 26 or newer on the host; the dev server itself runs in Docker as part of `./s/up`.
+
+Storybook browser tests use the supported Vitest addon and the same WCAG 2.2 AA rules as the preview. Install Chromium once with `cd frontend && npx playwright install --with-deps chromium`. `./s/frontend test-storybook:ci` (also `just sbt`) runs without building or serving Storybook and needs no fixed port. Separate light/dark projects replay the interactions in each scheme; stories that explicitly pin a scheme retain it. The gate requires a valid accessibility report and fails on missing results or axe execution errors. Browser canaries verify clean scans, contrast failures, engine errors and skipped scans. Unit tests keep their jsdom setup in a separate project.
 
 ### `./s/lock`
 

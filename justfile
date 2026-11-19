@@ -266,3 +266,9 @@ alias sb := storybook
 # Start Storybook, the catalogue of shared components, on port 6006
 storybook:
     @./s/frontend storybook
+
+
+alias sbt := storybook-test
+# Check every story with axe (WCAG 2.2 AA) in light and dark mode, as CI does
+storybook-test:
+    @./s/frontend test-storybook:ci
