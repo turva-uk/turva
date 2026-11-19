@@ -34,3 +34,23 @@ exclude_also = [
   "if TYPE_CHECKING:",
   "raise NotImplementedError",
 ]
+
+# Read by the mypy pre-commit hook, and by a bare `mypy`. Strict, and only
+# over safety_file/ for now. safety_file/ imports no web framework, so mypy
+# checks it without Django's type stubs. app/ needs those stubs installed
+# beside mypy, so it is not checked yet.
+[tool.mypy]
+python_version = "3.14"
+strict = true
+files = ["safety_file"]
+
+# The tests are still type-checked, but their functions need no annotations
+# yet: 134 of them had none when mypy was added. Once they are annotated,
+# this override goes. GitHub issue https://github.com/turva-uk/turva/issues/117
+# tracks that.
+[[tool.mypy.overrides]]
+module = "safety_file.tests.*"
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+disallow_untyped_calls = false
+check_untyped_defs = true
