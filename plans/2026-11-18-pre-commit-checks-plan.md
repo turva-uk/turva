@@ -69,11 +69,11 @@ Branch `feature/pre-commit-bandit`.
 
 ## Phase 7: ShellCheck
 
-Branch `feature/pre-commit-shellcheck`. Added on 18 November 2026, after the first six phases had landed. Turva runs ShellCheck as a hook, so it checks each script at commit time, and CI's `Styling (pre-commit)` job runs it on every file, so a commit made with `--no-verify` is still caught.
+Branch `feature/pre-commit-shellcheck`. Added on 18 November 2026, after the first six phases had landed. ShellCheck runs when a contributor has deliberately enabled local hooks, and in CI's `Styling (pre-commit)` job regardless of that preference.
 
 - [x] Run ShellCheck once over every shell file, using the hook's own copy through `pre-commit run shellcheck --all-files`, and triage what it reports. Ran on 18 November 2026: the 20 scripts in `s/` and `.githooks/` all passed. The findings were all in three bats tests: one `cd` without a fallback, fixed, and two kinds of false alarm, each turned off with a comment saying why.
 - [x] Add the `shellcheck` hook from `https://github.com/shellcheck-py/shellcheck-py` at `v0.11.0.1`, which installs its own ShellCheck, so nobody needs it on their machine.
-- [x] Confirm that the hook sees every script. pre-commit recognises a file with no extension as shell only when it is executable and starts with a shell shebang. Every script in `s/` and `.githooks/` is, and the bats tests are recognised by their `.bats` extension. No other shell scripts are tracked.
+- [x] Confirm that the hook sees every script. pre-commit recognises a file with no extension as shell only when it is executable and starts with a shell shebang. The reviewed classifier inventory and actual configured hook cover all 36 current tracked scripts and Bats files in `s/` and `.githooks/`, including the merged Terraform tooling. A copied executable script with no extension and spaces in its filename fails for an unquoted expansion (SC2086), then passes when quoted. Existing Bats process-isolation directives remain narrow and explained; no new suppression was needed.
 
 ## Decisions
 

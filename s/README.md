@@ -173,6 +173,10 @@ The pinned Bandit hook checks production Python under `app/`, `safety_file/` and
 
 The hook's complete-report wrapper refuses skipped files, missing or inconsistent metrics, malformed reports and scanner failures, even if Bandit exits successfully. JSON reports are bounded to `16 MiB` and the process has a 120-second limit. Only public source paths, line numbers and rule IDs are reported, never source snippets or arbitrary scanner errors. A file matcher or a clean baseline alone does not establish that a later scan was complete.
 
+### Shell checking
+
+The pinned ShellCheck hook checks tracked shell scripts and Bats files through `./s/lint` and CI. Scripts with no extension need their shell shebang and executable bit for pre-commit to recognise them. Local commit-time checks remain optional. Existing Bats process-isolation directives suppress only the known subshell-analysis false positives; no global rule exclusions or ignored script folders are added.
+
 ### `./s/terraform`
 
 Runs Terraform for Turva's GitHub repository settings in `terraform/github/`, in a pinned container. The host needs Docker, `curl` and Python 3.10 or later. `plan` and `apply` use `GITHUB_TOKEN`, falling back to `gh auth token`; see [GitHub settings](../docs/docs/github-settings.md) for the local-state limitations and explicit administrative approval boundary.
