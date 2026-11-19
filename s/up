@@ -28,11 +28,14 @@
 # Set TURVA_WEB_PORT when another local service owns port 8000, for example:
 #   TURVA_WEB_PORT=8010 ./s/up -d
 # The React URL and its internal API proxy do not change.
+#
+# TURVA_FRONTEND_PORT, TURVA_POSTGRES_PORT, TURVA_HTTP_PORT and
+# TURVA_HTTPS_PORT move the other published ports the same way, so a second
+# worktree can run its own stack beside the first (see DEVELOPMENT.md). The
+# browser uses the running project's published port, including .env overrides.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
-
-URL=${TURVA_URL:-http://localhost:5173}
 
 # The safety file repositories are bind-mounted from here. Create the directory
 # first: Docker creates a missing bind-mount source as root, which the container
@@ -40,11 +43,36 @@ URL=${TURVA_URL:-http://localhost:5173}
 # confusing permission error when creating a safety file rather than now.
 mkdir -p .turva-data/safety-files
 
-# Open $URL in the user's browser, or explain why not. Never fatal: failing to
+# Open this project's interface, or explain why not. Never fatal: failing to
 # open a browser is no reason to refuse to run the stack.
 open_browser() {
 	if [ -n "${TURVA_NO_BROWSER:-}" ] || [ -n "${CI:-}" ]; then
 		return 0
+	fi
+
+	local URL=${TURVA_URL:-} address port
+	if [ -z "$URL" ]; then
+		# Ask the same Compose project we just started. Shell variables alone
+		# miss .env values, overrides and dynamically allocated host ports.
+		if ! address=$(docker compose port "$browser_service" "$browser_port" 2>/dev/null); then
+			echo "Could not find this stack's published $browser_service port; not opening a browser." >&2
+			return 0
+		fi
+		# Compose may list both IPv4 and IPv6 bindings. Both expose the same
+		# local port; never fall back to another stack's default address.
+		address=${address%%$'\n'*}
+		port=${address##*:}
+		case "$port" in
+			"" | *[!0-9]*)
+				echo "No valid published $browser_service port; not opening a browser." >&2
+				return 0
+				;;
+		esac
+		if [ "${#port}" -gt 5 ] || [ "$port" -lt 1 ] || [ "$port" -gt 65535 ]; then
+			echo "No valid published $browser_service port; not opening a browser." >&2
+			return 0
+		fi
+		URL="http://localhost:$port"
 	fi
 
 	# A Linux box with no display is usually an SSH session, where xdg-open
@@ -104,14 +132,24 @@ docker compose up --detach --wait ${compose_args[@]+"${compose_args[@]}"}
 
 # Only offer a browser if the thing it would point at is actually running. With
 # no service named, everything starts; with services named, one of them has to
-# serve an interface. Both qualify: `frontend` is the default target, and `web`
-# is where TURVA_URL points when someone wants the server-rendered screens.
+# serve an interface. Prefer React, or Django for a web-only start.
 serving=true
+browser_service=frontend
+browser_port=5173
 if [ ${#services[@]} -gt 0 ]; then
 	serving=false
 	for service in "${services[@]}"; do
-		if [ "$service" = "frontend" ] || [ "$service" = "web" ]; then
+		if [ "$service" = "web" ]; then
 			serving=true
+			browser_service=web
+			browser_port=8000
+		fi
+	done
+	for service in "${services[@]}"; do
+		if [ "$service" = "frontend" ]; then
+			serving=true
+			browser_service=frontend
+			browser_port=5173
 		fi
 	done
 fi
