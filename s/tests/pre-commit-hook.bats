@@ -3,6 +3,9 @@
 # test runs a copy of the hook in a scratch git repository, with stand-ins for
 # pre-commit and lint-staged, so no real check runs. Run with: bats s/tests
 
+# Each Bats test intentionally has its own process and exported fixture values.
+# shellcheck disable=SC2030,SC2031
+
 bats_require_minimum_version 1.5.0
 
 setup() {
@@ -205,4 +208,26 @@ stage() {
 	[ "$status" -eq 0 ]
 	[ "$(git -C "${repo}" config --local --get commit.gpgsign)" = "false" ]
 	git -C "${repo}" rev-parse --verify -q HEAD
+}
+
+@test "a failed staged-file query stops rather than skipping frontend checks" {
+	stage frontend/src/App.tsx
+	printf '#!/usr/bin/env bash\nexit 128\n' >"${bin}/git"
+	chmod +x "${bin}/git"
+
+	run "${hook}"
+
+	[ "$status" -eq 128 ]
+	[[ "$output" == *"Could not inspect staged frontend files"* ]]
+}
+
+@test "deleting the only frontend file needs no lint-staged executable" {
+	stage frontend/src/App.tsx
+	git -C "${repo}" commit -qm baseline
+	git -C "${repo}" rm -q frontend/src/App.tsx
+	rm "${repo}/frontend/node_modules/.bin/lint-staged"
+
+	run "${hook}"
+
+	[ "$status" -eq 0 ]
 }

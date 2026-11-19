@@ -130,7 +130,7 @@ Serves the documentation site with hot reload at <http://localhost:8001>.
 
 ### `./s/install-hooks`
 
-Opts this clone into the tracked `.githooks/pre-commit`, which runs pre-commit on staged files. `just setup` is an optional alias. Run it deliberately once per clone; the local Git setting is shared by linked working trees and each branch supplies its own hook. It does not install packages, alter global Git configuration or replace an existing custom hooks path. Existing hook files are not deleted. CI remains the backstop when local hooks are not installed.
+Opts this clone into the tracked `.githooks/pre-commit`, which runs pre-commit on staged files, then ESLint and Prettier through lint-staged for frontend changes. `just setup` is an optional alias. Run it deliberately once per clone; the local Git setting is shared by linked working trees and each branch supplies its own hook. It prepares a caller-owned `frontend/node_modules` directory but does not install packages, alter global Git configuration or replace an existing custom hooks path. Install host packages explicitly with `./s/frontend install`. Existing hook files are not deleted. CI remains the backstop when local hooks are not installed.
 
 ### `./s/terraform`
 
@@ -163,6 +163,7 @@ The seeding step refuses to run with `DEBUG` off. It creates an account whose pa
 
 `s/utils/` holds internal helpers, not commands to type.
 
+- **`s/utils/frontend-directory.sh`** - prepares the caller-owned frontend mount point for hook setup, host npm and Compose. It never installs packages or changes ownership automatically.
 - **`s/utils/github-rulesets.py`** - validates and selects repository-owned ruleset identities for `s/terraform`. Its refusal paths are covered by `s/tests/terraform.bats`.
 
 - **`s/utils/logging.sh`** - `log` and `error`, each printing the script's name in front, such as `[terraform] ERROR: ...`. Errors go to standard error, in red only in a terminal. Source it straight after the `set` line at the top, and always pass the name:

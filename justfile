@@ -92,18 +92,6 @@ alias lint := pre-commit
 setup:
     @./s/install-hooks
 
-    # The frontend container mounts a volume over frontend/node_modules, and
-    # Docker creates that folder as root when it is missing. Created here
-    # first, it stays yours, so `./s/frontend install` can fill it with the
-    # packages the hook's lint-staged step needs.
-    mkdir -p frontend/node_modules
-
-    if [ ! -w frontend/node_modules ]; then
-        echo "frontend/node_modules is not writable, so ./s/frontend install will fail. Docker probably created it as root. Fix it once with:" >&2
-        echo "  sudo chown \"\$USER:\$USER\" frontend/node_modules" >&2
-        exit 1
-    fi
-
 
 # Regenerate the pinned dependency locks from the .in declarations
 lock:

@@ -47,6 +47,11 @@ def launch(tmp_path: Path) -> Callable:
     scripts = root / "s"
     scripts.mkdir(parents=True)
     shutil.copy2(Path(settings.BASE_DIR) / "s" / "up", scripts / "up")
+    (scripts / "utils").mkdir()
+    shutil.copy2(
+        Path(settings.BASE_DIR) / "s" / "utils" / "frontend-directory.sh",
+        scripts / "utils" / "frontend-directory.sh",
+    )
     bin_dir = tmp_path / "bin"
     bin_dir.mkdir()
     for name, source in [
@@ -101,6 +106,7 @@ def launch(tmp_path: Path) -> Callable:
         commands = [json.loads(line) for line in (root / "commands.jsonl").read_text().splitlines()]
         assert all(project == "isolated-worktree" for _, project in commands)
         assert (root / ".turva-data/safety-files").is_dir()
+        assert (root / "frontend/node_modules").is_dir()
         return result, [args for args, _ in commands], browser
 
     return run

@@ -32,7 +32,7 @@ find_pre_commit() {
 frontend_staged() {
 	local staged
 
-	staged="$(git -C "${root}" diff --cached --name-only -- frontend/)"
+	staged="$(git -C "${root}" diff --cached --name-only --diff-filter=ACMR -- frontend/)" || return
 
 	[ -n "${staged}" ]
 }
@@ -54,6 +54,7 @@ run_lint_staged() {
 
 main() {
 	local pre_commit
+	local frontend_status=0
 	cd "${root}"
 
 	if ! pre_commit="$(find_pre_commit)"; then
@@ -64,9 +65,15 @@ main() {
 
 	"${pre_commit}" run
 
-	if frontend_staged; then
-		run_lint_staged
-	fi
+	frontend_staged || frontend_status=$?
+	case "${frontend_status}" in
+		0) run_lint_staged ;;
+		1) ;; # No added or changed frontend files.
+		*)
+			echo "Could not inspect staged frontend files; the commit was stopped." >&2
+			return "${frontend_status}"
+			;;
+	esac
 }
 
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then

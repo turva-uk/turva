@@ -5,8 +5,9 @@ bats_require_minimum_version 1.5.0
 
 setup() {
 	repo="${BATS_TEST_TMPDIR}/repo"
-	mkdir -p "${repo}/s" "${repo}/.githooks"
+	mkdir -p "${repo}/s/utils" "${repo}/.githooks"
 	cp "${BATS_TEST_DIRNAME}/../install-hooks" "${repo}/s/install-hooks"
+	cp "${BATS_TEST_DIRNAME}/../utils/frontend-directory.sh" "${repo}/s/utils/frontend-directory.sh"
 	cp "${BATS_TEST_DIRNAME}/../../.githooks/pre-commit" "${repo}/.githooks/pre-commit"
 	export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
 	git -C "${repo}" init -q
@@ -91,8 +92,9 @@ setup() {
 
 @test "a copied installer inside a different repository cannot configure its parent" {
 	local nested="${repo}/nested"
-	mkdir -p "${nested}/s" "${nested}/.githooks"
+	mkdir -p "${nested}/s/utils" "${nested}/.githooks"
 	cp "${repo}/s/install-hooks" "${nested}/s/install-hooks"
+	cp "${repo}/s/utils/frontend-directory.sh" "${nested}/s/utils/frontend-directory.sh"
 	cp "${repo}/.githooks/pre-commit" "${nested}/.githooks/pre-commit"
 
 	run "${nested}/s/install-hooks"
