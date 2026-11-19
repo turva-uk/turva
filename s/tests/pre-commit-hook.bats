@@ -30,6 +30,7 @@ write_pre_commit() {
 	cat >"${path}" <<EOF
 #!/usr/bin/env bash
 echo "${label}: \$*" >>"\${BATS_TEST_TMPDIR}/pre-commit.log"
+echo "\${PWD}" >>"\${BATS_TEST_TMPDIR}/pre-commit-cwd.log"
 exit "\${PRE_COMMIT_STATUS}"
 EOF
 
@@ -41,6 +42,7 @@ init_git_repo() {
 	git -C "${repo}" init -q
 	git -C "${repo}" config user.name "Test"
 	git -C "${repo}" config user.email "test@example.com"
+	git -C "${repo}" config commit.gpgsign false
 	git -C "${repo}" config core.hooksPath .githooks
 
 	echo "content" >"${repo}/file.txt"
@@ -104,4 +106,30 @@ init_git_repo() {
 
 	[ "$(cat "${BATS_TEST_TMPDIR}/pre-commit.log")" = "path: run" ]
 	run ! git -C "${repo}" rev-parse --verify -q HEAD
+}
+
+@test "direct invocation checks its own checkout rather than the calling folder" {
+	local elsewhere="${BATS_TEST_TMPDIR}/elsewhere"
+	mkdir -p "${elsewhere}"
+	cd "${elsewhere}" || return 1
+
+	run "${hook}"
+
+	[ "$status" -eq 0 ]
+	[ "$(cat "${BATS_TEST_TMPDIR}/pre-commit-cwd.log")" = "${repo}" ]
+}
+
+@test "scratch commits do not inherit the developer's signing setup" {
+	local global_config="${BATS_TEST_TMPDIR}/global.gitconfig"
+	git config --file "${global_config}" commit.gpgsign true
+	git config --file "${global_config}" gpg.format ssh
+	git config --file "${global_config}" user.signingKey "${BATS_TEST_TMPDIR}/missing-test-key"
+	export GIT_CONFIG_GLOBAL="${global_config}" GIT_CONFIG_NOSYSTEM=1
+	init_git_repo
+
+	run git -C "${repo}" commit -q -m "add file"
+
+	[ "$status" -eq 0 ]
+	[ "$(git -C "${repo}" config --local --get commit.gpgsign)" = "false" ]
+	git -C "${repo}" rev-parse --verify -q HEAD
 }

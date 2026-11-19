@@ -90,12 +90,7 @@ alias lint := pre-commit
 # `pre-commit install`, whose untracked hook nobody reviews, and which
 # refuses to run once core.hooksPath is set.
 setup:
-    #!/usr/bin/env bash
-    set -euo pipefail
-
-    git config core.hooksPath .githooks
-
-    echo "Git hooks switched on: each commit now runs .githooks/pre-commit"
+    @./s/install-hooks
 
 
 # Regenerate the pinned dependency locks from the .in declarations

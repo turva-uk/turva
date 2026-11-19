@@ -128,6 +128,10 @@ The database is only an index over the safety file repositories and is rebuildab
 
 Serves the documentation site with hot reload at <http://localhost:8001>.
 
+### `./s/install-hooks`
+
+Opts this clone into the tracked `.githooks/pre-commit`, which runs pre-commit on staged files. `just setup` is an optional alias. Run it deliberately once per clone; the local Git setting is shared by linked working trees and each branch supplies its own hook. It does not install packages, alter global Git configuration or replace an existing custom hooks path. Existing hook files are not deleted. CI remains the backstop when local hooks are not installed.
+
 ### `./s/terraform`
 
 Runs Terraform for Turva's GitHub repository settings in `terraform/github/`, in a pinned container. The host needs Docker, `curl` and Python 3.10 or later. `plan` and `apply` use `GITHUB_TOKEN`, falling back to `gh auth token`; see [GitHub settings](../docs/docs/github-settings.md) for the local-state limitations and explicit administrative approval boundary.
