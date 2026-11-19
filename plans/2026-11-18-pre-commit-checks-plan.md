@@ -1,22 +1,18 @@
 # Pre-commit checks plan
 
-Turva's `.pre-commit-config.yaml` checks formatting, spelling, Markdown and Python style, and since #109 and #110 it runs on every commit as well as in CI. It does not look for the mistakes that hurt most in a public, safety-critical repository: a committed secret, a home network address or device name, an unsafe GitHub Actions workflow, a Python type error, or a known-insecure Python pattern. Each has a well-tried pre-commit hook, so Turva can adopt checks that are known to work rather than design them afresh.
+Turva's `.pre-commit-config.yaml` checks formatting, spelling, Markdown and Python style in CI. Local hooks from #109 and #110 are optional, enabled deliberately with `./s/install-hooks`; CI still checks changes made without them. This plan adds secret scanning, network-detail checks, Python type checking and security linting, and brings the existing Zizmor audit into the hook configuration.
 
-This plan adds those checks one at a time, each as its own branch in the `pre-commit` stack on top of `feature/pre-commit-lint-staged` (#110): `check-toml`, gitleaks, the dev-details check, Zizmor as a hook, mypy and bandit. Each phase lands green: where a new check finds problems in the existing code, the phase either fixes them or narrows the check's scope, and says which in its pull request. The order puts the cheapest and most valuable checks first, so stopping early still leaves Turva better protected.
+Each check has its own branch in the `pre-commit` stack above #110: `check-toml`, gitleaks, the dev-details check, Zizmor as a hook, mypy and bandit. Each phase must pass before merging. Fix real findings; document and justify any deliberate scope limit or narrowly identified false positive rather than weakening a check to get a green result.
 
-## Open questions
+## Agreed boundaries
 
-- [x] **What happens if gitleaks finds a secret in Git history?** Phase 2 scans the whole history once. Rewriting `main`'s history needs a force-push, which `AGENTS.md` lists as needing approval. - Report it, stop for you to rotate the secret, then add the commit to the allowlist with a reason. History is never rewritten. Answered in `/t-g`, 18 November 2026.
-- [x] **Does CI keep its own online Zizmor run once the hook exists?** The hook runs with `--offline`, because the audits that ask GitHub need a token. - Yes: the `Workflow security` job keeps running Zizmor online, but reads its version from `.pre-commit-config.yaml`, so there is one pin. Answered in `/t-g`, 18 November 2026.
-- [x] **What does mypy check first, and how strictly?** `safety_file/` imports no web framework, so it can be checked without Django's stubs, and strictly. `app/` needs `django-stubs` and `djangorestframework-stubs` and will report far more. - `safety_file/` only, strict, in Phase 5. `app/` waits for a later plan, informed by a first count of its errors. Answered in `/t-g`, 18 November 2026.
-- [x] **Does bandit scan the tests?** Bandit reports every `assert` (B101), and pytest tests are built from them. - No: it scans `app/`, `safety_file/` and `demo/`, and excludes the test files, so B101 stays on for application code. Answered in `/t-g`, 18 November 2026.
-- [x] **Where does `check-toml` go?** Turva has two TOML files today, `pyproject.toml` and `ruff.toml`. The check is one line beside `check-yaml` and `check-json` in `.pre-commit-config.yaml`. - Its own small phase, Phase 1, before gitleaks. Answered in `/t-g`, 18 November 2026.
-- [x] **When is the denylist written?** - Before the run, so Phase 3's first scan of the repository also catches the literals. Made in `/t-g`. Answered in `/t-g`, 18 November 2026.
-- [x] **How do the one-off scans run without installing gitleaks, mypy and bandit?** - With the copies `pre-commit` downloads for each hook into its own cache, so each scan uses exactly the version its hook pins, and nothing is installed on the system. Answered in `/t-g`, 18 November 2026.
-
-## Before running /f
-
-- [x] **Write your own `local/dev-details-denylist`.** Only you know the literals it should hold, such as your machines' hostnames. It is never committed, so `/t-f` cannot fill it in. - Done on 18 November 2026: made in `/t-g`.
+- **Secrets in history:** stop publication and report the commit and rule, never the value. An authorised administrator rotates the secret. Any later exception needs explicit review and must not hide other findings in the same commit. Do not rewrite history.
+- **Zizmor:** keep both the offline local audit and the token-enabled online CI audit, using one pin.
+- **Python types:** check `safety_file/` and its tests strictly first. Django typing needs a separately reviewed follow-up, not silently missing imports or weaker storage checks.
+- **Bandit:** check production Python in `app/`, `safety_file/` and `demo/`, excluding test files rather than disabling B101 for application code.
+- **TOML:** add `check-toml` beside the existing YAML and JSON hooks, at their existing reviewed repository pin.
+- **Personal literals:** a private denylist is optional. Never require personal setup, create it automatically in another working tree, or edit shared Git exclusions during a scan. Use the adopted ignored `.private/` directory for an explicitly supplied local list.
+- **Tool installation:** use the hooks' isolated environments, or a reviewed checksum-verified copy of the same pinned release, for one-off scans. Nothing installs packages merely because local hooks were enabled.
 
 ## Phase 1: check-toml
 
@@ -32,14 +28,14 @@ Branch `feature/pre-commit-gitleaks`.
 - [ ] Add `.gitleaks.toml` with an `[extend]` block setting `useDefault = true`. A config file holding only an allowlist **replaces** gitleaks' built-in rules, so gitleaks runs with no rules and passes a real key. Add allowlist entries only for values the scan proves are not secrets, such as the test settings in `app/config/`, each with a `description` saying why.
 - [ ] Add `s/tests/gitleaks-config.bats`, which fails if `.gitleaks.toml` loses its `[extend]` block.
 - [ ] Make CI scan the pushed commits, not only the staged files. The hook scans what is staged, so CI's `pre-commit run --all-files` in the `Styling (pre-commit)` job has nothing staged and checks nothing. Add a CI step that scans the pull request's commit range. Pin any new action by commit SHA, with a `# vX.Y.Z` comment.
-- [ ] Scan the whole of Turva's Git history once, with `gitleaks git` run from the copy `pre-commit` downloaded for the hook, and record in the pull request that the scan ran and what it found. **If it finds a real secret, stop before committing** and report the commit and the rule, never the value. You rotate the secret, then the commit goes on the `.gitleaks.toml` allowlist with a reason. History is never rewritten, because that needs a force-push to `main`.
+- [ ] Scan Turva's Git history with the pinned gitleaks release, and record the scope and result in the pull request. First prove the configured rules detect a synthetic canary; scanner errors are not detections. **If a real secret is found, stop publication** and follow the reviewed rotation and exception boundary above. Never print its value or rewrite history.
 
 ## Phase 3: dev-details check
 
 Branch `feature/pre-commit-dev-details`.
 
 - [ ] Add `s/checks/check-dev-details`, which refuses private network addresses and device MAC addresses in tracked files, plus the literals in a developer's own denylist, such as a hostname or a VPN network's name. It reports a match as `path:line` and the rule's name, never the matched text, because CI logs are as public as the files.
-- [ ] Name its private list `local/dev-details-denylist`, and add `/local/` to `.gitignore`. The script makes the file, with a header explaining it, the first time it runs outside CI in a clone that has none. CI runs only the patterns, never the list.
+- [ ] Support an optional, explicitly supplied private list such as `.private/dev-details-denylist`. Scans do not create personal files, change another working tree or modify shared Git configuration. CI runs the shared patterns without requiring a personal list.
 - [ ] Add it to `.pre-commit-config.yaml` as a `local` hook over `types: [text]`.
 - [ ] Add `s/tests/check-dev-details.bats`, with every made-up address and name obviously fake.
 - [ ] Run it over every tracked file before turning it on. Remove any real detail it finds, and widen the patterns' exceptions only for a value that names nothing, such as a documentation address range.
@@ -59,7 +55,7 @@ Branch `feature/pre-commit-mypy`.
 
 - [ ] Run mypy once over `safety_file/`, using the hook's own copy through `pre-commit run mypy --all-files`, its tests included, with `--strict`, and count the errors before choosing how to land it. If they are few, fix them in this phase. If they are many, land the check on the modules that pass and list the rest in an issue.
 - [ ] Add the `mypy` hook from `https://github.com/pre-commit/mirrors-mypy`, limited to `files: ^safety_file/`, with `language_version: python3.14` to match `app/Dockerfile`'s `python:3.14.9-slim`. Put its settings, `strict = true` among them, in a `[tool.mypy]` block in `pyproject.toml`, so the hook and a bare `mypy` agree. `AGENTS.md` forbids only `[tool.ruff]` there.
-- [ ] Give the hook the only two packages `safety_file/` needs beyond the standard library, `types-PyYAML` for `yaml` and `pytest` for its tests, as `additional_dependencies` pinned to the versions in `app/requirements*.txt`. An unpinned package takes whatever PyPI has newest, and fails on typing that the locked version does not share.
+- [ ] Declare and pin the hook's runtime dependencies, test dependencies and type stubs. Match runtime/test versions to the application locks where applicable, so mypy checks the versions the code actually uses.
 - [ ] Leave `app/` unchecked, and open an issue for a later plan that records how many errors a first non-strict run over `app/` reports, with `django-stubs` and `djangorestframework-stubs`.
 
 ## Phase 6: bandit
@@ -74,4 +70,4 @@ Branch `feature/pre-commit-bandit`.
 ## Decisions
 
 - **One branch for each check.** Each check can fail the existing code in its own way, and a reviewer can judge one check's findings and exceptions in twenty minutes. Five checks in one pull request would hide one check's exceptions among another's.
-- **The bats tests still need #105 to run automatically.** `./s/test` runs `bats s/tests` only once the Terraform stack (#105) merges. Until then each phase's bats test runs by hand, and its pull request says so.
+- **Script tests run in the shared gate.** The merged Terraform stack added `bats s/tests` to `./s/test` and CI. Bats uses stand-ins for external services on the host/runner; no application container or personal task runner is needed for those tests.
