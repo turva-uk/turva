@@ -25,7 +25,7 @@ export {
 } from "./api";
 export { blankHazard, hazardInputFrom, hazardProblems } from "./hazardInput";
 export { isRiskScore, RISK_SCORES } from "./risk";
-export { EXTRACTION_FIELDS, isHazardStatus } from "./types";
+export { EXTRACTION_FIELDS, isHazardStatus, isSafetyFileStatus } from "./types";
 export type {
   AssessmentInput,
   AssessmentDraft,

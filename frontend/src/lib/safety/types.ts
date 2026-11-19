@@ -125,6 +125,10 @@ export interface MitigationWrite {
 /** Where a file stands, read from its sign-off tags. Not yet in Turva's API. */
 export type SafetyFileStatus = "draft" | "approved" | "accepted";
 
+export function isSafetyFileStatus(value: unknown): value is SafetyFileStatus {
+  return value === "draft" || value === "approved" || value === "accepted";
+}
+
 /** One prose document the file holds. Not yet in Turva's API. */
 export interface DocumentRef {
   path: string;
