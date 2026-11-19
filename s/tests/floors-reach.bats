@@ -56,6 +56,7 @@ write_received() {
 	"ruff-check": ["app/models.py", "app/tests/test_models.py", "safety_file/team.py"],
 	"ruff-format": ["app/models.py", "app/tests/test_models.py", "safety_file/team.py"],
 	"shellcheck": ["s/up", "s/tests/up.bats"],
+	"actionlint": [".github/workflows/ci.yml"],
 	"cspell": ["README.md"],
 	"markdownlint": ["README.md"],
 	"prettier": [".github/workflows/ci.yml", ".github/dependabot.yml", "package.json", "frontend/tsconfig.json", "README.md", "frontend/app.css"]
@@ -108,6 +109,16 @@ EOF
 
 	[ "$status" -eq 1 ]
 	[[ "$output" == *"shellcheck: is not given s/up"* ]]
+}
+
+@test "fails when actionlint is not given a workflow" {
+	write_received
+	withhold actionlint .github/workflows/ci.yml
+
+	run bash "${repo}/s/floors/reach" --hook-files "${received}"
+
+	[ "$status" -eq 1 ]
+	[[ "$output" == *"actionlint: is not given .github/workflows/ci.yml"* ]]
 }
 
 @test "fails when a whole hook is missing from the config" {

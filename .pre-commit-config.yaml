@@ -88,6 +88,19 @@ repos:
     hooks:
       - id: shellcheck
 
+  # actionlint checks each workflow: expressions, job outputs, needs: and
+  # the shell in every run: step, which it hands to ShellCheck. It skips
+  # those shell checks silently when ShellCheck is missing, so shellcheck-py
+  # is installed beside it here rather than relied on from the machine.
+  # Dependabot bumps the rev above but not the pin below: keep that pin at
+  # the ShellCheck hook's version by hand.
+  - repo: https://github.com/Mateusz-Grzelinski/actionlint-py
+    rev: v1.7.12.25
+    hooks:
+      - id: actionlint
+        additional_dependencies:
+          - shellcheck-py==0.11.0.1
+
   - repo: https://github.com/streetsidesoftware/cspell-cli
     rev: v10.4.0
     hooks:

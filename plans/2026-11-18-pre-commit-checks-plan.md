@@ -2,7 +2,7 @@
 
 Turva's `.pre-commit-config.yaml` checks formatting, spelling, Markdown and Python style, and since #109 and #110 it runs on every commit as well as in CI. It does not look for the mistakes that hurt most in a public, safety-critical repository: a committed secret, a home network address or device name, an unsafe GitHub Actions workflow, a Python type error, or a known-insecure Python pattern. Each has a well-tried pre-commit hook, so Turva can adopt checks that are known to work rather than design them afresh.
 
-This plan adds those checks one at a time, each as its own branch in the `pre-commit` stack on top of `feature/pre-commit-lint-staged` (#110): `check-toml`, gitleaks, the dev-details check, Zizmor as a hook, mypy, bandit and ShellCheck, then floors under every check so that none can pass while checking nothing. Each phase lands green: where a new check finds problems in the existing code, the phase either fixes them or narrows the check's scope, and says which in its pull request. The order puts the cheapest and most valuable checks first, so stopping early still leaves Turva better protected.
+This plan adds those checks one at a time, each as its own branch in the `pre-commit` stack on top of `feature/pre-commit-lint-staged` (#110): `check-toml`, gitleaks, the dev-details check, Zizmor as a hook, mypy, bandit and ShellCheck, then floors under every check so that none can pass while checking nothing, then actionlint for the workflows and the shell inside them. Each phase lands green: where a new check finds problems in the existing code, the phase either fixes them or narrows the check's scope, and says which in its pull request. The order puts the cheapest and most valuable checks first, so stopping early still leaves Turva better protected.
 
 ## Open questions
 
@@ -119,6 +119,23 @@ Branch `feature/pre-commit-test-floors`.
 - [x] **A test that fails on a test file pytest would never collect**. It reads the syntax tree of every Python file under `app/`, `safety_file/` and `demo/`, and fails on one that defines a test and has a name pytest does not collect. None does today.
 - [x] Prove each floor and the naming test fail, by planting a missing test or a misnamed file, then removing it.
 - [x] Built on 19 November 2026. `s/floors/test-counts` collects each suite without running it, where it runs: 161 `safety_file` tests, 488 Django tests (485 and the naming test's 3) and 721 Vitest tests. Vitest lists 721 although a run reports 804, because some tests expand into several cases only when they run, so the floor is on the list, which is stable and needs no second run. The floors are 144, 439 and 648. The naming test lives in `app/config/tests/test_test_file_names.py`, because the container mounts `app/`, `safety_file/` and `demo/` together. Planting a misnamed `planted_checks.py` made it fail, and removing it made it pass.
+
+## Phase 9: actionlint
+
+Branch `feature/pre-commit-actionlint`. Added on 19 November 2026. ShellCheck checks whole files only, so the shell inside each workflow's `run:` steps, over 70 lines in `ci.yml` alone, is never checked. actionlint reads each workflow, runs ShellCheck over every `run:` step, and also catches workflow mistakes nothing checks today: a typo in a `${{ }}` expression, a step reading an output that does not exist, or a `needs:` naming a job that is not defined. Zizmor looks only for security problems, so the two overlap very little.
+
+- [x] Add the `actionlint` hook from `https://github.com/Mateusz-Grzelinski/actionlint-py`, at the latest tag confirmed from that repository at build time (`v1.7.12.25` on 19 November 2026, which installs actionlint 1.7.12), with `shellcheck-py` pinned to the same version as the ShellCheck hook in its `additional_dependencies`. Chosen over the official hook in actionlint's own repository, which builds actionlint from source with Go and finds ShellCheck only if it is already installed on the machine. actionlint skips its ShellCheck rules silently when ShellCheck is missing, so the official hook would pass the shell unchecked on any machine without it, CI included.
+- [x] Run it once over every workflow, using the hook's own copy through `pre-commit run actionlint --all-files`, and triage what it reports. Fix a real finding. Turn off a false one only with a reason, in an `.github/actionlint.yaml` that records each exception. Ran on 19 November 2026: all three workflows passed, so no exception file was needed.
+- [x] Prove that the ShellCheck rules really run: plant an unquoted variable in a `run:` step, see the hook report it as a ShellCheck finding, then remove it. Without this a missing ShellCheck would look exactly like clean shell. Done on 19 November 2026: an unquoted `$UNQUOTED_PLANT` in the `safety_file` test step of `ci.yml` was reported as ShellCheck's SC2086, then removed.
+- [x] Add a rule to `s/floors/reach.py` that actionlint receives every file in `.github/workflows/`, with its bats test, and reset the floors with `just floors-update` if any count moves. The reach check now has 18 rules, and no floor moved.
+- [x] Note in the hook's comment that Dependabot bumps the hook's `rev` but not the `shellcheck-py` pin inside it, so the two ShellCheck pins move together by hand.
+
+## Phase 10: shell in the justfile
+
+Added on 19 November 2026. No tool checks the shell inside `justfile` recipes, and a handful hold real logic, with `if`, `case` and `$(...)`, the longest running to about 30 lines each. Moving each long recipe into a script under `s/<topic>/`, with the recipe calling it, puts that shell where ShellCheck, the reach check and bats tests already cover it, with no new tool. Not part of the `pre-commit` stack: it changes no check, only where code lives.
+
+- [ ] List the recipes holding more than a few lines of shell, and move each into a script under `s/<topic>/`, with a bats test.
+- [ ] Leave each recipe as a one-line call to its script, so `just` keeps working as it does today.
 
 ## Decisions
 
