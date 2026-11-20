@@ -3,6 +3,16 @@
 # Ruff is configured separately in ruff.toml, which is the single source of
 # truth for lint and format. Do not add a [tool.ruff] section here.
 
+# A [project] table exists only so uv can manage the host development
+# environment. The dev dependency group below declares what `.venv` needs
+# (created by `uv sync`), and uv.lock pins it. The repository is not packaged
+# or installed: the application's own dependencies live in app/requirements*.in
+# and their committed locks, which `s/lock` regenerates.
+[project]
+name = "turva"
+version = "0.1.0"
+requires-python = ">=3.14"
+
 [tool.pytest.ini_options]
 # DJANGO_SETTINGS_MODULE is deliberately NOT set here. This file is shared with
 # the `safety_file` suite, which has no Django dependency by design (ADR 0001)
@@ -54,3 +64,8 @@ disallow_untyped_defs = false
 disallow_incomplete_defs = false
 disallow_untyped_calls = false
 check_untyped_defs = true
+
+[dependency-groups]
+dev = [
+    "pre-commit>=4.7.0",
+]
