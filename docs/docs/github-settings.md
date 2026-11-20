@@ -2,7 +2,7 @@
 
 Turva's desired GitHub repository settings live in `terraform/github/` and are reviewed through pull requests. Merging these files does not apply them. An administrator must separately approve and run an apply.
 
-Terraform manages GitHub settings only. The phase-one application runs on a VPS with Docker Compose and Caddy, and for MBPCC on Kubernetes from a Helm chart ([ADR 0008](https://github.com/turva-uk/turva/blob/main/specifications/adr/0008-kubernetes-and-helm-deployment.md)); see the [technical overview](technical-overview.md).
+Terraform manages GitHub settings only. Docker Compose and Caddy remain the existing deployment path. A Kubernetes and Helm path for MBPCC is planned in [ADR 0008](https://github.com/turva-uk/turva/blob/main/specifications/adr/0008-kubernetes-and-helm-deployment.md), not deployed by this change.
 
 ## Desired protection for the default branch
 

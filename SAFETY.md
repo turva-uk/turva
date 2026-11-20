@@ -192,9 +192,9 @@ The service boundary now serialises organisation revocation against Git writes w
 
 ### Planned Kubernetes and Helm deployment
 
-The MBPCC deployment will run Turva on Kubernetes from a Helm chart, recorded by [ADR 0008](specifications/adr/0008-kubernetes-and-helm-deployment.md); the chart and the storage, rollout and backup controls are the follow-up issues #141 and #142. Orchestration adds causes to existing hazards rather than new ones. TH-003 gains: a PersistentVolume is covered by no host backup by default, so repository backups must be designed, scheduled and actually tested, and a volume snapshot taken mid-save is not a consistent copy. TH-004 gains: evictions, drains and rollouts kill pods mid-save more often than a VPS restart does, and the dirty tree that leaves must be preserved for inspection, never reset and never attributed to the next saver; any Job touching the repositories must hold the same lock as the application.
+The MBPCC Kubernetes path is planned in [ADR 0008](specifications/adr/0008-kubernetes-and-helm-deployment.md). A PersistentVolume does not constitute a backup; consistent off-cluster copies and an isolated restore drill are required (TH-003). Interrupted saves may leave a dirty tree, which must be preserved for inspection. Every repository Job must obey the same lock rules as the application (TH-004). Git and PostgreSQL backups need compatible recovery points and live-access checks before restored evidence is served (TH-005).
 
-The decision keeps the ADR 0004 serialisation guarantee by keeping one writer on one ReadWriteOnce volume with a `Recreate` deployment strategy, so no existing control is weakened by the move. Multiple replicas, RWX storage or a cross-host lock would need their own ADR with the concurrency tests re-run, and high availability remains out of scope. No deployment code exists yet; the hazards remain open.
+One replica and `Recreate` are design choices, not proof that old and replacement writers cannot overlap. Follow-ups [#141](https://github.com/turva-uk/turva/issues/141) and [#142](https://github.com/turva-uk/turva/issues/142) must demonstrate the locking, recovery and backup controls on the chosen platform before production. This ADR changes no runtime control and closes no hazard.
 
 ### Dependency maintenance evidence
 

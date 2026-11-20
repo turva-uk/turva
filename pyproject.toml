@@ -4,8 +4,8 @@
 # truth for lint and format. Do not add a [tool.ruff] section here.
 
 # A [project] table exists only so uv can manage the host development
-# environment. The dev dependency group below declares what `.venv` needs
-# (created by `uv sync`), and uv.lock pins it. The repository is not packaged
+# lint environment. The dev group is for pre-commit, not the host test suite;
+# see DEVELOPMENT.md for isolated installation. The repository is not packaged
 # or installed: the application's own dependencies live in app/requirements*.in
 # and their committed locks, which `s/lock` regenerates.
 [project]

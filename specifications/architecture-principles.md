@@ -258,7 +258,7 @@ Infrastructure defined in version-controlled files:
 
 **Why**: Reproducible deployments, reviewable changes, rollback capability.
 
-The funded build has two supported deployment paths. The single VPS runs Docker Compose: Caddy, the Django application, PostgreSQL, and a volume holding the safety file repositories. The MBPCC deployment runs on Kubernetes from a Helm chart, per [ADR 0008](adr/0008-kubernetes-and-helm-deployment.md). Both write safety evidence the same way - one application process against one local-filesystem volume - and the orchestration files must not pretend to more than that. The Kubernetes path is deliberately a single writer on a single volume, not a cluster-wide one.
+Docker Compose remains the existing single-VPS path. [ADR 0008](adr/0008-kubernetes-and-helm-deployment.md) adds a planned Helm deployment for MBPCC, not an implemented chart. Both paths require the local-filesystem locking contract in ADR 0004; the Kubernetes implementation must demonstrate that contract on the selected storage before production.
 
 ### Separate Config from Code
 
@@ -274,11 +274,11 @@ Configuration lives in environment variables, not hardcoded:
 
 A single writer on a single volume cannot deploy with zero downtime, and phase one does not try to. What it must not do is lose or corrupt safety evidence while restarting:
 
-- Migrations are backward-compatible where practical, so a rollback does not strand the database. On Kubernetes they run as a Helm pre-upgrade hook Job ([ADR 0008](adr/0008-kubernetes-and-helm-deployment.md))
-- The safety file repositories live on a volume that outlives the container, and are what the backup strategy must cover. The database is rebuildable from them; they are not rebuildable from anything. On Kubernetes that volume is ReadWriteOnce with one pod, and the Deployment strategy is `Recreate`, so two writers never hold it at once
-- A restart interrupts in-flight requests. Because every write is committed as it is made rather than batched at the end of a session, an interrupted request loses at most the edit in progress, not the file. On Kubernetes, graceful shutdown is ordered so in-flight saves can finish before the pod is killed; a save killed anyway leaves a dirty tree for inspection, never a silent reset
+- Migrations must account for any old application still serving traffic and the database state left after a rollback. The Kubernetes install, upgrade and recovery checks are in [ADR 0008](adr/0008-kubernetes-and-helm-deployment.md)
+- Back up the safety-file repositories and PostgreSQL operational state. Only the database index is rebuildable from Git; users, memberships and appointments are not
+- A forced interruption can leave a dirty tree; keep it for inspection. Graceful shutdown reduces interruptions but does not replace the clean-tree and locking checks
 
-**Why**: The earlier version of this principle promised rolling updates, backward-compatible API versioning and high availability. The backward-compatibility promise stands; the rolling-update promise stays withdrawn - `Recreate` is chosen precisely because a rolling update briefly runs two writers. Availability is a legitimate later goal; evidence durability is a requirement now.
+**Why**: Evidence durability is required now. High availability and overlapping writer rollouts are not part of this deployment decision.
 
 A brief outage during a deploy is acceptable for a tool used by Clinical Safety Officers during office hours. It would not be acceptable for a system used at the point of care, which Turva explicitly is not.
 
