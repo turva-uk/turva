@@ -32,6 +32,7 @@ from .errors import (
     NotASafetyFileError,
     SchemaVersionError,
     StaleVersionError,
+    UnreadableSourceError,
     ValidationError,
 )
 from .git import Author, Commit
@@ -617,6 +618,45 @@ class SafetyFileRepository:
     def version_at(self, revision: str, file_path: str) -> str:
         """An artefact as it stood at a past commit."""
         return git.show(self.root, revision, file_path)
+
+    def committed_text(self, revision: str, file_path: str, *, max_bytes: int) -> str:
+        """Bounded UTF-8 text of a regular file exactly as committed at `revision`.
+
+        Reads the Git object, never the working tree, so an uncommitted or
+        ignored edit cannot be presented as the committed source. Symlinks,
+        submodules and directories are refused rather than followed, and an
+        oversized or undecodable source is refused whole rather than truncated.
+        """
+        if type(max_bytes) is not int or max_bytes <= 0:
+            raise ValueError("The committed text reading limit must be a positive integer.")
+        entry = git.tree_entry(self.root, revision, file_path)
+        if entry is None:
+            raise UnreadableSourceError(
+                "missing", f"{file_path} is not present in the committed version {revision}."
+            )
+        mode, kind, obj, size = entry
+        if kind != "blob" or mode not in {"100644", "100755"}:
+            raise UnreadableSourceError(
+                "not-a-file",
+                f"{file_path} is committed as a link or other non-file entry, which is not read.",
+            )
+        if size is None or size > max_bytes:
+            raise UnreadableSourceError(
+                "too-large", f"{file_path} is larger than the {max_bytes}-byte reading limit."
+            )
+        data = git.blob_bytes(self.root, obj)
+        if len(data) > max_bytes:
+            raise UnreadableSourceError(
+                "too-large", f"{file_path} is larger than the {max_bytes}-byte reading limit."
+            )
+        if b"\0" in data:
+            raise UnreadableSourceError("not-text", f"{file_path} contains non-text NUL bytes.")
+        try:
+            return data.decode("utf-8")
+        except UnicodeDecodeError:
+            raise UnreadableSourceError(
+                "not-text", f"{file_path} is not valid UTF-8 text."
+            ) from None
 
     @property
     def head_sha(self) -> str:

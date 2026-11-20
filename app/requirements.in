@@ -49,3 +49,9 @@ gunicorn
 zensical==0.0.74
 beautifulsoup4
 weasyprint
+
+# Read-only document view: committed Markdown is converted with the same
+# extensions as the PDF build, then reduced to an allowlisted node tree. Already
+# resolved through Zensical; declared because the application imports them.
+markdown
+pymdown-extensions

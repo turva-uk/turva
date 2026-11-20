@@ -8,6 +8,7 @@ import {
   addMitigation,
   createFile,
   downloadPdf,
+  documentPath,
   getFile,
   getHazard,
   getMitigation,
@@ -323,6 +324,26 @@ describe("risk level", () => {
 });
 
 describe("route identity is not URL navigation", () => {
+  it("uses the same document route for requests and navigation", () => {
+    expect(documentPath("ward-list_1", "risk-management-plan")).toBe(
+      "/safety-files/ward-list_1/documents/risk-management-plan/",
+    );
+  });
+
+  it.each([
+    "",
+    ".",
+    "..",
+    "ward/list",
+    "ward\\list",
+    "ward?other=true",
+    "overview#section",
+    "overview%2fextra",
+  ])("rejects URL syntax in both document route identities: %s", (value) => {
+    expect(() => documentPath(value, "overview")).toThrow(/identifier/i);
+    expect(() => documentPath("ward-list", value)).toThrow(/identifier/i);
+  });
+
   it.each(["ward-list-1", "ward_list", "WARD_LIST_1"])(
     "preserves a valid ASCII identifier exactly: %s",
     async (slug) => {

@@ -7,6 +7,7 @@ import { HazardLog } from "../components/HazardLog";
 import { HistoryTable } from "../components/HistoryTable";
 import { PDFDownload } from "../components/PDFDownload";
 import { MitigationList } from "../components/MitigationList";
+import { documentPath } from "../lib/safety/api";
 
 const NOT_FOUND = "That safety file does not exist, or you do not have access to it.";
 
@@ -100,6 +101,26 @@ export function SafetyFileDetailPage() {
               derived residual risk level of 4 or 5 and{" "}
               {detail.blocking.length === 1 ? "is" : "are"} still open.
             </Alert>
+          )}
+
+          {detail.documents && detail.documents.length > 0 && (
+            <Box component="section" mt="xl" aria-labelledby="safety-documents">
+              <Title order={2} size="h3" id="safety-documents" mb="xs">
+                Safety documents
+              </Title>
+              <Text size="sm" c="dimmed" mb="xs">
+                Read-only views of the committed documents.
+              </Text>
+              <ul className="document-list">
+                {detail.documents.map((item) => (
+                  <li key={item.key}>
+                    <Anchor component={Link} to={documentPath(file.slug, item.key)}>
+                      {item.title}
+                    </Anchor>
+                  </li>
+                ))}
+              </ul>
+            </Box>
           )}
 
           <Group justify="space-between" mt="xl" mb="sm">

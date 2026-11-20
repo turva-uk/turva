@@ -115,6 +115,8 @@ export interface SafetyFileDetail {
   safety_file: SafetyFile;
   can_edit: boolean;
   repository_missing: boolean;
+  /** The controlled, read-only safety documents. Absent when the repository is missing. */
+  documents?: SafetyDocumentSummary[];
   /** Present only when the repository is missing from disk. */
   repository_path?: string;
   hazards?: Hazard[];
@@ -216,4 +218,68 @@ export interface MitigationDetail {
 export interface MitigationOptions {
   statuses: string[];
   control_types: string[];
+}
+
+export interface SafetyDocumentSummary {
+  key: string;
+  title: string;
+}
+
+/**
+ * An allowlisted document tree built by the API from committed Markdown. The
+ * browser renders it as React elements; it never inserts source as HTML.
+ */
+export type DocumentNode =
+  | { type: "text"; text: string }
+  | {
+      type: "element";
+      tag: string;
+      attrs?: {
+        id?: string;
+        start?: number;
+        colspan?: number;
+        rowspan?: number;
+        align?: string;
+      };
+      children?: DocumentNode[];
+    }
+  | {
+      type: "admonition";
+      kind: string;
+      title: string;
+      /** The title uses the same sanitised tree and omission accounting as the body. */
+      title_nodes?: DocumentNode[];
+      collapsible: boolean;
+      open?: boolean;
+      children: DocumentNode[];
+    }
+  | { type: "anchor"; fragment: string; children: DocumentNode[] }
+  | { type: "external"; href: string; children: DocumentNode[] }
+  | { type: "document"; document: string; fragment?: string; children: DocumentNode[] }
+  | { type: "reference"; text: string }
+  | { type: "unsupported"; description: string };
+
+export interface SafetyDocumentContent {
+  key: string;
+  title: string;
+  path: string;
+  /** The full commit the document was read at. */
+  source_commit: string;
+  available: boolean;
+  reason?: string;
+  message?: string;
+  /** Exact bounded committed Markdown, only when the formatted view is refused.
+   *  Render as text, never HTML, and only for unsupported-formatting. */
+  source?: string;
+  blocks: DocumentNode[];
+  /** How many items in the source are not displayed. */
+  unsupported: number;
+}
+
+export interface SafetyDocumentDetail {
+  safety_file: SafetyFile;
+  documents: SafetyDocumentSummary[];
+  document: SafetyDocumentContent;
+  last_changed: Commit | null;
+  head_sha: string;
 }

@@ -6,6 +6,7 @@ import { useSession } from "./auth/useSession";
 import { ACCENT, BRAND } from "./theme";
 import { LoginPage } from "./pages/LoginPage";
 import { SafetyFileDetailPage } from "./pages/SafetyFileDetailPage";
+import { SafetyDocumentPage } from "./pages/SafetyDocumentPage";
 import { SafetyFilesPage } from "./pages/SafetyFilesPage";
 import { ProfilePage } from "./pages/ProfilePage";
 import { SafetyFileCreatePage } from "./pages/SafetyFileCreatePage";
@@ -273,6 +274,14 @@ export function App() {
               element={
                 <RequireSession verified>
                   <HazardDetailPage />
+                </RequireSession>
+              }
+            />
+            <Route
+              path="/safety-files/:slug/documents/:documentKey"
+              element={
+                <RequireSession verified>
+                  <SafetyDocumentPage />
                 </RequireSession>
               }
             />

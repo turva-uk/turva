@@ -11,6 +11,7 @@ export {
   addMitigation,
   createFile,
   downloadPdf,
+  documentPath,
   getFile,
   getHazard,
   getMitigation,

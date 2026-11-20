@@ -207,6 +207,45 @@ def show(path: Path, revision: str, file_path: str) -> str:
     return run(["show", f"{revision}:{file_path}"], cwd=path)
 
 
+def tree_entry(
+    path: Path, revision: str, file_path: str
+) -> tuple[str, str, str, int | None] | None:
+    """The committed `(mode, type, object, size)` of exactly `file_path`, or None.
+
+    Literal pathspecs, so a caller's path is never a glob or magic pathspec.
+    """
+    output = run(
+        ["--literal-pathspecs", "ls-tree", "-l", "-z", "--full-tree", revision, "--", file_path],
+        cwd=path,
+    )
+    for record in output.split("\0"):
+        if not record:
+            continue
+        meta, _, name = record.partition("\t")
+        if name != file_path:
+            continue
+        mode, kind, obj, size = meta.split()
+        return mode, kind, obj, None if size == "-" else int(size)
+    return None
+
+
+def blob_bytes(path: Path, obj: str) -> bytes:
+    """A blob's exact bytes. Bytes, not text, so decoding is the caller's decision."""
+    # Git is resolved on the trusted host/container PATH, as in run() above.
+    # Its object identity comes from the literal tree entry, never shell text.
+    result = subprocess.run(  # noqa: S603 - fixed executable, list args, no shell  # nosec B603, B607
+        ["git", "cat-file", "blob", obj],
+        cwd=path,
+        capture_output=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        raise GitError(
+            ["cat-file", "blob", obj], result.returncode, result.stderr.decode(errors="replace")
+        )
+    return result.stdout
+
+
 def is_clean(path: Path) -> bool:
     """Whether the working tree has no uncommitted changes.
 

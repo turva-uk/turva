@@ -55,6 +55,7 @@ from app.api.serializers import (
     VerificationSerializer,
 )
 from app.safetyfiles.access import can_edit, can_manage_team, read_evidence
+from app.safetyfiles.documents import BY_KEY, DOCUMENTS, read_document
 from app.safetyfiles.pdf_contract import PDFExportError
 from app.safetyfiles.pdf_export import safety_file_pdf
 from app.safetyfiles.services import (
@@ -605,6 +606,7 @@ class SafetyFileDetailView(RepositoryView):
                 "can_manage_team": can_manage_team(safety_file, request.user, repository),
                 "team": repository.team().to_dict() if repository.team() else None,
                 "repository_missing": False,
+                "documents": [{"key": d.key, "title": d.title} for d in DOCUMENTS],
                 "hazards": HazardSerializer(hazards, many=True).data,
                 "mitigations": MitigationSerializer(repository.mitigations(), many=True).data,
                 "blocking": [
@@ -649,3 +651,30 @@ class HazardDetailView(RepositoryView):
             if not any(h.id == hazard_id for h in repository.hazards()):
                 raise Http404
         return self.write_hazard(request, safety_file, hazard_id=hazard_id)
+
+
+class SafetyDocumentView(RepositoryView):
+    """One controlled safety document, read-only, at the snapshot's HEAD.
+
+    The document is chosen by a fixed key from the controlled scope, never by
+    a path, so nothing else in the repository is reachable through this view.
+    Authority is rechecked under the same snapshot the document is read from.
+    """
+
+    def get(self, request: Request, slug: str, key: str) -> Response:
+        safety_file = get_object_or_404(visible_to(request.user), slug=slug)
+        document = BY_KEY.get(key)
+        if document is None:
+            raise Http404
+        with read_evidence(safety_file, request.user) as repository:
+            payload = read_document(repository, document)
+            last = payload.pop("last_changed")
+            return Response(
+                {
+                    "safety_file": SafetyFileSerializer(safety_file).data,
+                    "documents": [{"key": d.key, "title": d.title} for d in DOCUMENTS],
+                    "document": payload,
+                    "last_changed": CommitSerializer(last).data if last else None,
+                    "head_sha": repository.head_sha,
+                }
+            )

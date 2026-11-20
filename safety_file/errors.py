@@ -53,3 +53,15 @@ class StaleVersionError(SafetyFileError):
 
 class DirtyRepositoryError(SafetyFileError):
     """Uncommitted changes need inspection before any new attributable save."""
+
+
+class UnreadableSourceError(SafetyFileError):
+    """A committed source cannot be read as bounded text; never show part of it.
+
+    `reason` is a stable code (`missing`, `not-a-file`, `too-large`,
+    `not-text`) so a caller can say honestly why nothing is shown.
+    """
+
+    def __init__(self, reason: str, message: str) -> None:
+        self.reason = reason
+        super().__init__(message)

@@ -52,6 +52,11 @@ function filePath(slug: string): string {
   return `${FILES}${routeIdentifier(slug, "safety-file")}/`;
 }
 
+/** One route boundary for document requests and navigation; not an access grant. */
+export function documentPath(slug: string, key: string): string {
+  return `${filePath(slug)}documents/${routeIdentifier(key, "document")}/`;
+}
+
 /* ------------------------------------------------------------------ */
 /*  Files                                                              */
 /* ------------------------------------------------------------------ */
