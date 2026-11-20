@@ -145,3 +145,7 @@ PostgreSQL is pinned to an exact minor version in `docker-compose.yml`. A major 
 ```
 
 CI runs the same checks. See [AGENTS.md](AGENTS.md) for the project invariants.
+
+## Optional locked lint environment
+
+If you use uv, run `UV_PROJECT_ENVIRONMENT=.private/lint-venv uv sync --locked` from the repository root, then `PATH="$PWD/.private/lint-venv/bin:$PATH" ./s/lint`. An existing `.venv/bin/pre-commit` takes precedence. This environment contains pre-commit, not the host or application test dependencies. Keep it separate from `.venv`: a plain `uv sync` can remove packages the lock does not list.

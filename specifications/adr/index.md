@@ -11,6 +11,7 @@ One file per decision, numbered, never rewritten once accepted. A decision that 
 - [0005: Controlled PDF exports from committed evidence](0005-controlled-pdf-exports.md) - Implemented as a draft text export, 2026-11-11
 - [0006: Named file teams intersected with live appointments](0006-named-file-teams-and-live-appointments.md) - Implemented for organisational CSO collaboration, 2026-11-13
 - [0007: User- and organisation-supplied inference connections](0007-user-and-organisation-supplied-inference.md) - Accepted direction; implementation not started, 2026-11-15
+- [0008: Kubernetes and Helm deployment](0008-kubernetes-and-helm-deployment.md) - Accepted; chart and MBPCC deployment are follow-up work, 2026-11-20
 
 0002 and 0003 are a matched pair, and reading them together is more use than reading either alone: 0002 withdrew the API and named the condition under which it should come back, and 0003 is that condition being met. The constraint 0002 offered as reassurance - that an HTTP layer over the core cannot weaken the safety rules, because the core holds them - is the main design instruction in 0003.
 

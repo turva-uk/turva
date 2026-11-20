@@ -6,7 +6,7 @@ Turva is a containerised web application built around Git as the system of recor
 
 ### Interface
 
-Server-rendered HTML from Django templates, progressively enhanced with [HTMX](https://htmx.org/). There is no separate frontend build or client-side framework: the application that enforces the business rules also renders the pages, so each screen is written once. HTMX is vendored and served from the application rather than loaded from a CDN, so no third-party host has to be reachable for a page to work.
+React and Mantine provide the main interface over the Django REST Framework API. Django templates still serve administration and interim screens. See [ADR 0003](https://github.com/turva-uk/turva/blob/main/specifications/adr/0003-react-frontend-over-drf.md).
 
 ### Application
 
@@ -18,7 +18,7 @@ Each Clinical Safety Management File is its own Git repository on disk, containi
 
 ### Reverse Proxy
 
-Caddy serves as the reverse proxy, passing the whole URL space through to Django, which owns its own routing, and setting `X-Forwarded-Proto` so Django knows the original request was HTTPS. Configured via `Caddyfile`.
+On the Docker Compose path, `Caddyfile` configures the reverse proxy and forwards the original request scheme to Django. The planned Helm path must account for both the React build and the Django routes; it cannot assume that forwarding every request to Django serves the React interface.
 
 ### Authentication
 
@@ -26,7 +26,7 @@ Session-based authentication with Argon2 password hashing. Sessions are stored i
 
 ### Containerization
 
-Docker Compose orchestrates three services: `web`, `postgres`, and the Caddy reverse proxy. The application container runs as a non-root user. Scripts in the `s/` directory provide convenient commands (`up`, `down`, `logs`, `restart`, `clean`).
+Docker Compose is the current deployment and development path. The application container runs as a non-root user. Use the scripts in `s/` to run the local stack. [ADR 0008](https://github.com/turva-uk/turva/blob/main/specifications/adr/0008-kubernetes-and-helm-deployment.md) records a separate Helm deployment for MBPCC; the chart and operational checks are follow-up work.
 
 ## Development Tools
 
@@ -46,7 +46,7 @@ Docker Compose orchestrates three services: `web`, `postgres`, and the Caddy rev
 
 PostgreSQL throughout, including tests. pytest-django creates and destroys a separate test database, so development data is untouched.
 
-The database holds users, sessions and an index over the safety file repositories. It is rebuildable from those repositories and is not the system of record.
+The database holds users, sessions, organisational access records and an index over the safety-file repositories. Only the index is rebuildable from Git. Back up the database as well as the repositories.
 
 ## CI/CD Pipeline
 
