@@ -134,7 +134,9 @@ The customer did not change. MBPCC Federation is the same Federation as the orig
 
 ## Explicitly out of scope for phase one
 
-Federation between organisations, upstream and downstream safety case inheritance, public project browsing and community search, incident management, review and approval workflow engines, RBAC beyond what the capabilities above require, Kubernetes, high availability, analytics and trend analysis, Turva-hosted inference, internationalisation, and plugin systems.
+Federation between organisations, upstream and downstream safety case inheritance, public project browsing and community search, incident management, review and approval workflow engines, RBAC beyond what the capabilities above require, high availability, analytics and trend analysis, Turva-hosted inference, internationalisation, and plugin systems.
+
+Kubernetes was on this list until 20 November 2026. [ADR 0008](adr/0008-kubernetes-and-helm-deployment.md) brings the MBPCC deployment onto Kubernetes with Helm, inside phase one. The same decision's constraint - one writer, one volume - is why high availability stays on the list: the deployment gains orchestration, not redundancy.
 
 Deferred items are not cancelled. They are what the funded phase is meant to make possible.
 

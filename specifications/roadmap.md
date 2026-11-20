@@ -235,8 +235,8 @@ AI use is optional and initiated by the user. Ordinary editing and saving must w
 
 ### Scaling and additional import formats
 
-- [ ] **R149 - Kubernetes deployment.** Revisit only with a separately justified operational need; it is not the phase-one deployment model.
-- [ ] **R150 - High availability.** Define evidence durability, operational recovery and shared-storage constraints before promising availability.
+- [ ] **R149 - Kubernetes deployment.** Adopted for the MBPCC deployment by [ADR 0008](adr/0008-kubernetes-and-helm-deployment.md), inside phase one with one writer and one volume. The Helm chart and the storage, rollout and backup controls in #141 and #142 are the remaining work.
+- [ ] **R150 - High availability.** Define evidence durability, operational recovery and shared-storage constraints before promising availability. ADR 0008 keeps this out: a single replica is deliberate.
 - [ ] **R151 - Load balancing.** Depends on an agreed multi-instance storage and authorisation model.
 - [ ] **R152 - Multi-host evidence concurrency.** Revisit the local-filesystem lock contract before introducing shared/network storage or distributed writers.
 - [ ] **R153 - OCR for scanned supplier documents.** Start only when a real specimen justifies it; retain unreadable candidates, provenance and explicit review rather than silently dropping content.

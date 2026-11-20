@@ -252,13 +252,13 @@ Tests should run quickly:
 Infrastructure defined in version-controlled files:
 
 - Container definitions (Dockerfile), with base images pinned to exact patch versions
-- Service orchestration (docker-compose.yml)
+- Service orchestration: `docker-compose.yml` for the VPS path, a Helm chart for the Kubernetes path ([ADR 0008](adr/0008-kubernetes-and-helm-deployment.md))
 - Database schema (Django migrations)
 - Dependencies declared in `.in` files and resolved into committed locks
 
 **Why**: Reproducible deployments, reviewable changes, rollback capability.
 
-The funded deployment is a single VPS running Docker Compose: Caddy, the Django application, PostgreSQL, and a volume holding the safety file repositories. Kubernetes is not in phase one, and the orchestration files should not pretend otherwise.
+The funded build has two supported deployment paths. The single VPS runs Docker Compose: Caddy, the Django application, PostgreSQL, and a volume holding the safety file repositories. The MBPCC deployment runs on Kubernetes from a Helm chart, per [ADR 0008](adr/0008-kubernetes-and-helm-deployment.md). Both write safety evidence the same way - one application process against one local-filesystem volume - and the orchestration files must not pretend to more than that. The Kubernetes path is deliberately a single writer on a single volume, not a cluster-wide one.
 
 ### Separate Config from Code
 
@@ -272,13 +272,13 @@ Configuration lives in environment variables, not hardcoded:
 
 ### Deploy Without Losing Evidence
 
-A single VPS running one application process cannot deploy with zero downtime, and phase one does not try to. What it must not do is lose or corrupt safety evidence while restarting:
+A single writer on a single volume cannot deploy with zero downtime, and phase one does not try to. What it must not do is lose or corrupt safety evidence while restarting:
 
-- Migrations are backward-compatible where practical, so a rollback does not strand the database
-- The safety file repositories live on a volume that outlives the container, and are what the backup strategy must cover. The database is rebuildable from them; they are not rebuildable from anything
-- A restart interrupts in-flight requests. Because every write is committed as it is made rather than batched at the end of a session, an interrupted request loses at most the edit in progress, not the file
+- Migrations are backward-compatible where practical, so a rollback does not strand the database. On Kubernetes they run as a Helm pre-upgrade hook Job ([ADR 0008](adr/0008-kubernetes-and-helm-deployment.md))
+- The safety file repositories live on a volume that outlives the container, and are what the backup strategy must cover. The database is rebuildable from them; they are not rebuildable from anything. On Kubernetes that volume is ReadWriteOnce with one pod, and the Deployment strategy is `Recreate`, so two writers never hold it at once
+- A restart interrupts in-flight requests. Because every write is committed as it is made rather than batched at the end of a session, an interrupted request loses at most the edit in progress, not the file. On Kubernetes, graceful shutdown is ordered so in-flight saves can finish before the pod is killed; a save killed anyway leaves a dirty tree for inspection, never a silent reset
 
-**Why**: The earlier version of this principle promised rolling updates, backward-compatible API versioning and high availability. None of that is true of a single VPS, and claiming it would mislead whoever plans the first deployment. Availability is a legitimate later goal; evidence durability is a requirement now.
+**Why**: The earlier version of this principle promised rolling updates, backward-compatible API versioning and high availability. The backward-compatibility promise stands; the rolling-update promise stays withdrawn - `Recreate` is chosen precisely because a rolling update briefly runs two writers. Availability is a legitimate later goal; evidence durability is a requirement now.
 
 A brief outage during a deploy is acceptable for a tool used by Clinical Safety Officers during office hours. It would not be acceptable for a system used at the point of care, which Turva explicitly is not.
 
@@ -294,7 +294,7 @@ The application stores no state in process memory:
 
 **Why**: It keeps restarts cheap today, which is the immediate benefit, and leaves horizontal scaling available later without a rewrite.
 
-Note the limit: the safety file repositories are on local disk, so adding a second machine is not simply a matter of another process. It would need shared storage, or routing each safety file to a consistent host. That is a real constraint of choosing Git as the system of record, and it is worth knowing before anyone promises a cluster.
+Note the limit: the safety file repositories are on a volume one pod owns, so adding a second writer is not simply a matter of another replica. It would need shared storage, a lock proven across hosts, or routing each safety file to a consistent node. That is a real constraint of choosing Git as the system of record, and it shaped [ADR 0008](adr/0008-kubernetes-and-helm-deployment.md): Kubernetes is adopted with one writer on one volume, and running several is a separate decision that has not been made.
 
 ### Storage Scaling
 
