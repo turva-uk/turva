@@ -127,6 +127,16 @@ The reviewed actionlint-py v1.7.12.25 hook supplies upstream actionlint 1.7.12. 
 - [x] Declare ShellCheck 0.11.0.1 in that environment and enforce alignment with the standalone hook through a script test. The checked entry refuses absent tools and policy-lowering arguments before scanning, installs nothing and supplies ShellCheck's resolved path explicitly.
 - [x] Exercise the real configured hook: all tracked workflows and a clean synthetic workflow pass; an unknown expression property and an unquoted shell expansion fail with the expected expression/SC2086 findings. The copied-entry tests also cover missing tools, literal filename forwarding, absent scope, policy flags, tool statuses and pin alignment. Matcher inventories remain routing evidence, not scanner execution. These tooling changes do not alter risk calculation, evidence attribution, permissions or AI content; no `SAFETY.md` change is needed.
 
+## Phase 10: apply the `main` ruleset
+
+Done on 20 November 2026, from `main` at `5900a8a`, after the Terraform stack (#105, #106, #107) had merged. This phase changes GitHub's settings rather than the code, so the plan records what was done and how it was checked.
+
+- [x] Plan with `just terraform-plan`: 1 to add, 0 to change, 0 to destroy. GitHub had no repository-owned ruleset named `main`, so nothing was imported.
+- [x] Apply with `just terraform-apply`. The first attempt was refused with a 403, because the applying administrator's fine-grained token had no repository Administration permission. Administration under **Organization permissions** did not help: it covers the organisation's settings, not a repository's rulesets. Setting **Repository permissions, Administration** to read and write let the apply create ruleset 27724853. The organisation Administration permission was then removed again, and a read-only call to the organisation's Actions settings confirmed it was refused.
+- [x] Check the result. A fresh plan reported no changes. GitHub reports the `deletion`, `pull_request` and `non_fast_forward` rules active on `main`, with no bypass actors. GitHub also turned on extra approval for unattributed changes by default; Terraform does not manage it, and it only tightens the rule.
+- [x] Test a direct push to `main` after the apply. An empty commit, made with `git commit-tree` so it was never on a local branch, was pushed to `main`. GitHub rejected it with `GH013: Repository rule violations` and "Changes must be made through a pull request", and `main` stayed at `5900a8a`.
+- [x] Test merging a pull request with no approving review. On #143, which records this phase, GitHub blocked the merge for the administrator who opened it, with "Approval required - Request another review before this can merge". GitHub offered no option to merge without waiting for the requirements, which matches the ruleset having no bypass actors. An administrator merge from the command line, `gh pr merge 143 --merge --admin`, was refused too: "Repository rule violations found. New changes require approval from someone other than the last pusher."
+
 ## Deferred: shell in Just recipes
 
 The source proposal also records moving substantial recipe logic into tested `s/` entry points, leaving thin Just aliases. Keep this as separately reviewed work; adopting actionlint does not authorise an unrelated task-runner rewrite.
