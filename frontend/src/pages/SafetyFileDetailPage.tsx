@@ -7,6 +7,7 @@ import { HazardLog } from "../components/HazardLog";
 import { HistoryTable } from "../components/HistoryTable";
 import { PDFDownload } from "../components/PDFDownload";
 import { MitigationList } from "../components/MitigationList";
+import { documentPath } from "../lib/safety/api";
 
 const NOT_FOUND = "That safety file does not exist, or you do not have access to it.";
 
@@ -113,10 +114,7 @@ export function SafetyFileDetailPage() {
               <ul className="document-list">
                 {detail.documents.map((item) => (
                   <li key={item.key}>
-                    <Anchor
-                      component={Link}
-                      to={`/safety-files/${file.slug}/documents/${item.key}`}
-                    >
+                    <Anchor component={Link} to={documentPath(file.slug, item.key)}>
                       {item.title}
                     </Anchor>
                   </li>

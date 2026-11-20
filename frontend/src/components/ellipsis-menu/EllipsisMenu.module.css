@@ -1,0 +1,10 @@
+.trigger {
+  padding: 0;
+}
+
+/* Each dropdown item is at least 44px tall on a phone, up from about 36px. */
+@media (width <= 40em) {
+  .touchItem {
+    min-height: 2.75rem;
+  }
+}

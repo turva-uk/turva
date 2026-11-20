@@ -88,7 +88,7 @@ def run(
         ]
     command += args
 
-    result = subprocess.run(  # noqa: S603 - fixed executable, list args, no shell
+    result = subprocess.run(  # noqa: S603 - fixed executable, list args, no shell  # nosec B603
         command,
         cwd=cwd,
         capture_output=True,
@@ -231,7 +231,9 @@ def tree_entry(
 
 def blob_bytes(path: Path, obj: str) -> bytes:
     """A blob's exact bytes. Bytes, not text, so decoding is the caller's decision."""
-    result = subprocess.run(  # noqa: S603 - fixed executable, list args, no shell
+    # Git is resolved on the trusted host/container PATH, as in run() above.
+    # Its object identity comes from the literal tree entry, never shell text.
+    result = subprocess.run(  # noqa: S603 - fixed executable, list args, no shell  # nosec B603, B607
         ["git", "cat-file", "blob", obj],
         cwd=path,
         capture_output=True,

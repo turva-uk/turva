@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# Collect complete suite counts without running tests or installing packages.
+# Requires the existing pytest/Django stack, local Vitest/Node or host Bats for
+# the requested suites. Usage: s/floors/test-counts <safety-file|django|vitest|bats>...
+set -euo pipefail
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+python=python3
+if [ -x "${root}/.venv/bin/python" ]; then
+	python="${root}/.venv/bin/python"
+fi
+exec "${python}" "${root}/s/utils/test-counts.py" "$@"

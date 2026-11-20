@@ -12,7 +12,7 @@ from app.api.tests.test_hazard_writes import VALUES as HAZARD
 from app.api.tests.test_organisations import adopt, appoint
 from app.api.tests.test_organisations import team_context as team_context
 from app.api.tests.test_safety_files import a_safety_file, make_user
-from app.safetyfiles.documents import DOCUMENTS, MAX_DEPTH, render_document
+from app.safetyfiles.documents import DOCUMENTS, MAX_DEPTH, _TooComplex, render_document
 from app.safetyfiles.models import Visibility
 from app.safetyfiles.pdf_contract import PDF_PAGES
 from app.safetyfiles.services import save_hazard
@@ -66,6 +66,7 @@ def walk(nodes):
     for node in nodes:
         yield node
         yield from walk(node.get("children", []))
+        yield from walk(node.get("title_nodes", []))
 
 
 def test_the_readable_scope_is_exactly_the_controlled_pdf_scope():
@@ -235,6 +236,21 @@ def test_unsafe_content_is_never_executed_fetched_or_styled(client, owner, file)
     response = client.get(url(file, "overview"))
     assert response.status_code == 200
     document = response.json()["document"]
+    assert document["available"] is False
+    assert document["reason"] == "unsupported-formatting"
+    assert document["source"] == hostile
+    assert document["blocks"] == []
+
+    # If the surrounding format is supported, explicit resource omissions keep
+    # their placeholders/counts. Source CSS/events are never applied in either view.
+    supported_format = hostile.replace(
+        '<div style="background:url(https://attacker.example/bg)" onclick="alert(2)" class="md-typeset">Styled but kept text</div>',
+        "<p>Styled but kept text</p>",
+    )
+    commit_change(file, "docs/index.md", supported_format)
+    document = client.get(url(file, "overview")).json()["document"]
+    assert document["available"] is True
+    assert "source" not in document
     raw = json.dumps(document)
     for forbidden in (
         "<script",
@@ -301,6 +317,7 @@ def test_a_stale_generated_hazard_log_is_refused_not_shown(client, owner, file):
     assert document["available"] is False
     assert document["reason"] == "hazard-log-out-of-date"
     assert document["blocks"] == []
+    assert "source" not in document
     assert "individual hazards are the authoritative record" in document["message"]
 
 
@@ -342,12 +359,13 @@ def test_unavailable_documents_say_why_and_show_nothing(
     assert document["reason"] == reason
     assert document["message"]
     assert document["blocks"] == []
+    assert "source" not in document
     assert "Not evidence from this repository" not in response.content.decode()
 
 
 def test_deeply_nested_content_is_refused_whole():
     nested = "".join("> " * depth + "level\n" for depth in range(1, MAX_DEPTH + 5))
-    with pytest.raises(Exception):  # noqa: B017 - the internal bound, caught by read_document
+    with pytest.raises(_TooComplex):
         render_document(nested, "index.md")
 
 
@@ -415,15 +433,23 @@ def test_malformed_links_are_reported_without_losing_the_document(client, owner,
 
 @pytest.mark.parametrize("attribute", ["start", "colspan", "rowspan"])
 @pytest.mark.parametrize("value", ["\u00b2", "1" * 5000, "0" * 5000 + "2"])
-def test_unusable_numeric_attributes_do_not_crash_the_reader(attribute, value):
+def test_unusable_numeric_attributes_preserve_source_instead_of_inventing_numbering(
+    client, owner, file, attribute, value
+):
     source = (
         f'<ol start="{value}"><li>Recorded evidence</li></ol>'
         if attribute == "start"
         else f'<table><tr><td {attribute}="{value}">Recorded evidence</td></tr></table>'
     )
-    rendered = render_document(source, "index.md")
-    assert "Recorded evidence" in text_of(rendered["blocks"])
-    assert all(attribute not in node.get("attrs", {}) for node in walk(rendered["blocks"]))
+    commit_change(file, "docs/index.md", source)
+    client.force_login(owner)
+    response = client.get(url(file, "overview"))
+    assert response.status_code == 200
+    document = response.json()["document"]
+    assert document["available"] is False
+    assert document["reason"] == "unsupported-formatting"
+    assert document["source"] == source
+    assert document["blocks"] == []
 
 
 @pytest.mark.parametrize(
@@ -466,3 +492,127 @@ def test_supported_numeric_attributes_retain_their_upper_bounds(attribute, value
     )
     nodes = list(walk(render_document(source, "index.md")["blocks"]))
     assert any(node.get("attrs", {}).get(attribute) == int(value) for node in nodes)
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        '<p><span style="text-decoration:line-through">Approved for deployment</span></p>',
+        "<p hidden>Retired control</p>",
+        '<div class="hidden">Retired control</div>',
+        '<p style="display:none">Retired control</p>',
+        '<abbr title="Not approved for deployment">Approved</abbr>',
+        "<ins>Newly proposed control</ins>",
+        "<ol reversed><li>Control A</li><li>Control B</li></ol>",
+        '<ol><li value="5">Control five</li></ol>',
+        '<table><tr><td style="text-align: center; text-decoration:line-through">Approved</td></tr></table>',
+        "<details><summary hidden>Not approved</summary>Body</details>",
+        '<details><summary><span style="text-decoration:line-through">Approved</span></summary>Body</details>',
+        '<div class="admonition warning"><p class="admonition-title hidden">Not approved</p><p>Body</p></div>',
+        '<a href="https://example.org" title="Not yet reviewed">Approved</a>',
+        '<h2 id="decision">Not approved</h2><h2 id="decision">Approved</h2>',
+        "<p><![CDATA[Approved for deployment]]></p>",
+        "<!DOCTYPE html><p>Recorded evidence</p>",
+        "<p><?review Approved for deployment?></p>",
+    ],
+)
+def test_unrepresented_formatting_refuses_a_misleading_view_and_keeps_exact_source(
+    client, owner, file, source
+):
+    head = commit_change(file, "docs/index.md", source)
+    client.force_login(owner)
+    response = client.get(url(file, "overview"))
+    assert response.status_code == 200
+    assert response["Cache-Control"] == "private, no-store"
+    document = response.json()["document"]
+    assert document["available"] is False
+    assert document["reason"] == "unsupported-formatting"
+    assert document["source"] == source
+    assert document["source_commit"] == head
+    assert document["blocks"] == []
+    assert "No formatted interpretation" in document["message"]
+    assert file.repository().head_sha == head and file.repository().is_clean
+
+
+@pytest.mark.parametrize("tag", ["strike", "s", "del"])
+def test_supported_deletion_markup_cannot_become_ordinary_approval(tag):
+    rendered = render_document(f"<{tag}>Approved for deployment</{tag}>", "index.md")
+    nodes = list(walk(rendered["blocks"]))
+    assert any(node["type"] == "element" and node["tag"] == "del" for node in nodes)
+    assert text_of(rendered["blocks"]) == "Approved for deployment"
+    assert rendered["unsupported"] == 0
+
+
+def test_fenced_code_preserves_literal_markup_without_importing_syntax_classes():
+    code = 'print("<span hidden>Approved</span>")'
+    rendered = render_document(f"```python\n{code}\n```", "index.md")
+    assert text_of(rendered["blocks"]) == code
+    nodes = list(walk(rendered["blocks"]))
+    assert [node["tag"] for node in nodes if node["type"] == "element"] == ["pre", "code"]
+    assert all(not node.get("attrs") for node in nodes)
+
+
+@pytest.mark.parametrize("marker", ["???", "???+"])
+def test_collapsible_admonitions_retain_the_recorded_open_state(marker):
+    rendered = render_document(f'{marker} warning "Check before use"\n\n    Body\n', "index.md")
+    assert rendered["blocks"][0]["open"] is (marker == "???+")
+
+
+def test_refused_link_notices_share_the_emitted_node_limit(monkeypatch):
+    source = " ".join('<a href="javascript:alert(1)">Evidence</a>' for _ in range(8))
+    monkeypatch.setattr("app.safetyfiles.documents.MAX_NODES", 100)
+    rendered = render_document(source, "index.md")
+    emitted = len(list(walk(rendered["blocks"])))
+    assert rendered["unsupported"] == 8
+    monkeypatch.setattr("app.safetyfiles.documents.MAX_NODES", emitted - 1)
+    with pytest.raises(_TooComplex):
+        render_document(source, "index.md")
+
+
+def test_source_fallback_does_not_bypass_current_private_file_authority(client, owner, file):
+    source = '<span style="text-decoration:line-through">Approved for deployment</span>'
+    commit_change(file, "docs/index.md", source)
+    client.force_login(make_user("reader@example.org"))
+    response = client.get(url(file, "overview"))
+    assert response.status_code == 404
+    assert source not in response.content.decode()
+
+
+@pytest.mark.parametrize(
+    "href",
+    [
+        "clinical-risk-management-plan.md?version=prior#decision",
+        "?version=prior",
+        "hazards/?version=prior",
+    ],
+)
+def test_query_qualified_document_links_keep_their_address_without_becoming_current_links(href):
+    rendered = render_document(f"[Prior decision]({href})", "index.md")
+    assert rendered["unsupported"] == 1
+    assert f"source reference: {href}; not followed" in text_of(rendered["blocks"])
+    assert not any(node["type"] == "document" for node in walk(rendered["blocks"]))
+
+
+def test_external_link_queries_are_retained_exactly():
+    href = "https://example.org/evidence?version=prior#decision"
+    rendered = render_document(f"[Prior decision]({href})", "index.md")
+    assert [node["href"] for node in walk(rendered["blocks"]) if node["type"] == "external"] == [
+        href
+    ]
+
+
+def test_reference_expansion_is_bounded_before_a_formatted_response(
+    client, owner, file, monkeypatch
+):
+    href = "https://example.org/" + "a" * 512
+    source = "[Evidence][source] " * 30 + f"\n\n[source]: {href}\n"
+    monkeypatch.setattr("app.safetyfiles.documents.MAX_RENDERED_CHARACTERS", 1024)
+    commit_change(file, "docs/index.md", source)
+    client.force_login(owner)
+    response = client.get(url(file, "overview"))
+    assert response.status_code == 200
+    document = response.json()["document"]
+    assert document["available"] is False
+    assert document["reason"] == "too-complex"
+    assert document["blocks"] == []
+    assert "source" not in document

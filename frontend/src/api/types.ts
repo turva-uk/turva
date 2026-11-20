@@ -227,7 +227,7 @@ export interface SafetyDocumentSummary {
 
 /**
  * An allowlisted document tree built by the API from committed Markdown. The
- * browser renders it as React elements; it never receives an HTML string.
+ * browser renders it as React elements; it never inserts source as HTML.
  */
 export type DocumentNode =
   | { type: "text"; text: string }
@@ -250,6 +250,7 @@ export type DocumentNode =
       /** The title uses the same sanitised tree and omission accounting as the body. */
       title_nodes?: DocumentNode[];
       collapsible: boolean;
+      open?: boolean;
       children: DocumentNode[];
     }
   | { type: "anchor"; fragment: string; children: DocumentNode[] }
@@ -267,6 +268,9 @@ export interface SafetyDocumentContent {
   available: boolean;
   reason?: string;
   message?: string;
+  /** Exact bounded committed Markdown, only when the formatted view is refused.
+   *  Render as text, never HTML, and only for unsupported-formatting. */
+  source?: string;
   blocks: DocumentNode[];
   /** How many items in the source are not displayed. */
   unsupported: number;

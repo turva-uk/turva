@@ -108,10 +108,7 @@ it("renders the committed document with its source commit and table structure", 
     await screen.findByRole("heading", { name: "Overview", level: 1 }),
   ).toBeInTheDocument();
   expect(spy).toHaveBeenCalledWith("/safety-files/demo/documents/overview/", expect.anything());
-  expect(screen.getByText("0123456789ab")).toHaveAttribute(
-    "title",
-    "0123456789abcdef0123456789abcdef01234567",
-  );
+  expect(screen.getByText("0123456789abcdef0123456789abcdef01234567")).toBeInTheDocument();
   expect(screen.getByText(/Last changed in/)).toHaveTextContent("Fictional CSO");
   expect(document.getElementById("doc-overview")).toHaveTextContent("Fictional");
   // One h1 per page: the document's own outline sits beneath the page title.
@@ -173,7 +170,7 @@ it("never executes, fetches or styles from document content", async () => {
   );
   expect(screen.getByRole("link", { name: "the plan" })).toHaveAttribute(
     "href",
-    "/safety-files/demo/documents/risk-management-plan#doc-4-risk-assessment",
+    "/safety-files/demo/documents/risk-management-plan/#doc-4-risk-assessment",
   );
   expect(screen.getByText(/source reference: hazards\/HAZ-001.md/)).toBeInTheDocument();
   expect(screen.getByText("Some content is not shown")).toBeInTheDocument();
@@ -187,6 +184,7 @@ it("shows an unavailable document honestly rather than as empty", async () => {
       available: false,
       reason: "hazard-log-out-of-date",
       message: "The committed hazard log does not match the recorded hazard assessments.",
+      source: "This untrusted extra field must not display a stale hazard log.",
     }),
   );
   show("/safety-files/demo/documents/hazard-log");
@@ -194,6 +192,7 @@ it("shows an unavailable document honestly rather than as empty", async () => {
     "The committed hazard log does not match",
   );
   expect(screen.queryByText(/no content in the committed version/)).toBeNull();
+  expect(screen.queryByText(/untrusted extra field/)).toBeNull();
 });
 
 it("reports a failed or forbidden read as an error, not an empty document", async () => {
@@ -210,7 +209,10 @@ it("moves between the documents by keyboard", async () => {
   await screen.findByRole("heading", { name: "Overview", level: 1 });
   const user = userEvent.setup();
   const plan = screen.getByRole("link", { name: "Clinical risk management plan" });
-  while (document.activeElement !== plan) await user.tab();
+  for (let attempts = 0; document.activeElement !== plan && attempts < 20; attempts += 1) {
+    await user.tab();
+  }
+  expect(plan).toHaveFocus();
   await user.keyboard("{Enter}");
   expect(spy).toHaveBeenLastCalledWith(
     "/safety-files/demo/documents/risk-management-plan/",
@@ -255,7 +257,7 @@ it("encodes document fragments once and scrolls to the literal heading id", asyn
   );
   expect(screen.getByRole("link", { name: "There" })).toHaveAttribute(
     "href",
-    "/safety-files/demo/documents/risk-management-plan#doc-100%25%20reviewed",
+    "/safety-files/demo/documents/risk-management-plan/#doc-100%25%20reviewed",
   );
 });
 
@@ -282,4 +284,112 @@ it("shows omitted heading content in both ordinary and collapsible admonitions",
   expect(document.querySelector("summary")).toHaveTextContent("Not shown: An image (Diagram)");
   expect(screen.getByText("Some content is not shown")).toBeInTheDocument();
   expect(document.querySelector(".safety-document img")).toBeNull();
+});
+
+it("shows unsupported formatting only as exact, escaped committed source", async () => {
+  const source =
+    '<span style="text-decoration:line-through">Approved for deployment</span>\n' +
+    '</code></pre><script>alert(1)</script><img src="https://example.org/pixel">';
+  vi.spyOn(api, "get").mockResolvedValue(
+    detail([text("Misleading converted approval")], {
+      available: false,
+      reason: "unsupported-formatting",
+      message: "No formatted interpretation is shown. Review the committed Markdown source.",
+      source,
+    }),
+  );
+  show();
+  expect(await screen.findByRole("alert")).toHaveTextContent("Formatted view unavailable");
+  const region = screen.getByRole("region", { name: "Committed Markdown source" });
+  expect(region).toHaveAttribute("tabindex", "0");
+  expect(region.querySelector("code")?.textContent).toBe(source);
+  expect(region.querySelector("script, img, iframe, style, span, [style]")).toBeNull();
+  expect(screen.queryByText("Misleading converted approval")).toBeNull();
+  expect(screen.queryByRole("textbox")).toBeNull();
+  const user = userEvent.setup();
+  for (let attempts = 0; document.activeElement !== region && attempts < 20; attempts += 1) {
+    await user.tab();
+  }
+  expect(region).toHaveFocus();
+});
+
+it.each([
+  "/safety-files/%2E/documents/overview",
+  "/safety-files/demo/documents/%2E%2E",
+  "/safety-files/ward%2Flist/documents/overview",
+])("refuses invalid route identities before constructing a request: %s", async (path) => {
+  const spy = vi.spyOn(api, "get");
+  show(path);
+  expect(await screen.findByRole("alert")).toHaveTextContent("identifier is invalid");
+  expect(spy).not.toHaveBeenCalled();
+  expect(screen.getByRole("link", { name: "All safety files" })).toHaveAttribute(
+    "href",
+    "/safety-files",
+  );
+});
+
+it("keeps deleted text visibly deleted and preserves an initially open details block", async () => {
+  vi.spyOn(api, "get").mockResolvedValue(
+    detail([
+      { type: "element", tag: "del", children: [text("Approved for deployment")] },
+      {
+        type: "admonition",
+        kind: "warning",
+        title: "Check before use",
+        collapsible: true,
+        open: true,
+        children: [text("Not approved")],
+      },
+    ]),
+  );
+  show();
+  expect((await screen.findByText("Approved for deployment")).tagName).toBe("DEL");
+  expect(document.querySelector("details")).toHaveAttribute("open");
+});
+
+it("does not flatten unsupported response formatting or navigate a dot-segment document link", async () => {
+  vi.spyOn(api, "get").mockResolvedValue(
+    detail([
+      { type: "element", tag: "unrecognised-deletion", children: [text("Disguised approval")] },
+      { type: "document", document: "..", children: [text("Invalid destination")] },
+    ]),
+  );
+  show();
+  expect(await screen.findByText(/unsupported document formatting/)).toBeInTheDocument();
+  expect(screen.queryByText("Disguised approval")).toBeNull();
+  expect(screen.getByText(/Invalid destination/).closest("a")).toBeNull();
+  expect(screen.getByText(/invalid document identifier/)).toBeInTheDocument();
+});
+
+it("removes a previous source view while another document loads", async () => {
+  let resolvePlan: (value: SafetyDocumentDetail) => void = () => {};
+  vi.spyOn(api, "get")
+    .mockResolvedValueOnce(
+      detail([], {
+        available: false,
+        reason: "unsupported-formatting",
+        source: "Previous committed source",
+        message: "Formatted view unavailable.",
+      }),
+    )
+    .mockImplementationOnce(
+      () =>
+        new Promise<SafetyDocumentDetail>((resolve) => {
+          resolvePlan = resolve;
+        }),
+    );
+  show();
+  await screen.findByText("Previous committed source");
+  await userEvent
+    .setup()
+    .click(screen.getByRole("link", { name: "Clinical risk management plan" }));
+  expect(screen.queryByText("Previous committed source")).toBeNull();
+  expect(screen.getByLabelText("Loading the document")).toBeInTheDocument();
+  resolvePlan(
+    detail([text("Plan content")], {
+      key: "risk-management-plan",
+      title: "Clinical risk management plan",
+    }),
+  );
+  expect(await screen.findByText("Plan content")).toBeInTheDocument();
 });

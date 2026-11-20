@@ -22,27 +22,35 @@ jobs:
         with:
           persist-credentials: false
 
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.14"
+
+      # PyYAML is already a direct storage dependency and in the application
+      # lock. Install only that constrained package, not the Django stack.
+      - name: Install the locked YAML parser
+        run: |
+          python -m pip install --only-binary=:all: -c app/requirements.txt PyYAML
+
+      # One pin for the hook and CI: the zizmor hook's `rev` in
+      # .pre-commit-config.yaml. Dependabot's pre-commit updates bump it, which
+      # it could not do while the version was an input to the step below.
+      - name: Read the pinned zizmor version
+        id: zizmor
+        run: |
+          version="$(bash s/checks/hook-version https://github.com/zizmorcore/zizmor-pre-commit)"
+          printf 'version=%s\n' "$version" >>"$GITHUB_OUTPUT"
+
       # install-action downloads the upstream release binary and verifies its
       # checksum. `fallback: none` stops it silently switching to cargo-binstall
       # or a source build.
       - uses: taiki-e/install-action@cfdb7ed4ccc7c7dce37759eae89dc5674b469b39 # v2.90.3
         with:
-          # This version is the single source of truth: `s/lint` reads it from
-          # this file so the local gate cannot drift from CI.
-          #
-          # Dependabot keeps the `uses:` SHA above current, but cannot see this
-          # input - it is an action parameter, not a dependency manifest - so a
-          # new Zizmor release will not be proposed. Check it by hand when
-          # reviewing the Actions bumps:
-          #
-          #   gh api repos/zizmorcore/zizmor/releases/latest --jq .tag_name
-          #
-          # Pinned deliberately rather than tracking latest, so a new audit rule
-          # arrives through a reviewed bump instead of turning main red without
-          # warning.
-          tool: zizmor@1.30.1
+          tool: zizmor@${{ steps.zizmor.outputs.version }}
           fallback: none
 
+      # The pre-commit hook runs the same audits offline. This run has the
+      # job's token, so it also runs the audits that ask GitHub.
       # Default `regular` persona: high-signal findings only. `pedantic` and
       # `auditor` deliberately include code smells and are for manual review.
       - run: zizmor --strict-collection .

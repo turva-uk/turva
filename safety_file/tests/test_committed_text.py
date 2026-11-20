@@ -72,3 +72,21 @@ def test_reads_an_earlier_revision_exactly(repo, author):
     second = commit(repo, author)
     assert repo.committed_text(second, "docs/index.md", max_bytes=100_000) == "# Revised\n"
     assert repo.committed_text(first, "docs/index.md", max_bytes=100_000) == original
+
+
+def test_nul_containing_bytes_are_not_presented_as_readable_text(repo, author):
+    (repo.root / "docs/index.md").write_bytes(b"Approved\0Not approved\n")
+    head = commit(repo, author)
+    with pytest.raises(UnreadableSourceError) as refused:
+        repo.committed_text(head, "docs/index.md", max_bytes=1000)
+    assert refused.value.reason == "not-text"
+
+
+@pytest.mark.parametrize("limit", [0, -1, True, 1.5, "1000"])
+def test_invalid_limits_stop_before_reading_a_git_object(repo, monkeypatch, limit):
+    def unexpected(*args, **kwargs):
+        pytest.fail("Invalid limits must not start a Git read")
+
+    monkeypatch.setattr(git, "tree_entry", unexpected)
+    with pytest.raises(ValueError, match="positive integer"):
+        repo.committed_text(repo.head_sha, "docs/index.md", max_bytes=limit)

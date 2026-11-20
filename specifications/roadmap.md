@@ -1,631 +1,253 @@
 # Turva Development Roadmap
 
-This roadmap tracks the implementation status of Turva features. Items are organised by domain area and marked with checkboxes.
+This roadmap lists remaining work, not completed features. Completed entries are removed; their implementation and assurance history remain in Git, [SAFETY.md](../SAFETY.md), the [ADRs](adr/) and the [demo walkthrough](../demo/README.md).
 
-**It is much wider than the funded build.** [phase-one-scope.md](phase-one-scope.md) is the authoritative list of what ships in the funded phase; everything else here is direction. See also [core-specification.md](core-specification.md) for the domain model and [architecture-principles.md](architecture-principles.md) for the design constraints.
+**It is much wider than the funded build.** [Phase One Scope](phase-one-scope.md) sets the delivery boundary; inclusion here does not expand it. The [Quill port decisions](quill-port.md) define the remaining agreed workflows. Formal two-stage sign-off, public publishing, OCR and AI remain outside that port.
 
-Legend: [x] done, [~] partially done, [ ] not started. Stable identifiers are being adopted for the active delivery queue; the older domain backlog below is not yet numbered.
+Legend: [ ] not started, [~] partially implemented with work remaining. Every task has a stable `R<number>` code. Keep codes when moving or editing tasks; never renumber or reuse them. R1-R9 are completed and retired. Consolidated duplicate entries have one code, not several competing copies.
+
+**Overnight coding is assigned through human-approved GitHub issues, not this roadmap.** Follow [the overnight policy](nightly-triage.md); roadmap items can only become proposals when its empty-queue conditions are met.
+
+GitHub is a focused queue for team discussion and explicitly approved overnight slices, not a mirror of every roadmap item. Straightforward daytime work does not need an issue merely to repeat this file. Keep issue descriptions short, state dependencies and link the corresponding stable codes here; avoid unnecessary comments, mentions and notifications. The [live Ready queue](https://github.com/turva-uk/turva/issues?q=is%3Aissue%20is%3Aopen%20label%3Astatus%3Aready) is authoritative for overnight approval, not a copied status list in this document.
 
 ## Active delivery queue
 
-- [x] **R1 - React profile and CSO declaration.** Share validation with Django, preserve omitted PATCH fields and clear stale manual registration checks.
-- [x] **R2 - React safety file creation.** Deliberate form save, profile defaults, private draft, attributable first version, and visible failure states.
-- [x] **R3 - Repeatable demo testing instructions.** See [demo/README.md](../demo/README.md); extend this walkthrough with every new delivered workflow.
-- [x] **R4 - Responsive hazard log and hazard detail.** Both risk assessments remain visible on phones; cause, effect, harm, linked mitigations and rename-following history are readable. Search and status filters work on the loaded log.
-- [x] **R5 - React registration, confirmation and password reset parity.** Django forms/token generator remain authoritative; include anonymous CSRF checks, a repeatable resend cooldown and local console-mail preview. The older Django routes remain available for compatibility until production React routing lands.
-- [x] **R6 - Hazard creation and editing.** Whole-form verified-owner saves, canonical risk previews, retained stale drafts and local repository snapshots/locks; retain the committed generated log contract. See [ADR 0004](adr/0004-serialised-safety-file-saves.md) and the [demo exercises](../demo/README.md#record-and-edit-hazards).
-- [x] **R7 - Single-document PDF proof.** Zensical/WeasyPrint draft text download with explicit source/appendix scope, commit-specific private cache and visible source version. Real demo render/text checks and permission/failure/conflict tests; see [ADR 0005](adr/0005-controlled-pdf-exports.md) and the [download walkthrough](../demo/README.md#download-a-draft-safety-file).
-- [x] **R8 - Mitigation editing and linking.** Verified-owner forms and detail/history over the opened-version service boundary; atomic reciprocal links, preserved evidence and unchanged risk scores. See the [demo exercises](../demo/README.md#record-mitigations-and-link-hazards). Organisational/team and delegated access follow below.
-- [x] **R9 - Organisational roles and named file teams.** Operator provisioning, verified-email invitations, administrator-appointed CSOs and attributable version-2 teams with one accountable CSO. Current appointments and explicit grants are enforced across evidence, interim views and cached downloads; reappointment never revives old grants. Legacy files remain owner-controlled until adoption. See [ADR 0006](adr/0006-named-file-teams-and-live-appointments.md) and the [demo exercises](../demo/README.md#organisations-cso-appointments-and-named-file-teams).
-- [ ] **R10 - Safety document reading and authoring.** Adapt the Quill Mantine editor with preserving Markdown fallback, whole-document saves, sanitised viewing and retained conflict drafts.
-- [ ] **R11 - Supplier onboarding and local assessment.** Versioned source/provenance contract, immutable DOCX/text-PDF inputs, persistent extraction candidates, explicit exclusions and CSO-confirmed local assessments. No guessed scores or silently missing rows.
-- [ ] **R12 - Guided deployment workflow.** Versioned, upstream-cited guidance and mechanical progress, never approval or a claim of safety. Workshop nudges only.
-- [ ] **R13 - Scoped mitigation delegation.** Verified-email invitations for internal/external delegates, implementation evidence returned to a CSO for verification, attributable Git provenance and immediate access revocation.
-- [ ] **R14 - Scheduled reminders and end-to-end acceptance.** Weekly digests/snoozing after 30/14/14-day thresholds, console-mail demo and complete supplier-to-DCB0160 journeys, including permissions and failure states. Real customer specimen and production gates remain explicit.
-
-The [Quill port decisions](quill-port.md) fix the scope and permission/import/editor policies for R8-R14. Formal two-stage sign-off, public publishing, OCR and AI are not part of this port.
-
-## Foundation & Infrastructure
-
-### User Management & Authentication
-
-- [x] User model with password hashing (Argon2)
-- [x] User registration
-- [x] User login and logout
-- [x] Email verification, with an eight-hour token lifetime and a resend cooldown
-- [x] Session management (Django sessions in PostgreSQL)
-- [x] Password reset
-- [x] Admin interface for support
-- [x] User profile management
-- [x] Professional registration tracking, recorded but never verified by Turva
-- [x] Clinical Safety Officer designation, self-declared and dated
-
-### Database & Data Layer
-
-- [x] PostgreSQL database setup
-- [x] Django migrations
-- [x] User table
-- [x] Session table (`django.contrib.sessions`)
-- [ ] Organization table
-- [ ] Project table
-- [ ] Hazard table
-- [ ] Risk assessment table
-- [ ] Mitigation table
-- [ ] Safety case table
-- [ ] Audit trail table
-- [ ] Change record table
-
-### Application Infrastructure
-
-- [x] Django framework setup ([ADR 0001](adr/0001-use-django-for-phase-one.md))
-- [x] Docker containerisation, application container running as a non-root user
-- [x] Caddy reverse proxy
-- [x] Gunicorn WSGI server
-- [x] Health check endpoint that touches the database
-- [x] `check --deploy` audit in CI, run against production-like settings
-- [ ] Rate limiting, particularly on login and password reset
-- [ ] Error tracking
-
-### Interface Infrastructure
-
-React and Mantine, over a Django REST Framework API ([ADR 0003](adr/0003-react-frontend-over-drf.md)). The interface was briefly server-rendered with HTMX; that work is in Git history and the Django templates stay until React reaches parity with them, so there is never a window with no working interface.
-
-- [x] Django template layer, authentication pages and safety file screens - **interim**, retained until React replaces them screen by screen
-- [x] Django REST Framework installed and configured with session authentication
-- [x] CORS for the split-origin development setup; Vite uses a same-origin proxy for normal development
-- [x] Versioned API namespace, from the first release rather than retrofitted
-- [x] Serializers and views that **call the service functions** rather than writing safety-file models directly. See [ADR 0003](adr/0003-react-frontend-over-drf.md)
-- [x] `frontend/` scaffolded: React 19, Mantine, Vite, TypeScript
-- [x] CSRF on the client: `X-CSRFToken` on every unsafe request, including anonymous login and registration
-- [x] Turva theme ported from the removed frontend's `theme.ts` - brand purple scale, square corners
-- [x] Authentication pages (register, login, verify, password reset), including email-failure and invalid-link states (R5)
-- [x] Profile page, including professional registration and the CSO declaration (R1)
-- [x] Safety file list, create and detail (R2)
-- [x] Dashboard showing the user's safety files
-- [x] Error and empty states for the delivered pages; failed saves retain drafts
-- [ ] Remove the Django templates once React covers every screen, and not before
-- [x] Frontend lint, typecheck and test in CI
-- [ ] Accessibility audit against WCAG 2.2 AA with a screen reader and keyboard only
-
-## Core Domain Features
-
-### Projects
-
-- [x] Create new project - scaffolds a Git repository and indexes it
-- [x] Project listing (My Projects)
-- [x] Project details page, reading hazards and history from the repository
-- [ ] Project listing (Community/Public Projects) - the queryset supports it; no page yet
-- [ ] Edit project information
-- [ ] Project visibility settings (public/private) - modelled, defaults to private, no UI to change it
-- [ ] Browse the safety file's documents in the interface. Today the detail page
-      summarises the repository but there is no way to read the clinical risk
-      management plan without opening the files
-- [ ] Project archival
-- [ ] Project ownership transfer
-- [ ] Project team member management
-- [ ] Project permissions system
-
-### Supplier Safety Case Onboarding
-
-Phase one, capability 3. The deploying organisation's DCB0160 starts from the
-manufacturer's DCB0129, so the first real task in a new safety file is getting
-the supplier's hazards into it without retyping them.
-
-The constraint that shapes all of this: an extraction that silently drops or
-garbles a hazard produces a safety case that is incomplete and looks complete.
-See TH-010 in [SAFETY.md](../SAFETY.md).
-
-- [ ] Upload a supplier DCB0129 safety case to a safety file
-- [ ] Extract text and structure from `.docx`
-- [ ] Extract text and structure from `.pdf`
-- [ ] Propose hazards from the extracted document, as candidates requiring
-      explicit CSO acceptance - never written straight into the hazard log
-- [ ] Keep the correspondence between each accepted hazard and its location in
-      the source document, so a reviewer can check the transcription
-- [ ] Retain the original uploaded document in the repository as evidence
-- [ ] Report what could not be extracted, rather than returning silently
-- [ ] OCR for scanned documents - **stretch goal**, deferred until a real
-      scanned safety case demands it
-
-### Guided Clinical Safety Process
-
-Phase one, capability 4, and the centre of the product: guidance derived from
-published clinical safety guidance that leads an operator through the process
-rather than presenting them with empty forms.
-
-Guidance that walks someone through clinical safety can be mistaken for
-performing it. See TH-011 in [SAFETY.md](../SAFETY.md).
-
-- [ ] Model the process as explicit steps with a recorded position, so a CSO
-      can leave and return
-- [ ] Guided hazard log construction
-- [ ] Cite NHS England guidance upstream at each step, attributed as the Open
-      Government Licence requires, rather than paraphrasing it as Turva's own
-- [ ] Email the CSO when a hazard workshop is due. **Turva does not host or
-      record workshops** - the customer already has Teams, meeting rooms, and
-      OBS or Loom, and duplicating those would be building the wrong thing.
-      The workshop's output arrives back as hazards in the log
-- [ ] Delegated hazard mitigation: assign a mitigation to someone who is not
-      the CSO, who completes it and returns it
-- [ ] Show each party whose turn it is
-- [ ] Guidance must be distinguishable from the CSO's own judgement in the
-      generated document
-
-### Organizations
-
-- [ ] Organization model
-- [ ] Create organization
-- [ ] Organization profile
-- [ ] Organization settings
-- [ ] Link Clinical Safety Officers to organizations
-- [ ] Multi-organization support for users
-
-### Hazards
-
-- [x] Hazard model with versioning in Git
-- [x] Create hazard through React and the owner-only service (R6)
-- [x] Edit hazard with attributable version control and stale-form refusal (R6)
-- [x] Hazard log view (R4); separate owner-only entry form (R6)
-- [x] Hazard detail view (R4); separate owner-only edit form (R6)
-- [ ] Hazard categorization
-- [x] Hazard status management (open/closed/transferred), with mandatory closure justification (R6)
-- [~] Hazard assignment: record a responsible email; no invitations, access grant or delegated workflow yet
-- [x] Record cause and effect on the care pathway (R6)
-- [x] Record potential harm (R6)
-- [x] Hazard search and status filtering within one safety file (R4)
-- [ ] Hazard export
-
-### Risk Assessment
-
-- [x] Risk assessment model in the framework-free storage layer
-- [x] Initial risk assessment creation (R6)
-- [x] Residual risk assessment creation (R6)
-- [x] Severity scoring (1-5 scale), strict integer validation and no assumed default
-- [x] Likelihood scoring (1-5 scale), strict integer validation and no assumed default
-- [x] Automatic risk level calculation, derived only on the server
-- [x] Risk matrix implementation, with all 25 cells tested
-- [x] Risk justification capture (R6)
-- [x] Risk assessment history as part of each attributable hazard version
-- [ ] Risk assessment approval workflow
-
-### Mitigations
-
-- [ ] Mitigation model
-- [ ] Create mitigation
-- [ ] Link mitigations to hazards
-- [ ] Mitigation effectiveness tracking
-- [ ] Mitigation implementation evidence
-- [ ] Mitigation ownership
-- [ ] Mitigation status tracking
-
-### Safety Case
-
-- [ ] Safety case model
-- [ ] Safety case report generation
-- [ ] Link safety case to hazards
-- [ ] Link safety case to risk assessments
-- [ ] Link safety case to mitigations
-- [ ] Clinical context documentation
-- [ ] Intended use documentation
-- [ ] Safety case export (PDF/Markdown)
-
-### Clinical Risk Management System
-
-- [ ] Clinical risk management plan template
-- [ ] Process documentation
-- [ ] Role definitions
-- [ ] Governance arrangements
-- [ ] Training requirements tracking
-
-## Governance & Compliance
-
-### Audit & Version Control
-
-- [ ] Complete audit trail for all safety artefacts
-- [ ] Version control for hazards
-- [ ] Version control for risk assessments
-- [ ] Version control for mitigations
-- [ ] Version control for safety cases
-- [ ] Change attribution
-- [ ] Timestamp all changes
-- [ ] Immutable historical records
-- [ ] Audit trail export
-
-### Roles & Permissions
-
-- [ ] Role-based access control (RBAC)
-- [ ] Project Owner role
-- [ ] Project Member role
-- [ ] Clinical Safety Officer role
-- [ ] Reviewer role
-- [ ] Public Viewer role
-- [ ] Permission inheritance
-- [ ] Granular permission controls
-
-### Review & Approval Workflows
-
-- [ ] Review request system
-- [ ] Approval workflow engine
-- [ ] Sign-off capture
-- [ ] Named approver tracking
-- [ ] Review comments
-- [ ] Conditional approvals
-- [ ] Escalation mechanisms
-
-### Incident Management
-
-- [ ] Clinical safety incident model
-- [ ] Incident reporting
-- [ ] Link incidents to hazards
-- [ ] Incident investigation tracking
-- [ ] Incident closure workflow
-
-## Reporting & Documentation
-
-### Reports
-
-- [ ] Hazard summary report
-- [ ] Risk profile report
-- [ ] Safety case report
-- [ ] Audit trail report
-- [ ] Compliance evidence report
-- [ ] DCB0129 compliance report
-- [ ] DCB0160 compliance report
-
-### Export & Interoperability
-
-Export is the integration story. The repository itself is the most interoperable
-format available - it is a `git clone` away and is plain Markdown - so the work
-here is about the formats people ask for on top of that.
-
-- [ ] Export hazard log (CSV/Excel)
-- [ ] Single-document download of the whole safety file - phase one, capability 6. One button, serving a document built from the repository. Ports the
-      exporter proven in `rcpch/digital-growth-charts-documentation`: Zensical
-      build, then WeasyPrint over the rendered HTML
-- [ ] Add `libpango-1.0-0` and `libpangoft2-1.0-0` to the web image, which
-      WeasyPrint needs
-- [ ] Define the safety document's contents as an explicit page list, so adding
-      a page to a template cannot silently change what every safety case
-      contains. A safety property, not a convenience - the RCPCH exporter keeps
-      its controlled subset hard-coded for exactly this reason
-- [ ] Cache the built document against the commit it was built from, so a
-      download is never served from a different state than the evidence it
-      cites. See TH-007
-- [ ] Other formats from the same pipeline, `.docx` first
-- [ ] Offer the exporter to the community as a Zensical plugin. Zensical has no
-      native PDF export
-      ([zensical/backlog#25](https://github.com/zensical/backlog/issues/25)), so
-      this is a real contribution rather than a courtesy
-- [ ] Export safety case (Markdown) - already true: the repository _is_ Markdown
-- [ ] Import hazard log
-- [ ] Webhook support
-- [ ] HTTP API for **external** integrations. Distinct from the API serving
-      Turva's own interface ([ADR 0003](adr/0003-react-frontend-over-drf.md)):
-      that one has a single known consumer and may change with it, while a
-      third-party API is a contract with deprecation obligations. Build it when
-      a named external consumer is funded
-
-## Safety File Storage
-
-Each Clinical Safety Management File is a Git repository on disk holding a Zensical site. See [Architecture Principles](architecture-principles.md#git-is-the-system-of-record). This is foundational: the domain features above depend on it, so it is built first, not last.
-
-### Git as the System of Record
-
-- [x] Repository layout convention, specified in [safety-file-layout.md](safety-file-layout.md)
-- [x] Repository creation from a project template
-- [x] Read and write safety artefacts as Markdown with YAML frontmatter
-- [x] Commit on save, attributed to the acting user
-- [x] Sequential identifiers allocated from Git history, never reused
-- [x] Validation on read and write, including derived-risk and cross-reference rules
-- [x] Generated hazard log, regenerated on every save
-- [x] History for a single safety artefact, and retrieval of a past version
-- [ ] Diff view between two versions of an artefact
-- [x] Database index over repositories, rebuildable from disk - `manage.py reindex_safety_files`, with a test that deletes every row and recovers the index from the repositories alone
-- [x] Repository storage layout - one directory per safety file, named for the system, bind-mounted so it is browsable on the host
-- [ ] Backup strategy and quotas. The repositories are the only thing that cannot be rebuilt, so this is the one backup that matters
-- [ ] Record the organisation in `.turva/manifest.yaml`. It is currently recovered from the mkdocs copyright line during reindex, which works but means a safety file does not state plainly which organisation it belongs to
-- [~] Concurrency: R6 serialises local saves and rejects stale opened versions. Collaborative roles/merges are not built; only verified owners currently edit hazards
-- [ ] Branch management for major changes
-- [ ] Merge conflict resolution
-- [ ] Tag releases
-
-### Document Generation
-
-- [x] Build controlled Zensical document pages from a committed safety-file snapshot (R7); repository plugins/hooks are not executed
-- [x] Draft text PDF via WeasyPrint over built HTML, with explicit hazard/mitigation appendices (R7, pattern per <https://growth.rcpch.ac.uk>); embedded media/active HTML is unsupported and blocks export
-- [x] Private PDF cache keyed by source commit and exporter/renderer identity, with visibility checks on every download (R7)
-- [ ] Generate the safety case report's summary figures from the hazard data rather than prose. While writing the demo safety file, a hand-written residual risk statement claimed all hazards were at risk level 2 or below when two derived level 3 - the same class of defect as TH-001
-- [ ] Markdown editor for safety documentation
-- [ ] Markdown preview
-
-### Placeholders and Templates
-
-- [ ] A DCB0129 manufacture template. Creating a DCB0129 safety file currently
-      scaffolds from the DCB0160 deployment template, which is a closer start
-      than nothing but is not the right document set
-- [ ] Dynamic placeholder system
-- [ ] Auto-population of common fields
-- [ ] Context-aware suggestions
-- [ ] Safety case templates
-- [ ] Hazard templates
-- [ ] Risk assessment templates
-- [ ] Mitigation templates
-- [ ] Template library
-- [ ] Template import/export
-- [ ] Custom template creation
-
-## User Experience
-
-### Dashboard
-
-- [x] Dashboard layout
-- [x] Navigation structure
-- [ ] Dashboard widgets
-- [ ] Activity feed
-- [ ] Notifications
-- [ ] Quick actions
-- [ ] Search functionality
-
-### Brand and Theming
-
-The palette is taken from the Turva logo used on turva.org - a purple curve on
-a yellow ground - so both hexes are the identity rather than an approximation
-of it. They live in `app/static/css/turva.css` and `frontend/src/theme.ts`, and
-`app/config/tests/test_palette.py` asserts the two agree and that every pairing
-clears WCAG 2.2 AA.
-
-- [x] Brand palette taken from the logo, with tint and shade scales for both
-- [x] Contrast enforced by test rather than promised in a comment
-- [ ] **User-configurable themes for eye comfort.** Wanted, and deliberately
-      not half-built. A theme is not a palette swap here: every pairing has to
-      be re-checked, and the risk table is the screen that matters, because a
-      derived risk level that is hard to read is a safety problem rather than a
-      comfort one. The test above is the mechanism that makes a second theme
-      checkable - extend it to cover each theme rather than adding one
-      unverified
-- [ ] Dark mode, as the first such theme and the most asked for. Mantine's own
-      dark scale is used as-is for now; the hand-rolled override that was
-      carried over from the pre-October frontend has been removed, because it
-      was a greyscale ramp with `#ff0000` at shade 1 and would have rendered a
-      red surface somewhere
-- [ ] Respect `prefers-contrast` and `prefers-reduced-motion`
-- [ ] Decide whether the primary call to action takes the brand yellow with
-      dark text, as turva.org's own does. Measures 12.25:1, so it is the
-      highest-contrast option available - but it changes the button hierarchy,
-      which is a design decision rather than an accessibility one
-
-### UI/UX Improvements
-
-- [~] Responsive design for mobile. R4 fixes the React hazard log, safety-file list and history tables using labelled stacked rows, keeping residual risk in view without horizontal scrolling. The interim Django table layout and future screens still need equivalent review
-- [ ] Accessibility audit against WCAG 2.2 AA with a screen reader and
-      keyboard only
-- [ ] Keyboard navigation
-- [ ] Screen reader support
-- [ ] User onboarding flow
-- [ ] Contextual help system
-- [ ] Tooltips and guides
-
-### Dictation / Voice-to-Text
-
-Speech-to-text for long free-text fields (hazard description, mitigation rationale, safety case narrative, meeting notes) where typing is the bottleneck. Run entirely in the browser so no audio or transcript leaves the device, following the pattern behind Discourse's bundled Live plugin's live captions: a quantized NVIDIA Parakeet ASR model via `onnxruntime-web` on WebGPU. See the writeup queued in [`pacharanero/house-style`'s roadmap](https://github.com/pacharanero/house-style/blob/main/roadmap.md) once it lands, and the local-inference principle already stated in [llm-strategy.md](llm-strategy.md#privacy-and-confidentiality).
-
-- [ ] Evaluate `parakeet.js` (MIT, ONNX Runtime Web/WebGPU) or an equivalent library. The no-bundler constraint that shaped this item is gone now the frontend is built with Vite, which makes it easier rather than harder
-- [ ] Dictation control on long-text fields (hazard description, mitigation rationale, safety case narrative)
-- [ ] Clear recording/listening state with a visible stop control; no silent background listening
-- [ ] Graceful fallback when WebGPU is unavailable - typing remains the baseline, dictation is additive
-- [ ] Confirm the one-time per-user model download (~200-400MB) and WebGPU browser support are acceptable on the target NHS devices before shipping
-
-### Collaboration
-
-- [ ] Commenting on hazards
-- [ ] @mentions in discussions
-- [ ] Activity notifications
-- [ ] Team chat/discussion threads
-- [ ] Collaborative editing
-
-## Advanced Features
-
-### AI Access
-
-NHS organisations have well-founded sensitivities about where their data goes
-during an LLM round trip, and a deployment safety case is a named
-organisation's assessment of its own clinical risk. That constraint, not
-capability, decides the order here.
-
-See [llm-strategy.md](llm-strategy.md) for what AI is meant to do once the
-access path exists.
-
-- [ ] Bring Your Own API Key, held at profile level - phase one, and the only
-      AI path in it
-- [ ] Make the data path visible to the user: which provider, which model, what
-      was sent
-- [ ] MCP server or equivalent, so a customer can drive Turva from an AI client
-      they already trust rather than Turva calling out to a model. Inverts the
-      data flow, which is the attractive part. Not yet specified; see
-      [house-style's MCP standard](https://github.com/pacharanero/house-style/blob/main/mcp.md)
-- [ ] Record which content in a safety file was AI-assisted, and never let it
-      be mistaken for the CSO's own judgement
-- [ ] Turva-hosted inference for paid subscriptions - **not phase one**
-
-### Analytics & Intelligence
-
-- [ ] Risk trend analysis
-- [ ] Hazard pattern recognition
-- [ ] Predictive risk scoring
-- [ ] Cross-project insights
-- [ ] Benchmark against similar projects
-
-### Integration & Automation
-
-- [ ] CI/CD pipeline integration
-- [ ] Link hazards to code changes
-- [ ] Automated hazard triggers on file changes
-- [ ] Integration with issue trackers (GitHub, Jira)
-- [ ] Integration with version control (GitHub, GitLab)
-- [ ] Slack/Teams notifications
-
-### Search & Discovery
-
-- [ ] Full-text search across projects
-- [ ] Search public safety cases
-- [ ] Import hazards from other projects
-- [ ] Hazard recommendation engine
-- [ ] Similar hazard detection
-
-### Data Management
-
-- [ ] Data retention policies
-- [ ] Archive old projects
-- [ ] Data export for compliance
-- [ ] Data anonymization
-- [ ] Bulk operations
-
-## Testing & Quality
-
-### Code Quality & Formatting
-
-#### Python
-
-- [x] Ruff formatter and linter
-- [x] Format-on-save in VS Code
-- [x] Line length set to 100 characters
-- [x] Import sorting configured
-- [ ] Type checking with mypy
-- [ ] Docstring linting
-- [ ] Complexity analysis
-
-#### Pre-commit Hooks
-
-- [x] Pre-commit framework installed
-- [x] Trailing whitespace check
-- [x] End-of-file fixer
-- [x] YAML/JSON validation
-- [x] Spell checking (cspell)
-- [x] Python formatting (Ruff)
-- [x] Python linting (Ruff)
-- [x] Markdown formatting (Prettier)
-- [x] Markdown linting (markdownlint)
-- [ ] Commit message linting (commitlint)
-- [ ] Branch name validation
-
-### Testing
-
-- [x] Unit tests for user model
-- [x] Integration tests for authentication
-- [x] Integration tests running in CI (previously excluded and silently broken)
-- [x] Run the suite against PostgreSQL rather than SQLite. The SQLite-only suite is how an asyncpg incompatibility in the `search_path` connection arguments reached `main` with all 42 tests green
-- [ ] Apply migrations automatically on startup, or add a startup check that fails loudly when migrations are pending
-- [ ] Coverage reporting in CI with a floor for the risk matrix and permission code
-- [ ] Unit tests for all models
-- [ ] Integration tests for all endpoints
-- [ ] End-to-end tests
-- [ ] Performance testing
-- [ ] Security testing
-- [ ] Accessibility testing
-- [ ] Browser compatibility testing
+- [~] **R10 - Safety document reading and authoring.** Controlled read-only views of the four committed documents are delivered, with visible resource omissions and an escaped-source fallback for unrepresented formatting. Preserving rich-text/Markdown authoring, explicit whole-document saves and retained conflict drafts remain; shared editor demonstrations do not complete that rollout. GitHub [#54](https://github.com/turva-uk/turva/issues/54), [#55](https://github.com/turva-uk/turva/issues/55).
+- [ ] **R11 - Supplier onboarding and local assessment.** Immutable DOCX/text-PDF sources, versioned provenance, persistent extraction candidates including unreadable content, reasoned exclusions and CSO-confirmed local assessments. Supplier scores remain separate; never guess scores or silently omit rows. GitHub [#56](https://github.com/turva-uk/turva/issues/56) is a documentation-only storage-contract proposal, not upload implementation or schema acceptance; approve that contract and implement source storage before [#57](https://github.com/turva-uk/turva/issues/57) and [#58](https://github.com/turva-uk/turva/issues/58).
+- [ ] **R12 - Guided deployment workflow.** Versioned, upstream-cited guidance and mechanical progress, distinguishable from clinical judgement and never approval/compliance. Workshops remain reminder-only. GitHub [#59](https://github.com/turva-uk/turva/issues/59).
+- [ ] **R13 - Scoped mitigation delegation.** Verified-email invitations for internal/external delegates, implementation evidence returned to a CSO for verification or return, attributable Git provenance and immediate revocation. Start with text/references, not new attachments. GitHub [#60](https://github.com/turva-uk/turva/issues/60), [#61](https://github.com/turva-uk/turva/issues/61).
+- [ ] **R14 - Scheduled reminders and end-to-end acceptance.** Weekly digests/snoozing after 30/14/14-day thresholds, console-mail exercises and complete supplier-to-DCB0160 journeys, including permissions and failure states. Real supplier-specimen validation and production gates remain explicit. GitHub [#62](https://github.com/turva-uk/turva/issues/62), [#63](https://github.com/turva-uk/turva/issues/63).
+
+## Risk presentation and matrix assurance
+
+- [ ] **R15 - Exact NHS England risk colours.** Take the exact RGB values and corresponding hex codes from the agreed official NHSE clinical risk matrix source, recording its URL, version, page/table, checksum, reuse terms and colour-space interpretation. Do not eyeball screenshots or substitute brand/Mantine colours. Share the palette across initial/residual risk displays and any coloured exports; retain numeric/text labels and test contrast and all 25 cell mappings. Depends on R17.
+- [ ] **R16 - Optional visual hazard risk matrix.** Evaluate an accessible 5-by-5 likelihood-versus-severity view showing exactly where the hazard's initial and residual assessments lie, including when they occupy the same cell. Use the R15 colours, canonical server-provided cells, clear axes/legend and equivalent text; verify keyboard, narrow-screen, zoom and print use. Position markers from recorded severity/likelihood, never a second scoring formula or a new risk-entry control. Depends on R17.
+- [ ] **R17 - Clinical review of the adopted risk matrix.** Have a CSO confirm the chosen matrix, scales, acceptability criteria and source against all 25 cells. Resolve differences from the published example explicitly, with independent source-derived test vectors and a recorded decision about any correction and its effect on existing evidence/exports. Do not silently regrade historical assessments or treat current tests as clinical validation. Discussion: GitHub [#65](https://github.com/turva-uk/turva/issues/65); not bot implementation approval for R15/R16.
+
+Source checked on 15 November 2026: [DCB0160 implementation guidance v4.2, 2 May 2018](https://digital.nhs.uk/binaries/content/assets/website-assets/data-and-information/information-standards/standards-and-collections/dcb0160/0160252018impguid.pdf#page=35), Table 9, page 35. Section 4.4, page 33, says its classifications are illustrative and the organisation must document its chosen criteria. Turva's current lookup differs from that example at L2/S3, L3/S2, L3/S4, L3/S5 and L4/S3; see [TH-008](../SAFETY.md#planned-risk-presentation-and-source-review). The existing 1-5 lookup is not simple arithmetic multiplication of likelihood and severity. This roadmap update changes neither scoring nor rendering.
+
+## Wider backlog
+
+The remaining sections preserve longer-term and assurance work. They are not an ordered implementation queue or a promise that every item is funded.
+
+### Application and access
+
+- [ ] **R18 - Rate limiting.** Cover login, password reset and other abuse-prone endpoints without weakening generic account-recovery responses.
+- [ ] **R19 - Error tracking.** Evaluate and configure an error-reporting service such as Sentry with appropriate data minimisation.
+- [ ] **R20 - Retire the interim Django interface.** Remove templates/routes only after React covers their workflows, including production routing and failure states.
+- [ ] **R21 - Accessibility audit.** Check WCAG 2.2 AA with keyboard-only and screen-reader use, including risk information and form failures.
+- [~] **R22 - Remaining responsive and zoom coverage.** Finish interim and new screens beyond the delivered responsive tables; inspect phone/tablet/desktop and zoom states.
+- [ ] **R23 - Edit safety-file information.** Update project metadata and narrative through attributable, opened-version saves, keeping the database index rebuildable.
+- [ ] **R24 - Safety-file archival.** Archive without deleting safety evidence or losing its history; consolidate the former project-archival duplicates here.
+- [ ] **R25 - Explicit ownership and organisation transfer.** Define reviewed transfer workflows distinct from changing a named team; never infer access from names, ancestry or prior ownership.
+- [ ] **R26 - Organisation profile and settings.** Add editing beyond the delivered operator provisioning, memberships, invitations and CSO appointments.
+- [ ] **R27 - Hazard categorisation.** Define useful categories and their validation/search behaviour without altering the canonical risk assessment.
+- [ ] **R28 - Mitigation effectiveness over time.** Track review of control effectiveness beyond the existing status and implementation-evidence fields.
+
+### Safety-file storage and document generation
+
+- [ ] **R29 - Evidence-derived safety-case summaries.** Generate summary figures and residual-risk statements from canonical hazard data rather than unverified prose; do not present incomplete evidence as a complete safety argument.
+- [ ] **R30 - Artefact version comparison.** Show a readable diff between two recorded versions while preserving rename-following history.
+- [ ] **R31 - Safety-repository backups.** Automate backups of the Git system of record and exercise restoration, with appropriate retention and access controls.
+- [ ] **R32 - Operational database backups.** Back up and restore users, sessions, membership, appointment and invitation state as well as the rebuildable index; restored Git teams must not recreate live grants.
+- [ ] **R33 - Storage and processing quotas.** Bound repository/upload/cache growth and aggregate import/export resource use beyond the existing per-render limits.
+- [ ] **R34 - Safety-file branches for major changes.** Define the clinical review and provenance model before exposing repository branch management.
+- [ ] **R35 - Reviewed conflict resolution.** Add explicit comparison/resolution workflows beyond the current stale-save refusal and retained drafts; never automatically merge clinical judgements.
+- [ ] **R36 - Safety-file release tags.** Identify reviewed evidence snapshots without rewriting history or implying that a tag itself is clinical approval.
+
+### Templates and placeholders
+
+- [ ] **R37 - DCB0129 manufacture template.** Provide the correct manufacturer document set rather than scaffolding it from the deployment template.
+- [~] **R38 - Expanded creation-time placeholders.** Extend validated placeholder/common-field population beyond current defaults; templates scaffold once and must not silently re-render historical evidence.
+- [ ] **R39 - Context-aware template suggestions.** Keep suggestions distinct from clinical judgement; any AI path remains subject to the separate AI gates below.
+- [ ] **R40 - Reusable template library.** Cover additional safety cases, hazards, risk assessments and mitigations beyond the existing DCB0160 scaffold.
+- [ ] **R41 - Template import/export.** Preserve provenance, check reuse terms and validate imported structure.
+- [ ] **R42 - Custom template authoring.** Support reviewed custom templates without allowing repository configuration or hooks into the controlled export pipeline.
+
+### Reports and exports
+
+- [ ] **R43 - Hazard-log CSV/Excel export.** Export canonical hazards, assessments and links without creating independently editable risk levels.
+- [ ] **R44 - Additional controlled document formats.** Start with DOCX, retaining the PDF pipeline's explicit scope, source-version identity and visible unsupported-content failures.
+- [ ] **R45 - Community Zensical PDF exporter.** Evaluate extracting the controlled exporter as a reusable plugin; this is separate from Turva's delivered draft PDF download.
+- [ ] **R46 - Audit-trail report/export.** Derive reports from attributable Git history rather than introducing a second authoritative evidence audit table.
+- [ ] **R47 - Risk-profile reports.** Summarise initial and residual assessments beyond the current hazard log, using canonical derived levels.
+- [ ] **R48 - Compliance evidence reports.** Link DCB0129/DCB0160 and other relevant criteria to recorded evidence; reports are not certification or automated clinical approval.
+
+### User experience
+
+- [ ] **R49 - Dashboard widgets.** Prioritise frequent clinical-safety work rather than generic dashboard cards.
+- [ ] **R50 - Activity feed.** Present attributable changes with appropriate file visibility checks.
+- [ ] **R51 - In-app activity notifications.** Separate them from the agreed email-reminder workflow and avoid disclosure across file boundaries.
+- [ ] **R52 - Quick actions.** Define useful shortcuts without bypassing deliberate saves or opened-version checks.
+- [ ] **R53 - Search across authorised evidence.** Add dashboard/full-text search beyond filtering one loaded hazard log; enforce current access on results.
+- [ ] **R54 - User onboarding.** Guide new users through setup without implying that completing onboarding establishes CSO competence.
+- [ ] **R55 - Contextual interface help.** Provide control-level help, tooltips and guides, distinct from the clinical process guidance in R12.
+- [ ] **R56 - User-configurable comfort themes.** Check every colour pairing and preserve the agreed risk palette, labels and readability across themes.
+- [~] **R57 - Application dark-mode rollout.** Shared components have tested light/dark catalogue states; existing application pages still use the legacy theme. Integrate and inspect the actual workflows before claiming application-wide dark-mode support.
+- [~] **R58 - Contrast and motion preferences.** Reduced-motion CSS is present. Complete contrast-preference support and verify the delivered application paths, rather than treating catalogue coverage as an application audit.
+- [ ] **R59 - Primary-action colour decision.** Review whether brand yellow with dark text should identify the primary action; record the hierarchy decision and contrast evidence.
+
+### Browser-local dictation
+
+Dictation must keep audio and transcripts on the device, following [the local-inference privacy principle](llm-strategy.md#privacy-and-confidentiality). It does not introduce workshop hosting or recording.
+
+- [ ] **R60 - Evaluate browser-local speech recognition.** Review `parakeet.js` or an equivalent maintained, suitably licensed ONNX Runtime Web/WebGPU implementation.
+- [ ] **R61 - Dictation controls for long text.** Cover hazard descriptions, mitigation rationale and safety-case narrative, with explicit listening state and a visible stop control; never listen silently.
+- [ ] **R62 - Typing fallback.** Keep typing as the baseline when WebGPU, the model or microphone access is unavailable.
+- [ ] **R63 - Target-device dictation validation.** Check NHS-device/browser support and the acceptability of the one-time model download before shipping.
+
+### Engineering quality and testing
+
+- [~] **R64 - Complete Python type coverage.** Strict storage checking and unannotated test-body checking are enforced. Finish storage test annotations in [#117](https://github.com/turva-uk/turva/issues/117) and review Django typing separately in [#118](https://github.com/turva-uk/turva/issues/118); do not weaken the production gate.
+- [ ] **R65 - Docstring linting.** Adopt useful, enforceable documentation checks rather than an untested configuration.
+- [ ] **R66 - Complexity analysis.** Measure and address risky complexity without imposing arbitrary rewrites.
+- [ ] **R67 - Conventional-commit enforcement.** Add commit-message checking to the established commit convention.
+- [ ] **R68 - Branch-name validation.** Validate the relevant branch conventions, including issue-number/title slugs for overnight work.
+- [ ] **R69 - Pending-migration startup guard.** Fail visibly when the application schema is behind; do not silently run destructive production migrations.
+- [ ] **R70 - CI coverage floors.** Enforce statement/branch coverage for risk, permission and audit paths, with the required complete coverage on safety-critical logic.
+- [~] **R71 - Remaining unit and API integration coverage.** Identify and cover actual gaps beyond the delivered suites, rather than retaining blanket tasks for models/endpoints already tested.
+- [ ] **R72 - Performance and capacity tests.** Measure representative files, imports, exports and concurrent use before making production-capacity claims.
+- [ ] **R73 - Security regression coverage.** Audit and test remaining boundary gaps in input validation, ORM usage, escaping, CSRF and access controls; the existing baseline protections are not unimplemented features.
+- [ ] **R74 - Browser compatibility tests.** Exercise supported browser/device combinations and visible fallbacks.
+- [~] **R75 - Application accessibility regression coverage.** Storybook light/dark interactions, WCAG 2.2 AA checks and gate canaries already run in CI. Extend coverage to complete application journeys; retain the separate human keyboard/screen-reader audit in R21.
 
 ### Documentation
 
-- [x] Specification document
-- [x] README
-- [x] Architecture decision records ([adr/](adr/))
-- [x] Generated reference documentation for the storage layer
-- [ ] API documentation (OpenAPI/Swagger). There is an API again
-      ([ADR 0003](adr/0003-react-frontend-over-drf.md)), and DRF generates a
-      schema, so this is closer to free than it looks
-- [ ] User guide
-- [ ] Administrator guide
-- [ ] Developer guide
-- [ ] Deployment guide
-- [ ] Security documentation
-- [ ] Compliance mapping (DCB0129/DCB0160)
+- [ ] **R76 - OpenAPI documentation.** Publish and exercise the SPA API schema and its authentication/CSRF/error contracts.
+- [ ] **R77 - User guide.** Cover delivered clinical-safety workflows and their limits.
+- [ ] **R78 - Administrator guide.** Distinguish organisation administration, evidence authority and operational recovery.
+- [~] **R79 - Complete the developer guide.** Build on the existing README, development notes, scripts and demo exercises rather than duplicating setup instructions. Clean-checkout validation remains assigned work in GitHub [#7](https://github.com/turva-uk/turva/issues/7), not an unclaimed overnight task.
+- [ ] **R80 - Deployment guide.** Document production configuration, migrations, backups, restoration and safe updates.
+- [ ] **R81 - Security architecture and operations documentation.** Extend beyond the existing vulnerability-disclosure policy.
+- [ ] **R82 - Standards-to-evidence mapping.** Map applicable DCB0129/DCB0160 controls to implementation, tests and clinical review evidence.
 
-## Deployment & Operations
+### Production deployment and operations
 
-### Deployment
+- [ ] **R83 - Production deployment configuration.** Complete React/static routing, Gunicorn/Caddy operation, persistent storage and deployment settings for the scoped single-VPS design.
+- [ ] **R84 - Disaster recovery plan.** Rehearse repository and operational-database restoration together, including failure-closed access recovery.
+- [ ] **R85 - Performance monitoring.** Monitor application and import/export latency without disclosing private evidence.
+- [ ] **R86 - Uptime monitoring.** Monitor availability using the existing database-aware health endpoint.
+- [ ] **R87 - Database monitoring.** Detect capacity, connection and backup problems.
+- [ ] **R88 - Security monitoring.** Define actionable alerts, data minimisation and response ownership.
+- [ ] **R89 - Security audit.** Independently review the deployed design and safety-relevant boundaries.
+- [ ] **R90 - Authorised penetration testing.** Define targets and permission explicitly; use isolated, fictional data unless separately authorised.
+- [ ] **R91 - Content Security Policy.** Define, exercise and deploy a policy compatible with the actual React/Django delivery paths.
+- [ ] **R92 - Production security-header verification.** Check the complete Django, React/static and Caddy response paths beyond the existing Django production defaults.
 
-- [x] Docker Compose setup
-- [x] Development environment
-- [x] Pin Python dependencies with a resolved lock (`app/requirements*.txt`, `docs/requirements.txt`, regenerate with `s/lock`)
-- [x] Pin every GitHub Action to a commit SHA
-- [ ] Production deployment configuration
-- [ ] Pin version numbers for all Docker images (PostgreSQL, Python, Caddy) before production
-- [ ] Pin docs dependencies (`docs/requirements.txt` is currently unpinned)
-- [ ] Kubernetes deployment
-- [ ] Database backup strategy
-- [ ] Disaster recovery plan
-- [ ] High availability setup
-- [ ] Load balancing
+### Clinical governance and assurance
 
-### Monitoring & Operations
+- [ ] **R93 - DCB0129 alignment review.** Review Turva's own manufacturer-side evidence and residual gaps with the responsible clinical safety owner.
+- [ ] **R94 - DCB0160 workflow review.** Independently review the deployment workflow and generated evidence; successful software tests are not clinical acceptance.
+- [ ] **R95 - GDPR review.** Cover account and organisation information, retention and access even though Turva does not process patient data.
+- [ ] **R96 - ISO 13485 considerations.** Establish applicability and any quality-management implications before claiming alignment.
+- [ ] **R97 - ISO 14971 considerations.** Review applicable risk-management requirements and their relationship to the clinical-safety process.
+- [ ] **R98 - Complete regulatory and safety-governance records.** Resolve the named clinical-safety-owner and dated medical-device-applicability decisions identified in SAFETY.md.
+- [ ] **R99 - Internal audit process.** Define repeatable checks and attributable evidence of findings and follow-up.
+- [ ] **R100 - External audit preparation.** Assemble reviewable evidence and unresolved questions without presenting draft assessments as accepted.
+- [ ] **R101 - Certification documentation.** Establish any applicable certification route and its evidence requirements; do not assume every standard listed here requires certification.
+- [ ] **R102 - Wider clinical risk management system records.** Define process, governance and training-requirement tracking beyond the existing creation-time plan scaffold.
+- [ ] **R165 - Professional-registration assurance policy.** Resolve what assurance Turva may claim beyond self-declaration, who checks which evidence and how expiry, identity changes and withdrawal affect the claim. Keep verified email, recorded/checked registration, organisational appointment and named-file authority distinct; do not confer competence or restore access through badges. Current unverified wording remains until an independently reviewed change. Discussion: GitHub [#3](https://github.com/turva-uk/turva/issues/3), protecting TH-009; no automated verification commitment is added to the funded port.
 
-- [ ] Application logging
-- [ ] Error tracking (Sentry)
-- [ ] Performance monitoring
-- [ ] Uptime monitoring
-- [ ] Database monitoring
-- [ ] Security monitoring
-- [ ] Automated backups
-- [ ] Health check endpoints
+## Deferred capabilities
 
-### Security
+These retain the wider product direction, not permission to expand the current build. Each needs a separately reviewed scope and, where relevant, a new hazard analysis or architecture decision.
 
-- [ ] Security audit
-- [ ] Penetration testing
-- [ ] HTTPS enforcement
-- [ ] Rate limiting
-- [ ] Input validation
-- [ ] SQL injection prevention
-- [ ] XSS prevention
-- [ ] CSRF protection
-- [ ] Content Security Policy
-- [ ] Security headers
+### Public information website
 
-## Compliance & Certification
+- [ ] **R164 - Separate public SaaS information site.** Agree the boundary, content ownership and maintenance of a separate static information site for the commercial service, including any landing, pricing, privacy, team/company and demo pages. Self-hosted Turva must open into its working application, not commercial marketing. Preserve the existing design contributions; no deployment, publication or pricing commitment is implied. Scope discussion: GitHub [#6](https://github.com/turva-uk/turva/issues/6), outside the funded workflow and not Ready for implementation.
 
-### Standards Compliance
+### Publishing, roles and formal review
 
-- [ ] DCB0129 alignment verification
-- [ ] DCB0160 alignment verification
-- [ ] GDPR compliance
-- [ ] ISO 13485 considerations
-- [ ] ISO 14971 alignment (risk management)
-- [ ] Regulatory documentation
+- [ ] **R103 - Explicit public/private publishing controls.** Keep private drafts as the default and make publication a deliberate governance decision.
+- [ ] **R104 - Community/public safety-file browsing.** Add the missing interface only after publication and access policies are agreed.
+- [ ] **R105 - Additional reviewer/read-only roles.** Extend beyond current named CSOs and planned mitigation delegates with explicit grants, not organisation/parent inheritance.
+- [ ] **R106 - Formal review and sign-off workflow.** Cover review requests/comments, named approvers and version-bound sign-off; formal two-stage approval remains deferred.
+- [ ] **R107 - Conditional and multi-level approvals.** Define conditions, escalation and approval chains separately from the initial sign-off workflow.
 
-### Certification & Audit
+### Incidents and collaboration
 
-- [ ] Internal audit process
-- [ ] External audit preparation
-- [ ] Certification documentation
-- [ ] Compliance evidence generation
+- [ ] **R108 - Clinical safety incident records.** Support incident reporting and links to the relevant hazards and evidence.
+- [ ] **R109 - Incident investigation and closure.** Record investigation, decisions and justified closure without erasing the original incident.
+- [ ] **R110 - Hazard discussions and mentions.** Add comments and mentions with attributable history and current visibility checks.
+- [ ] **R111 - Team discussion threads.** Establish a concrete safety-workflow need before adding general chat functionality.
+- [ ] **R112 - Real-time collaborative editing.** Define concurrency and explicit clinical conflict handling beyond the delivered serialised team saves.
 
-## Future Considerations
+### AI access
 
-### Extensibility
+AI remains outside the current port, but its access design must support inference supplied by the user or the owning organisation, not just a personal API key. Personal, organisation and explicitly delegated unit/team settings must accommodate provider-supported credentials, OAuth and API-enabled subscriptions, including local/on-premises inference. No provider is architecturally excluded; actual integrations need a supported interface, policy checks and validation. See [the AI connection and settings strategy](llm-strategy.md) and [ADR 0007](adr/0007-user-and-organisation-supplied-inference.md). This changes the former profile-only assumption, not the clinical review gates or the funded delivery commitment.
 
-- [ ] Plugin system
-- [ ] Custom safety artefact types
-- [ ] Custom workflow definitions
-- [ ] Custom report templates
-- [ ] HTTP API for third-party integrations (see Export & Interoperability above)
+AI use is optional and initiated by the user. Ordinary editing and saving must work without AI, credentials or an available model; configuring a connection does not enable automatic inference on page load, typing or save.
 
-### Internationalization
+- [ ] **R113 - Personal API-key connections.** Provide profile-level BYOK as one supported connection scope, not a prerequisite when an authorised organisation connection is available. Use the shared scoped settings, credential lifecycle and provider contracts below.
+- [ ] **R114 - Visible AI data flow.** Show the effective connection, credential/billing owner, provider, endpoint/location, model and exactly what information is sent; expose no secrets and never silently change the destination.
+- [ ] **R115 - AI-assistance provenance and review.** Keep outputs as proposals until explicit human review and opened-version save; record available provider/model identity and source version in Git with the acting user's attribution, never credentials or a model-authored clinical decision.
+- [ ] **R116 - User-driven MCP interface.** Evaluate access from a trusted external client under the [house-style MCP constraints](https://github.com/pacharanero/house-style/blob/main/mcp.md).
+- [ ] **R117 - Turva-hosted inference.** Consider a separately scoped paid service later; it is not phase one or a default/fallback for user- and organisation-supplied inference.
+- [ ] **R155 - Scoped AI connection settings.** Support personal and owning-organisation connections, explicitly delegated organisation-unit/team availability and narrower safety-file/project bindings. Define who manages versus uses each connection, defaults/overrides and billing ownership; do not infer permission inheritance or evidence access from the credential's owner. Resolve the scope/policy contract with R160 in GitHub [#66](https://github.com/turva-uk/turva/issues/66) before implementation.
+- [ ] **R156 - Provider authentication and subscription connections.** Accommodate API keys, supported OAuth flows, token refresh/revocation and provider-supported cloud/service credentials. Connect subscriptions only through officially supported third-party API access; a chat subscription or copied consumer-session token is not assumed to grant API rights.
+- [ ] **R157 - Secure credential lifecycle.** Keep secrets encrypted in protected operational storage, with write-only/masked settings, expiry, rotation, disconnection and audited management/use permissions. Keep keys and tokens out of Git, browser storage, prompts, exports and logs; enforce current connection-use authority and revocation.
+- [ ] **R158 - Extensible inference-provider adapters.** Support native provider APIs, compatible gateways, custom endpoints and custom model/deployment identifiers through a capability-based contract, not a closed vendor/model list or an assumption that every API is OpenAI-compatible. Discover capabilities where supported and show unsupported combinations explicitly.
+- [ ] **R159 - Local and organisation-hosted models.** Support approved user-/organisation-operated inference endpoints and hardware. Define whether local means the Turva host, an organisation network or a user's device, with reviewed connectivity, authentication and request-forgery protections; do not expose local services publicly or fall back to cloud inference automatically.
+- [ ] **R160 - Effective connection selection and organisation policy.** Make scope/default/override resolution explicit and subordinate personal choices to the owning organisation's provider, data-residency and spending rules. Show who pays, apply quotas/timeouts and stop on unavailable credentials, denied endpoints or exhausted allowance instead of silently switching owner, provider or model. Scope/policy discussion: GitHub [#66](https://github.com/turva-uk/turva/issues/66), not approval to implement deferred AI.
+- [ ] **R161 - Task-specific model recommendations.** Maintain dated, evidence-backed recommendations by task and capability, considering quality, privacy, cost, context limits, licence, latency and local hardware. Recommendations are optional guidance, not a hard-coded model restriction, clinical approval or a guarantee of output quality.
+- [ ] **R162 - AI connection conformance and safety acceptance.** Test provider/authentication/scope combinations, secret redaction, OAuth callbacks/refresh, revocation, cross-organisation isolation, local endpoint restrictions, quotas and visible partial failures with fictional fixtures. Independently review the threat/hazard model before enabling clinical-safety assistance; accepted content still uses the existing Git, risk and conflict controls.
+- [ ] **R163 - Optional inline AI wording assistance.** Offer an explicit "AI" action beside eligible narrative fields, proposing wording with red deletions/green additions and accessible non-colour cues. Preserve the original and provide accept/reject/edit/undo before a separate explicit Save. Keep normal editing independent of AI; prevent late/stale responses overwriting newer drafts or bypassing opened-version checks. See [the wording-review contract](llm-strategy.md#optional-inline-wording-assistance).
 
-- [ ] Multi-language support
-- [ ] Localized risk matrices
-- [ ] Regional compliance variations
+### Analytics and integrations
 
-### Advanced Governance
+- [ ] **R118 - Risk trend analysis.** Compare attributable assessments over time without storing a second risk calculation.
+- [ ] **R119 - Hazard pattern recognition.** Treat patterns as reviewable suggestions, not accepted safety evidence.
+- [ ] **R120 - Predictive risk analytics research.** Review intended-purpose and safety implications first; predictions must not replace the canonical derived risk level or clinical judgement.
+- [ ] **R121 - Cross-project insights.** Define authorised aggregation and prevent disclosure across file boundaries.
+- [ ] **R122 - Benchmarking.** Establish appropriate, reviewable comparisons rather than implying that a peer score establishes safety.
+- [ ] **R123 - Customer delivery-pipeline integration.** Link external CI/CD activity to safety evidence; Turva's own CI is already implemented.
+- [ ] **R124 - Hazard-to-code traceability.** Link recorded hazards and decisions to relevant code changes.
+- [ ] **R125 - File-change review triggers.** Surface changes needing hazard review without inventing new clinical judgements automatically.
+- [ ] **R126 - External issue-tracker integration.** Evaluate GitHub/Jira adapters without turning development issues into the authoritative hazard store.
+- [ ] **R127 - External version-control integration.** Define forge/adaptor workflows beyond Turva's native local Git storage.
+- [ ] **R128 - Slack/Teams notifications.** Keep messages minimal and respect current evidence access.
+- [ ] **R129 - Webhooks.** Define event scope, authentication, retry behaviour and disclosure limits.
+- [ ] **R130 - Stable third-party HTTP API.** Build for a named funded consumer, with versioning/deprecation obligations distinct from the existing SPA API.
 
-- [ ] Delegated authority tracking
-- [ ] Multi-level approval chains
-- [ ] Automated compliance checks
-- [ ] Policy enforcement engine
+### Discovery and data management
 
----
+- [ ] **R131 - Public safety-case search.** Depends on the publishing and browsing policies, not merely a permissive database queryset.
+- [ ] **R132 - Cross-file hazard reuse/import.** Preserve source correspondence and require local review; reused content grants no inherited access or accepted local assessment.
+- [ ] **R133 - Hazard recommendations.** Keep recommendations separate from accepted hazards and subject to any applicable AI gates.
+- [ ] **R134 - Similar-hazard detection.** Define comparison and visibility rules, including private-file isolation.
+- [ ] **R135 - Data-retention policies.** Reconcile evidence preservation, operational personal data and applicable retention obligations.
+- [ ] **R136 - Compliance/portability data exports.** Cover authorised data exports beyond the document and evidence reports above.
+- [ ] **R137 - De-identification for shared safety evidence.** Review accountability and provenance before producing a shareable derivative; this is not patient-data processing or silent rewriting of the source audit trail.
+- [ ] **R138 - Bulk operations.** Preserve explicit authority, opened versions, attributable commits and visible partial failures.
 
-**Last Updated:** 11 November 2026
-**Current Phase:** Funded phase one - see [Phase One Scope](phase-one-scope.md)
-**Next Milestone:** Mitigation editing/linking (R8), then supplier onboarding against a real specimen
+### Extensibility and regional support
 
-Note on reading this roadmap: it tracks everything Turva might eventually do, and is much wider than the funded build. [Phase One Scope](phase-one-scope.md) is the authoritative list of what ships by Christmas.
+- [ ] **R139 - Plugin system.** Define a reviewed extension boundary without executing arbitrary safety-repository plugins/hooks.
+- [ ] **R140 - Custom safety artefact types.** Define schema, validation, audit and migration contracts.
+- [ ] **R141 - Custom workflow definitions.** Version definitions and separate mechanical progress from clinical decisions.
+- [ ] **R142 - Custom report templates.** Retain controlled source scope, safe rendering and traceability to evidence versions.
+- [ ] **R143 - Multi-language support.** Plan translation and accessible interface behaviour.
+- [ ] **R144 - Localised risk matrices.** Require explicit clinical governance, versioning and compatibility decisions; never introduce freely editable risk levels.
+- [ ] **R145 - Regional compliance variations.** Cite reviewed regional requirements without making unsupported compliance claims.
+- [ ] **R146 - Wider delegated-authority tracking.** Define authority beyond the current named-team model and the scoped delegation in R13.
+- [ ] **R147 - Mechanical compliance checks.** Make evidence gaps visible without claiming automated certification or clinical approval.
+- [ ] **R148 - Policy enforcement engine.** Establish a concrete requirement and preserve the existing shared service/storage safety boundaries.
+
+### Scaling and additional import formats
+
+- [ ] **R149 - Kubernetes deployment.** Revisit only with a separately justified operational need; it is not the phase-one deployment model.
+- [ ] **R150 - High availability.** Define evidence durability, operational recovery and shared-storage constraints before promising availability.
+- [ ] **R151 - Load balancing.** Depends on an agreed multi-instance storage and authorisation model.
+- [ ] **R152 - Multi-host evidence concurrency.** Revisit the local-filesystem lock contract before introducing shared/network storage or distributed writers.
+- [ ] **R153 - OCR for scanned supplier documents.** Start only when a real specimen justifies it; retain unreadable candidates, provenance and explicit review rather than silently dropping content.
+- [ ] **R154 - Existing hazard-log import.** Scope CSV/spreadsheet ingestion separately from supplier DOCX/PDF onboarding, preserving originals, provenance and explicit review of local assessments.
+
+## Maintenance notes
+
+The 15 November 2026 reconciliation removed completed entries, including previously unchecked organisation/mitigation work, controlled PDFs, container/dependency pinning, baseline security protections, logging and health checks. Duplicate future entries are consolidated above. Obsolete authoritative SQL evidence-table tasks and implicit permission inheritance were retired because they contradict [the architecture](architecture-principles.md) and [ADR 0006](adr/0006-named-file-teams-and-live-appointments.md), not because those designs should be implemented later.
+
+The same day's issue review retained the existing public-site and professional-assurance discussions as R164/R165, rather than dropping them or pretending verification had shipped. Existing issue descriptions now separate prerequisites, proposal-only work and implementation; completed authentication/identity linkage and superseded badge/CSE/alternative-store briefs are closed without deleting their history. Only two new discussion issues were needed: the matrix-source decision (#65) and AI connection policy (#66). Other backlog entries deliberately remain roadmap-only.
+
+The 19 November 2026 PR review distinguishes the delivered shared component catalogue, storage typing, host script tests and hook/test-scope gates from remaining application rollout and clinical acceptance. Shared Markdown/editor components do not complete R10 authoring, and tested catalogue themes do not establish application-wide accessibility. No runtime risk matrix, authority rule or safety evidence changes in this documentation update.
+
+**Last reconciled:** 19 November 2026. **Next milestone:** R10 - document reading and authoring. **Next unused code:** R166. Append new codes without renumbering; remove completed entries without recycling their codes.

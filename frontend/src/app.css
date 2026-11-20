@@ -167,6 +167,7 @@ body {
 }
 
 .document-table:focus-visible,
+.document-source:focus-visible,
 .document-tab:focus-visible {
   outline: 2px solid var(--mantine-color-turva-6);
   outline-offset: 2px;
@@ -269,4 +270,20 @@ body {
 
 .document-list li {
   margin-bottom: 0.25rem;
+}
+
+.document-source {
+  max-width: 100%;
+  max-height: 60vh;
+  overflow: auto;
+  margin-top: 0.5rem;
+  padding: 0.75rem;
+  border: 1px solid var(--mantine-color-gray-4);
+  background: var(--mantine-color-gray-0);
+}
+
+.document-source pre {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }

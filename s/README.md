@@ -61,25 +61,55 @@ Safety file repositories under `.turva-data/` are deliberately left alone: they 
 
 ### `./s/test`
 
-Runs the test suites. There are two, because they need different environments:
+Runs the test suites. There are three, because they need different environments:
 
 | Suite          | Environment                                                                  |
 | -------------- | ---------------------------------------------------------------------------- |
 | `safety_file/` | pure Python, no database or container. Runs on the host in about two seconds |
+| `s/tests/`     | bats tests for the `s/` scripts. Run on the host and need `bats`             |
 | `app/`         | needs PostgreSQL and the application container                               |
 
 ```bash
-./s/test                       # both suites
+./s/test                       # all three suites
 ./s/test safety_file           # host suite only
 ./s/test safety_file -k risk   # host suite, filtered
+./s/test s/tests               # script tests only
 ./s/test -k login              # container suite, filtered
 ```
 
-An argument naming the `safety_file` package routes to the host; anything else goes to the container.
+An argument naming the `safety_file` package or `s/tests` routes to the host; anything else goes to the container.
+
+After all three suites pass, a full run checks their collected-test floors together. Local full runs may raise stale floors; CI stays read-only. Any explicit arguments, including test filters, skip the full-suite floor transaction.
 
 ### `./s/lint`
 
-Runs every check CI enforces: `pre-commit run --all-files`, then the Zizmor GitHub Actions audit. Run before committing.
+Runs every check CI enforces: `pre-commit run --all-files`, whose hooks include the Zizmor GitHub Actions audit. Run before committing.
+
+A full run also checks the hook floors and reach below. Outside CI it may raise stale floors after every measurement and reach policy passes; CI reports staleness without changing source. Filtered lint runs do not apply full-scope floors.
+
+### Hook floors and reach
+
+`./s/floors/hooks` measures the native Bandit, mypy, cspell, Zizmor and privacy reports, checks their floors in `s/floors/minimums` and validates every configured hook's routing policy. A count below its floor fails. `--raise` raises a floor below 70% of its measured count to at least 90%, without lowering any existing floor.
+
+```bash
+./s/floors/hooks             # check only
+./s/floors/hooks --raise     # ratchet stale floors after a complete successful check
+./s/floors/refresh           # explicitly refresh measured floors to at least 90%
+```
+
+`just floors-update` is an optional alias to the refresh command. All measurements and reach checks must succeed before one atomic update. The shared parser reads at most `1 MiB` per count/floor stream, rejects missing, duplicate or malformed records and serialises cooperating writers with a directory lock. Replacement preserves file permissions. No command lowers a floor; review any deliberate scope reduction separately.
+
+`./s/floors/check` and `./s/floors/update` accept an explicit subset on stdin; `--expect CHECK...` requires exactly that key set. A stdin consumer cannot discover whether its producer failed after printing rows. Capture and check the producer's exit status before invoking a mutating consumer, as the shared hooks/refresh commands do.
+
+Reach uses pre-commit's own classifier, a fail-visible compatibility boundary, rather than copied matcher logic. It checks Terraform sources and native filename-free Gitleaks trigger/entry policy, plus the separate frontend npm/CI commands. These are routing/configuration checks, not proof that scanners or tests executed. Real fault probes, staged/history Gitleaks canaries and frontend tooling tests remain separate evidence.
+
+### Test-suite floors
+
+`./s/floors/test-counts safety-file django vitest bats` collects counts without running tests. It uses host pytest for storage, the existing `web` container for Django, the installed local Vitest module with `--project=unit`, and host `bats --count s/tests`. Django collection requires the development stack to be up. Count commands never install tools or packages; install frontend dependencies deliberately with `./s/frontend install` if missing.
+
+`./s/floors/tests [--raise] SUITE...` checks exactly the requested suites after their successful full runs. Reports are bounded to `16 MiB` with a 180-second process limit. Failed producers, duplicate suites, ambiguous or filtered pytest summaries, malformed Vitest records and non-positive Bats counts fail before emitting measurements or changing floors. Unit identities include project, file, test name and source location; the collection count can differ from parameter-expanded executed cases.
+
+The refresh command above measures all hooks and all four suites before one monotonic update. Full frontend runs check the unit floor only after tests and both builds pass. Explicit scripts and filtered runs do not apply full-unit floors. Node tooling tests and Storybook light/dark/browser canaries remain separate execution gates: the generated Storybook static list does not reliably represent executed cases, so it is not included in the unit count or presented as a browser test floor.
 
 ### `./s/frontend`
 
@@ -89,9 +119,12 @@ Runs an npm script in `frontend/`, from anywhere in the repository. With no argu
 ./s/frontend              # typecheck, lint, format check, tests, build
 ./s/frontend typecheck    # or one step
 ./s/frontend test
+./s/frontend test-storybook:ci # browser stories in light/dark, plus gate canaries
 ```
 
 Installs dependencies first if `node_modules` is missing. Needs Node 26 or newer on the host; the dev server itself runs in Docker as part of `./s/up`.
+
+Storybook browser tests use the supported Vitest addon and the same WCAG 2.2 AA rules as the preview. Install Chromium once with `cd frontend && npx playwright install --with-deps chromium`. `./s/frontend test-storybook:ci` (also `just sbt`) runs without building or serving Storybook and needs no fixed port. Separate light/dark projects replay the interactions in each scheme; stories that explicitly pin a scheme retain it. The gate requires a valid accessibility report and fails on missing results or axe execution errors. Browser canaries verify clean scans, contrast failures, engine errors and skipped scans. Unit tests keep their jsdom setup in a separate project.
 
 ### `./s/lock`
 
@@ -123,6 +156,68 @@ The database is only an index over the safety file repositories and is rebuildab
 
 Serves the documentation site with hot reload at <http://localhost:8001>.
 
+### `./s/install-hooks`
+
+Opts this clone into the tracked `.githooks/pre-commit`, which runs pre-commit on staged files, then ESLint and Prettier through lint-staged for frontend changes. `just setup` is an optional alias. Run it deliberately once per clone; the local Git setting is shared by linked working trees and each branch supplies its own hook. It prepares a caller-owned `frontend/node_modules` directory but does not install packages, alter global Git configuration or replace an existing custom hooks path. Install host packages explicitly with `./s/frontend install`. Existing hook files are not deleted. CI remains the backstop when local hooks are not installed.
+
+### `./s/checks/check-dev-details`
+
+Checks this checkout's text files for the shared private-address and MAC patterns. It never creates personal files, changes Git exclusions or prompts for personal setup. Git enumeration, missing files, invalid text and unreadable lists fail visibly instead of producing a clean result.
+
+```bash
+./s/checks/check-dev-details --all
+./s/checks/check-dev-details --denylist .private/dev-details-denylist -- notes.md
+```
+
+Personal literal checks are optional. Create your own ignored `.private/dev-details-denylist` only if wanted: one case-insensitive literal per line, with blank lines and `#` comments allowed. Outside CI, an existing list in this checkout is read automatically; another working tree's list is not. CI ignores that default but honours an explicitly supplied `--denylist`. Legacy `local/` files stay ignored and untouched; use an explicit path if deliberately reusing one.
+
+The shared patterns retain deliberate synthetic-fixture filename exceptions, CIDRs and addresses ending `.0`. They do not cover IPv6 or binary attachments and are not proof that test content is fictional. Supplied personal literals apply to every requested text file, including fixtures. Text files above `16 MiB` and lists above `1 MiB` fail rather than being truncated. Reports show the public path, line and rule, never matched content or private list paths. A successful summary counts unique text files receiving a pattern or literal check; binary files and fixtures without supplied literals do not inflate that count. The summary never prompts for personal setup.
+
+### `./s/gitleaks/install` and `./s/gitleaks/scan-commits`
+
+Install the pinned, checksum-verified Gitleaks release into an explicitly chosen directory, then scan this clone's history with a positive synthetic-canary check. The release installer supports Linux x86-64 and needs `curl`, `sha256sum`, `tar`, `install` and the shared YAML reader's Python/PyYAML environment described below. The scan needs Git, Python 3 and Gitleaks on `PATH`. The native pre-commit hook independently builds the pinned release on its supported platforms.
+
+```bash
+./s/gitleaks/install .private/gitleaks-bin
+PATH="$PWD/.private/gitleaks-bin:$PATH" ./s/gitleaks/scan-commits --all
+PATH="$PWD/.private/gitleaks-bin:$PATH" ./s/gitleaks/scan-commits origin/main HEAD
+```
+
+The local pre-commit hook checks staged content only; `./s/lint` is not a full-history secret scan. CI separately scans immutable event SHAs, with full history for manual or new-history runs. Scanner errors never count as detected canaries or clean results. Output is redacted; stop publication on a real finding, report its commit and rule without the value, and obtain authorised rotation and exception review. Never rewrite history or add broad exceptions to get a green scan.
+
+### `./s/checks/hook-version`
+
+Prints the requested repository's decoded release pin from `.pre-commit-config.yaml`, without its optional leading `v`. Zizmor's online CI audit and the Gitleaks installer use this one reader. It selects `.venv/bin/python` when available, otherwise `python3`, and requires the project's existing direct PyYAML dependency. Install that package deliberately with the selected interpreter, for example `python3 -m pip install -c app/requirements.txt PyYAML`; CI explicitly installs only that locked package, not Django. The reader never installs packages itself.
+
+Quoted scalars, comments and flow-style YAML are supported. Missing, duplicate, malformed, multiline and non-release pins fail before a URL or workflow output is written. Input is limited to `1 MiB`, 40 composition levels and 20,000 nodes. YAML aliases/merge keys are deliberately refused; full pre-commit schema validation remains a separate gate. A successful result is exactly one three-component release version, not an arbitrary Git reference.
+
+### Storage type checking
+
+The mypy pre-commit hook checks `safety_file/`, including its tests, using the strict settings in `pyproject.toml`. Its runtime and test package pins match the application locks; update them together. The temporary test-only override permits missing annotations and untyped calls but still checks test bodies. Completing those annotations is tracked in #117; Django typing is separate work in #118. Neither exception disables strict production checks.
+
+### Python security linting
+
+The pinned Bandit hook checks production Python under `app/`, `safety_file/` and `demo/`. Tests are excluded, but application assertions remain checked. B404's import-only heuristic is omitted; subprocess-call checks remain enabled. Any line-level false positive needs its specific rule and a reason beside the code.
+
+The hook's complete-report wrapper refuses skipped files, missing or inconsistent metrics, malformed reports and scanner failures, even if Bandit exits successfully. JSON reports are bounded to `16 MiB` and the process has a 120-second limit. Only public source paths, line numbers and rule IDs are reported, never source snippets or arbitrary scanner errors. A file matcher or a clean baseline alone does not establish that a later scan was complete.
+
+### Shell checking
+
+The pinned ShellCheck hook checks tracked shell scripts and Bats files through `./s/lint` and CI. Scripts with no extension need their shell shebang and executable bit for pre-commit to recognise them. Local commit-time checks remain optional. Existing Bats process-isolation directives suppress only the known subshell-analysis false positives; no global rule exclusions or ignored script folders are added.
+
+The actionlint hook checks workflow expressions, job dependencies and embedded `run:` scripts. Its isolated environment includes the same pinned ShellCheck release. `s/checks/actionlint` refuses missing ShellCheck instead of allowing a silently skipped shell check, passes its resolved path explicitly and accepts filenames only. A script test keeps the two ShellCheck pins aligned. No tool is installed by that entry point; run it through the configured pre-commit hook.
+
+### `./s/terraform`
+
+Runs Terraform for Turva's GitHub repository settings in `terraform/github/`, in a pinned container. The host needs Docker, `curl` and Python 3.10 or later. `plan` and `apply` use `GITHUB_TOKEN`, falling back to `gh auth token`; see [GitHub settings](../docs/docs/github-settings.md) for the local-state limitations and explicit administrative approval boundary.
+
+```bash
+./s/terraform init
+./s/terraform validate  # configuration and provider schema, no GitHub access
+./s/terraform plan      # reads GitHub and updates local imports, not settings
+./s/terraform apply     # an admin, after the pull request merges
+```
+
 ### `./s/seed-demo`
 
 Builds the demo safety file into `.turva-data/safety-files/demo-bp-at-home`, then creates an account to sign in as and indexes the file so it appears in the interface.
@@ -138,3 +233,25 @@ The build goes through the production storage layer and imports no framework, so
 The account is the demo's Clinical Safety Officer, `a.patel@riverbank.example.nhs.uk`, with the same name its commits are attributed to. Its password comes from `TURVA_DEMO_PASSWORD`, defaulting to `turva-demo-local`, and the command prints whichever it used. It is not a staff account unless you pass `--staff`: the admin is the only place a professional registration can be marked as verified, and a known-password account should not reach that without being asked for.
 
 The seeding step refuses to run with `DEBUG` off. It creates an account whose password is written down here and gives it ownership of a safety file, which is right for a laptop and wrong everywhere else.
+
+## Shared helpers
+
+`s/utils/` holds internal helpers, not commands to type.
+
+- **`s/utils/bandit-check.py`** - runs the pinned hook's scanner with fixed policy arguments and validates complete per-file report evidence before claiming success.
+- **`s/utils/frontend-directory.sh`** - prepares the caller-owned frontend mount point for hook setup, host npm and Compose. It never installs packages or changes ownership automatically.
+- **`s/utils/dev-details.py`** - read-only standard-library privacy scanner behind the shell entry point, with bounded file reads and explicit scope/error handling.
+- **`s/utils/floors.py`** - complete count/floor validation and atomic, monotonic publication shared by check/update.
+- **`s/utils/hook-counts.py`** - bounded native-report collection which emits counts only after every counting hook succeeds.
+- **`s/utils/test-counts.py`** - validates explicitly selected suite reports and buffers every successful count before emitting a complete measurement stream.
+- **`s/utils/gitleaks-report.py`** - validates the bounded, redacted report for the synthetic canary. A findings exit code without the expected rule, file and line is not evidence that the scan worked.
+- **`s/utils/hook-version.py`** - shared duplicate-aware safe YAML boundary for release pins used by tool installers and CI outputs.
+- **`s/utils/github-rulesets.py`** - validates and selects repository-owned ruleset identities for `s/terraform`. Its refusal paths are covered by `s/tests/terraform.bats`.
+
+- **`s/utils/logging.sh`** - `log` and `error`, each printing the script's name in front, such as `[terraform] ERROR: ...`. Errors go to standard error, in red only in a terminal. Source it straight after the `set` line at the top, and always pass the name:
+
+  ```bash
+  source "$(dirname "${BASH_SOURCE[0]}")/utils/logging.sh" "<script-name>"
+  ```
+
+  Its tests are in `s/tests/logging.bats`.

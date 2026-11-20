@@ -23,6 +23,7 @@ nav:
   - Introduction: index.md
   - Getting started: getting-started.md
   - Technical overview: technical-overview.md
+  - GitHub settings: github-settings.md
 
   - Code Reference:
       - Safety file storage layer: code/safety-file/index.md

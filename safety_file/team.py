@@ -8,22 +8,23 @@ from __future__ import annotations
 
 import re
 from dataclasses import asdict, dataclass
+from typing import Any, Self
 from uuid import UUID
 
 from .errors import ValidationError
 
 
-def _fields(data, expected: set[str], label: str) -> None:
+def _fields(data: object, expected: set[str], label: str) -> None:
     if not isinstance(data, dict) or set(data) != expected:
         raise ValidationError(f"{label} must contain exactly: {', '.join(sorted(expected))}")
 
 
-def _text(value, label: str) -> None:
+def _text(value: object, label: str) -> None:
     if not isinstance(value, str) or not value.strip():
         raise ValidationError(f"{label} must be non-empty text")
 
 
-def _uuid(value, label: str) -> None:
+def _uuid(value: object, label: str) -> None:
     try:
         if not isinstance(value, str) or str(UUID(value)) != value:
             raise ValueError
@@ -39,7 +40,7 @@ class TeamPerson:
     name: str
     email: str
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         for field in ("user_id", "membership_id", "appointment_id"):
             _uuid(getattr(self, field), field)
         _text(self.name, "name")
@@ -49,7 +50,7 @@ class TeamPerson:
             raise ValidationError("A team identity needs an email address")
 
     @classmethod
-    def from_dict(cls, data):
+    def from_dict(cls, data: Any) -> Self:
         _fields(
             data, {"user_id", "membership_id", "appointment_id", "name", "email"}, "team person"
         )
@@ -64,7 +65,7 @@ class FileTeam:
     collaborators: tuple[TeamPerson, ...]
     reason: str
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         _uuid(self.organisation_id, "organisation_id")
         _text(self.organisation_name, "organisation_name")
         _text(self.reason, "team change reason")
@@ -79,7 +80,7 @@ class FileTeam:
             if len({getattr(person, field) for person in people}) != len(people):
                 raise ValidationError("Name each person only once in a file team")
 
-    def to_dict(self):
+    def to_dict(self) -> dict[str, Any]:
         return {
             "organisation_id": self.organisation_id,
             "organisation_name": self.organisation_name,
@@ -89,7 +90,7 @@ class FileTeam:
         }
 
     @classmethod
-    def from_dict(cls, data):
+    def from_dict(cls, data: Any) -> Self:
         _fields(
             data,
             {"organisation_id", "organisation_name", "accountable", "collaborators", "reason"},

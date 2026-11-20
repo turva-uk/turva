@@ -19,8 +19,91 @@ repos:
         # JSON and rejects them, so the choice is to exclude the files or
         # delete the reasoning. Prettier still formats them.
         exclude: ^frontend/tsconfig.*\.json$
+      - id: check-toml
       - id: check-added-large-files
       - id: check-merge-conflict
+
+  # Secret scanning, on what is staged. It reads its rules from
+  # .gitleaks.toml. CI's pre-commit run has nothing staged, so CI scans the
+  # pushed commits separately with s/gitleaks/scan-commits, which installs
+  # this same version with s/gitleaks/install. Bump it here only.
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.30.1
+    hooks:
+      - id: gitleaks
+
+  # The security audit of the GitHub Actions workflows. Offline, because the
+  # audits that ask GitHub need a token; CI's `Workflow security` job runs
+  # those, with this same version, which it reads from here. Pinned rather
+  # than tracking the latest, so a new audit rule arrives through a reviewed
+  # Dependabot bump instead of turning main red without warning.
+  - repo: https://github.com/zizmorcore/zizmor-pre-commit
+    rev: v1.30.1
+    hooks:
+      - id: zizmor
+        args: [--no-progress, --offline, --strict-collection]
+
+  # Strict type checking of the storage layer, with the settings in
+  # pyproject.toml's [tool.mypy]. The extra packages are what safety_file/
+  # imports beyond the standard library. Runtime and test dependencies are
+  # pinned to app/requirements*.txt, so mypy checks against the versions the
+  # code runs on. Bump them with the lock, never one without the other.
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v2.4.1
+    hooks:
+      - id: mypy
+        files: ^safety_file/
+        language_version: python3.14
+        args: []
+        additional_dependencies:
+          - jinja2==3.1.6
+          - markupsafe==3.0.4
+          - pyyaml==6.0.3
+          - pytest==9.2.0
+          - types-PyYAML==6.0.12.20261103
+
+  # A security linter for Python: shell commands, unsafe YAML loading, weak
+  # hashes and the like. It scans app/, safety_file/ and demo/, without the
+  # tests: pytest is built from assert, which bandit reports everywhere as
+  # B101, and application code is still checked for it. The tests are left
+  # out here, because bandit's own exclude_dirs is ignored for files that
+  # pre-commit names one by one. The wrapper rejects skipped files and
+  # incomplete reports even when Bandit itself returns success.
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.9.4
+    hooks:
+      - id: bandit
+        files: ^(app|safety_file|demo)/
+        exclude: (^|/)(tests/|conftest\.py$)
+        language_version: python3.14
+        entry: python s/utils/bandit-check.py
+        # B404 flags every `import subprocess`. Each call is checked on its
+        # own as B603, which is where a real problem would show.
+        # That fixed policy lives in the wrapper; its arguments are filenames.
+        args: []
+
+  # ShellCheck finds the mistakes that are easy to make in shell: an unquoted
+  # variable, a failure nobody notices, a cd that may not happen. It checks
+  # every file pre-commit tags as shell, by extension or by shebang, so the
+  # scripts in s/ and .githooks/ and the bats tests. CI's styling job runs
+  # it too, so a commit made with --no-verify is still caught.
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.11.0.1
+    hooks:
+      - id: shellcheck
+
+  # This reviewed wrapper verifies upstream release checksums at installation.
+  # Install ShellCheck beside it; our entry refuses a missing checker instead
+  # of letting actionlint silently skip run: scripts. A test aligns both pins.
+  - repo: https://github.com/Mateusz-Grzelinski/actionlint-py
+    rev: v1.7.12.25
+    hooks:
+      - id: actionlint
+        entry: bash s/checks/actionlint
+        args: []
+        files: ^\.github/workflows/.*\.ya?ml$
+        additional_dependencies:
+          - shellcheck-py==0.11.0.1
 
   - repo: https://github.com/streetsidesoftware/cspell-cli
     rev: v10.4.0
@@ -57,3 +140,25 @@ repos:
       - id: ruff-check
         args: [--fix]
       - id: ruff-format
+
+  # Terraform's own formatter, for terraform/github/. It runs in the same
+  # pinned image as ./s/terraform, which reads the pin from here, so CI and a
+  # developer's machine need Docker but not Terraform.
+  - repo: local
+    hooks:
+      - id: terraform-fmt
+        name: Terraform format check
+        language: docker_image
+        entry: hashicorp/terraform:1.17.2@sha256:6e9c1e647c31a960dc9b59e13272f9111d90010c10b717f77ffb324767660475 fmt -check -diff
+        files: \.tf$
+
+  - repo: local
+    hooks:
+      # The repository is public, so a private network address or a MAC
+      # address must not reach it. CI runs shared patterns; optional personal
+      # literals are read-only and local to the checkout, never initialised here.
+      - id: check-dev-details
+        name: Check for home and dev set-up details
+        entry: s/checks/check-dev-details --
+        language: system
+        types: [text]

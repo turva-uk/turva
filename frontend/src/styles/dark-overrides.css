@@ -1,0 +1,64 @@
+/**
+ * Dark mode overrides
+ *
+ * Fixes for Mantine components whose default dark-mode colours
+ * clash with the theme's colours.
+ */
+
+/* Disabled filled buttons - a pale brand purple with white text */
+.mantine-Button-root:disabled,
+.mantine-Button-root[data-disabled],
+.mantine-ActionIcon-root[data-variant="filled"]:disabled,
+.mantine-ActionIcon-root[data-variant="filled"][data-disabled] {
+  background-color: var(--mantine-color-primary-2) !important;
+  border-color: var(--mantine-color-primary-2) !important;
+  color: white !important;
+}
+
+/* Dark mode - one shade lighter than card bg so they're visible */
+[data-mantine-color-scheme="dark"] .mantine-Button-root:disabled,
+[data-mantine-color-scheme="dark"] .mantine-Button-root[data-disabled],
+[data-mantine-color-scheme="dark"] .mantine-ActionIcon-root[data-variant="filled"]:disabled,
+[data-mantine-color-scheme="dark"]
+  .mantine-ActionIcon-root[data-variant="filled"][data-disabled] {
+  background-color: var(--mantine-color-primary-6) !important;
+  border-color: var(--mantine-color-primary-6) !important;
+  color: white !important;
+}
+
+/**
+ * Input description overrides
+ *
+ * Body size rather than Mantine's smaller default. The colour is the
+ * theme's `dimmed`, which `theme.ts` sets to pass WCAG AA contrast in
+ * both colour schemes.
+ */
+.mantine-InputWrapper-description {
+  color: var(--mantine-color-dimmed) !important;
+  font-size: var(--mantine-font-size-md) !important;
+  margin-bottom: 0.25rem !important;
+}
+
+/**
+ * Menu item overrides
+ *
+ * Mantine defaults to font-size-sm. Match our body text (md, weight 500).
+ */
+.mantine-Menu-item {
+  font-size: var(--mantine-font-size-md) !important;
+  font-weight: 500 !important;
+}
+
+/**
+ * Skeleton overrides
+ *
+ * Mantine's default dark-mode skeleton uses --mantine-color-dark-6 which
+ * is nearly invisible on our navy card backgrounds. Use a lighter grey.
+ */
+[data-mantine-color-scheme="dark"] .mantine-Skeleton-root::before {
+  background-color: rgb(255 255 255 / 10%) !important;
+}
+
+[data-mantine-color-scheme="dark"] .mantine-Skeleton-root::after {
+  background-color: rgb(255 255 255 / 25%) !important;
+}

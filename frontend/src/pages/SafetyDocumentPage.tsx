@@ -5,17 +5,32 @@ import { Link, useLocation, useParams } from "react-router";
 import type { SafetyDocumentDetail } from "../api/types";
 import { useApiResource } from "../api/useApiResource";
 import { SafetyDocument } from "../components/SafetyDocument";
+import { documentPath } from "../lib/safety/api";
 
 const NOT_FOUND =
   "That document does not exist in this safety file, or you do not have access to it.";
 
 export function SafetyDocumentPage() {
   const { slug, documentKey } = useParams<{ slug: string; documentKey: string }>();
+  let path: string;
+  try {
+    path = documentPath(slug ?? "", documentKey ?? "");
+  } catch {
+    return (
+      <Alert color="red" role="alert" title="Could not load that document">
+        The safety file or document identifier is invalid. Return to the safety files list.
+        <Anchor component={Link} to="/safety-files" display="block">
+          All safety files
+        </Anchor>
+      </Alert>
+    );
+  }
+  return <DocumentContent path={path} />;
+}
+
+function DocumentContent({ path }: { path: string }) {
   const { hash } = useLocation();
-  const { data, error } = useApiResource<SafetyDocumentDetail>(
-    `/safety-files/${slug}/documents/${encodeURIComponent(documentKey ?? "")}/`,
-    NOT_FOUND,
-  );
+  const { data, error } = useApiResource<SafetyDocumentDetail>(path, NOT_FOUND);
 
   // A link to a section in another document arrives before that document has
   // loaded, so the browser cannot scroll to it by itself.
@@ -34,8 +49,8 @@ export function SafetyDocumentPage() {
   if (error) {
     return (
       <Box>
-        <Anchor component={Link} to={`/safety-files/${slug}`}>
-          Back to the safety file
+        <Anchor component={Link} to="/safety-files">
+          All safety files
         </Anchor>
         <Alert color="red" role="alert" title="Could not load that document" mt="md">
           {error}
@@ -57,7 +72,7 @@ export function SafetyDocumentPage() {
           {data.documents.map((item) => (
             <li key={item.key}>
               <Link
-                to={`/safety-files/${file.slug}/documents/${item.key}`}
+                to={documentPath(file.slug, item.key)}
                 className="document-tab"
                 aria-current={item.key === doc.key ? "page" : undefined}
               >
@@ -71,9 +86,8 @@ export function SafetyDocumentPage() {
         {doc.title}
       </Title>
       <Text size="sm" mt="xs">
-        Read-only view of <code>{doc.path}</code> at commit{" "}
-        <code title={doc.source_commit}>{doc.source_commit.slice(0, 12)}</code>, the version
-        currently committed. This is not a PDF export or an approval.
+        Read-only view of <code>{doc.path}</code> at commit <code>{doc.source_commit}</code>,
+        the version captured when this page loaded. This is not a PDF export or an approval.
       </Text>
       {last && (
         <Text size="sm" c="dimmed">
@@ -89,9 +103,37 @@ export function SafetyDocumentPage() {
       )}
 
       {!doc.available ? (
-        <Alert color="red" role="alert" mt="md" title="This document cannot be shown">
-          {doc.message}
-        </Alert>
+        <>
+          <Alert
+            color="red"
+            role="alert"
+            mt="md"
+            title={
+              doc.reason === "unsupported-formatting"
+                ? "Formatted view unavailable"
+                : "This document cannot be shown"
+            }
+          >
+            {doc.message}
+          </Alert>
+          {doc.reason === "unsupported-formatting" && typeof doc.source === "string" && (
+            <section>
+              <Title order={2} size="h3" id="committed-source" mt="md">
+                Committed Markdown source
+              </Title>
+              <div
+                role="region"
+                aria-labelledby="committed-source"
+                tabIndex={0}
+                className="document-source"
+              >
+                <pre>
+                  <code>{doc.source}</code>
+                </pre>
+              </div>
+            </section>
+          )}
+        </>
       ) : (
         <>
           {doc.unsupported > 0 && (

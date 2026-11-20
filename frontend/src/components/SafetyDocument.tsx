@@ -3,6 +3,7 @@ import { createElement, type ReactNode } from "react";
 import { Link } from "react-router";
 
 import type { DocumentNode } from "../api/types";
+import { documentPath } from "../lib/safety/api";
 
 /**
  * Render an allowlisted document tree as React elements.
@@ -86,7 +87,11 @@ function renderNode(node: DocumentNode, key: number, context: Context): ReactNod
         );
       }
       if (!TAGS.has(node.tag)) {
-        return <span key={key}>{children(node.children, context)}</span>;
+        return (
+          <span key={key} className="document-unsupported" role="note">
+            [Not shown: unsupported document formatting.]
+          </span>
+        );
       }
       const attrs = node.attrs ?? {};
       const props: Record<string, unknown> = { key };
@@ -114,7 +119,11 @@ function renderNode(node: DocumentNode, key: number, context: Context): ReactNod
       const title = node.title_nodes?.length ? children(node.title_nodes, context) : node.title;
       if (node.collapsible) {
         return (
-          <details key={key} className={`document-admonition document-admonition-${tone}`}>
+          <details
+            key={key}
+            open={node.open === true}
+            className={`document-admonition document-admonition-${tone}`}
+          >
             <summary>{title}</summary>
             {body}
           </details>
@@ -147,18 +156,29 @@ function renderNode(node: DocumentNode, key: number, context: Context): ReactNod
           <span className="document-link-note"> (external link)</span>
         </Anchor>
       );
-    case "document":
+    case "document": {
+      let path: string;
+      try {
+        path = documentPath(context.slug, node.document);
+      } catch {
+        return (
+          <span key={key} className="document-unsupported" role="note">
+            {children(node.children, context)} [Not followed: invalid document identifier.]
+          </span>
+        );
+      }
       return (
         <Anchor
           key={key}
           component={Link}
-          to={`/safety-files/${context.slug}/documents/${encodeURIComponent(node.document)}${
+          to={`${path}${
             node.fragment ? `#${encodeURIComponent(documentAnchor(node.fragment))}` : ""
           }`}
         >
           {children(node.children, context)}
         </Anchor>
       );
+    }
     case "reference":
       return (
         <span key={key} className="document-reference">
@@ -173,7 +193,11 @@ function renderNode(node: DocumentNode, key: number, context: Context): ReactNod
         </span>
       );
     default:
-      return null;
+      return (
+        <span key={key} className="document-unsupported" role="note">
+          [Not shown: unsupported document content.]
+        </span>
+      );
   }
 }
 

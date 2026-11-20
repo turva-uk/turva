@@ -6,20 +6,24 @@ at the snapshot's HEAD, so the view cites exactly the version it shows.
 
 Markdown is converted to HTML here and then into an **allowlisted tree of
 typed nodes**; the browser builds React elements from that tree and never
-receives an HTML string. Nothing in a document can execute, load a resource,
+inserts source as HTML. Nothing in a document can execute, load a resource,
 or style the page. Images, embedded or active HTML and unsupported link schemes
-become visible placeholders rather than silently disappearing. Other formatting
-and unsupported attributes are stripped; this is not a full-fidelity HTML view.
+become visible placeholders rather than silently disappearing. If formatting
+cannot be represented without changing meaning, the formatted view is refused
+and the bounded committed source is returned for display as escaped text.
 """
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from posixpath import normpath
 from urllib.parse import unquote, urlsplit
 
 import markdown
 from bs4 import BeautifulSoup, Comment, NavigableString, Tag
+from markdown.extensions import Extension
+from markdown.treeprocessors import Treeprocessor
 
 from app.safetyfiles.pdf_contract import PDF_PAGES
 from safety_file import SafetyFileRepository
@@ -31,6 +35,8 @@ MAX_SOURCE_BYTES = 512 * 1024
 #: Bounds on the response a single document can produce.
 MAX_NODES = 20_000
 MAX_DEPTH = 40
+#: Limit reference expansion before HTML serialisation, not just after parsing.
+MAX_RENDERED_CHARACTERS = 2 * 1024 * 1024
 
 
 @dataclass(frozen=True)
@@ -59,13 +65,25 @@ UNAVAILABLE_MESSAGES = {
     "too-large": "This document is larger than Turva will display. Nothing from it is shown.",
     "not-text": "This document is not readable UTF-8 text. Nothing from it is shown.",
     "too-complex": "This document is too large or deeply nested to display safely. Nothing from it is shown.",
+    "unsupported-formatting": (
+        "Turva cannot faithfully display this document's formatting. "
+        "No formatted interpretation is shown. The committed Markdown source below is read-only text, "
+        "not rendered HTML; review its markup before relying on the content."
+    ),
     "hazard-log-out-of-date": (
         "The committed hazard log does not match the recorded hazard assessments, so it is not shown. "
         "The individual hazards are the authoritative record. Ask an administrator to inspect the repository."
     ),
 }
 
-MARKDOWN_EXTENSIONS = ["admonition", "pymdownx.details", "pymdownx.superfences", "tables", "toc"]
+MARKDOWN_EXTENSIONS = [
+    "admonition",
+    "pymdownx.details",
+    "pymdownx.superfences",
+    "pymdownx.highlight",
+    "tables",
+    "toc",
+]
 
 #: Elements mapped to themselves (or a canonical equivalent) in the tree.
 ELEMENTS = {
@@ -106,6 +124,7 @@ ELEMENTS = {
     "b": "strong",
     "i": "em",
     "s": "del",
+    "strike": "del",
 }
 
 #: Embedded, active or interactive content. Shown as a placeholder, with its
@@ -175,6 +194,33 @@ class _TooComplex(Exception):
     pass
 
 
+class _UnrepresentedFormatting(Exception):
+    """A formatted rendition would silently drop a potentially meaningful detail."""
+
+
+class _BoundedTree(Treeprocessor):
+    def run(self, root):
+        # Markdown references can repeat a long address many times from a small
+        # source. Count shared attribute strings before the serializer copies
+        # them into one potentially enormous HTML string.
+        characters = 0
+        for element in root.iter():
+            characters += len(element.text or "") + len(element.tail or "")
+            characters += sum(len(value) for value in element.attrib.values())
+            if characters > MAX_RENDERED_CHARACTERS:
+                raise _TooComplex
+
+
+class _BoundedMarkdown(Extension):
+    def extendMarkdown(self, md):
+        md.treeprocessors.register(_BoundedTree(md), "turva-output-bound", -100)
+
+
+def _only_attributes(tag: Tag, allowed: set[str]) -> None:
+    if set(tag.attrs) - allowed:
+        raise _UnrepresentedFormatting
+
+
 def _bounded_integer(value, maximum: int) -> int | None:
     """Only short ASCII decimal attributes, before attempting integer conversion."""
     if (
@@ -193,6 +239,7 @@ class _Converter:
         self.source_path = source_path
         self.nodes = 0
         self.unsupported = 0
+        self.anchors: set[str] = set()
 
     def count(self, depth: int) -> None:
         self.nodes += 1
@@ -206,7 +253,7 @@ class _Converter:
         )
         nodes: list[dict] = []
         for child in tag.children:
-            if structural and isinstance(child, NavigableString) and not child.strip():
+            if structural and type(child) is NavigableString and not child.strip():
                 continue
             nodes.extend(self.node(child, depth + 1))
         return nodes
@@ -222,13 +269,17 @@ class _Converter:
             # generated hazard log's banner is one.
             return []
         if isinstance(child, NavigableString):
+            # CDATA, declarations and processing instructions are not ordinary
+            # displayed prose. BeautifulSoup stringifies them as if they were.
+            if type(child) is not NavigableString:
+                raise _UnrepresentedFormatting
             text = str(child)
             if not text:
                 return []
             self.count(depth)
             return [{"type": "text", "text": text}]
         if not isinstance(child, Tag):
-            return []
+            raise _UnrepresentedFormatting
 
         name = child.name.lower()
         if name in UNSUPPORTED:
@@ -246,6 +297,7 @@ class _Converter:
         if name == "details":
             return [self.admonition(child, classes, depth, collapsible=True)]
         if name == "a":
+            _only_attributes(child, {"href"})
             return self.link(child, depth)
         if name in ELEMENTS:
             node: dict = {"type": "element", "tag": ELEMENTS[name]}
@@ -255,31 +307,70 @@ class _Converter:
             if name not in {"hr", "br"}:
                 node["children"] = self.children(child, depth)
             return [node]
-        # Neutral containers and formatting (div, span, abbr, mark...): the
-        # text is kept, the formatting is not. Attributes never reach the page.
-        return self.children(child, depth)
+        if name == "span":
+            _only_attributes(child, set())
+            return self.children(child, depth)
+        # Flattening an unknown tag or dropping CSS can turn a deleted approval
+        # into ordinary approval text. Preserve the whole source instead (TH-001).
+        raise _UnrepresentedFormatting
 
     def attributes(self, name: str, tag: Tag) -> dict:
         attrs: dict = {}
-        if name in {"h1", "h2", "h3", "h4", "h5", "h6"} and isinstance(tag.get("id"), str):
-            attrs["id"] = tag["id"]
+        allowed: set[str] = set()
+        if name in {"h1", "h2", "h3", "h4", "h5", "h6"}:
+            allowed.add("id")
+            if "id" in tag.attrs:
+                identifier = tag.get("id")
+                if not isinstance(identifier, str) or identifier in self.anchors:
+                    raise _UnrepresentedFormatting
+                self.anchors.add(identifier)
+                attrs["id"] = identifier
         if name == "ol":
-            start = _bounded_integer(tag.get("start"), 99_999)
-            if start is not None:
+            allowed.add("start")
+            if "start" in tag.attrs:
+                start = _bounded_integer(tag.get("start"), 99_999)
+                if start is None:
+                    raise _UnrepresentedFormatting
                 attrs["start"] = start
         if name in {"th", "td"}:
+            allowed.update({"colspan", "rowspan", "align", "style"})
             for span in ("colspan", "rowspan"):
-                value = _bounded_integer(tag.get(span), 100)
-                if value is not None and value > 1:
+                if span in tag.attrs:
+                    value = _bounded_integer(tag.get(span), 100)
+                    if value is None:
+                        raise _UnrepresentedFormatting
                     attrs[span] = value
-            style = tag.get("style") or ""
-            align = tag.get("align") or ""
-            for candidate in ("left", "center", "right"):
-                if f"text-align: {candidate}" in style or align == candidate:
-                    attrs["align"] = candidate
+            if "align" in tag.attrs:
+                align = tag.get("align")
+                if align not in {"left", "center", "right"}:
+                    raise _UnrepresentedFormatting
+                attrs["align"] = align
+            if "style" in tag.attrs:
+                # Accept a complete alignment declaration, never a substring
+                # beside hiding, deletion or other unrepresented CSS.
+                alignment = re.fullmatch(
+                    r"\s*text-align\s*:\s*(left|center|right)\s*;?\s*",
+                    str(tag["style"]),
+                    re.IGNORECASE,
+                )
+                if alignment is None:
+                    raise _UnrepresentedFormatting
+                attrs["align"] = alignment[1].lower()
+        classes = tag.get("class") or []
+        if (name == "pre" and classes == ["highlight"]) or (
+            name == "code" and len(classes) == 1 and re.fullmatch(r"language-[\w.+-]+", classes[0])
+        ):
+            # Known Markdown code wrappers: no source CSS is imported. Syntax
+            # highlighting is disabled so arbitrary Pygments spans are absent.
+            allowed.add("class")
+        _only_attributes(tag, allowed)
         return attrs
 
     def admonition(self, tag: Tag, classes, depth: int, *, collapsible: bool) -> dict:
+        allowed_classes = ADMONITION_KINDS | ({"admonition"} if not collapsible else set())
+        if set(classes) - allowed_classes or len(set(classes) & ADMONITION_KINDS) > 1:
+            raise _UnrepresentedFormatting
+        _only_attributes(tag, {"class", "open"} if collapsible else {"class"})
         kind = next((item for item in classes if item in ADMONITION_KINDS), "note")
         title_tag = (
             tag.find("summary", recursive=False)
@@ -292,6 +383,9 @@ class _Converter:
         # unsupported images, active content and links through the same boundary.
         title_nodes = self.children(title_tag, depth) if title_tag is not None else []
         if title_tag is not None:
+            _only_attributes(title_tag, set() if collapsible else {"class"})
+            if not collapsible and title_tag.get("class") != ["admonition-title"]:
+                raise _UnrepresentedFormatting
             title_tag.extract()
         return {
             "type": "admonition",
@@ -299,6 +393,7 @@ class _Converter:
             "title": title,
             "title_nodes": title_nodes,
             "collapsible": collapsible,
+            "open": collapsible and "open" in tag.attrs,
             "children": self.children(tag, depth),
         }
 
@@ -322,6 +417,14 @@ class _Converter:
             return [{"type": "external", "href": href, "children": children}]
         if parsed.scheme or parsed.netloc:
             return self.unsupported_link(children)
+        if parsed.query:
+            # A query can identify a different evidence version. Do not turn
+            # that address into an unqualified link to the current document.
+            self.unsupported += 1
+            return [
+                *children,
+                {"type": "reference", "text": f"source reference: {href}; not followed"},
+            ]
         target = self.resolve(unquote(parsed.path))
         if target is not None:
             node = {"type": "document", "document": target.key, "children": children}
@@ -353,7 +456,14 @@ class _Converter:
 
 def render_document(source: str, source_path: str) -> dict:
     """Markdown to an allowlisted node tree, with a count of what is not shown."""
-    html = markdown.markdown(source, extensions=MARKDOWN_EXTENSIONS, output_format="html")
+    html = markdown.markdown(
+        source,
+        extensions=[*MARKDOWN_EXTENSIONS, _BoundedMarkdown()],
+        extension_configs={"pymdownx.highlight": {"use_pygments": False}},
+        output_format="html",
+    )
+    if len(html) > MAX_RENDERED_CHARACTERS:
+        raise _TooComplex
     converter = _Converter(source_path)
     soup = BeautifulSoup(html, "html.parser")
     return {"blocks": converter.children(soup, -1), "unsupported": converter.unsupported}
@@ -392,6 +502,10 @@ def read_document(repository: SafetyFileRepository, document: SafetyDocument) ->
 
     try:
         rendered = render_document(source, document.path)
+    except _UnrepresentedFormatting:
+        # Source has already passed the committed-file, UTF-8 and byte bounds,
+        # plus canonical hazard-log verification. It is never executed as HTML.
+        return payload | unavailable("unsupported-formatting") | {"source": source}
     except _TooComplex, RecursionError:
         return payload | unavailable("too-complex")
     return payload | {"available": True, **rendered}

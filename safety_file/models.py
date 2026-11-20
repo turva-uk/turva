@@ -39,7 +39,7 @@ def _known_fields(data: dict[str, Any], allowed: set[str], name: str) -> None:
     )
 
 
-def _references(values: list[str], pattern: re.Pattern, name: str) -> None:
+def _references(values: list[str], pattern: re.Pattern[str], name: str) -> None:
     _require(isinstance(values, list), f"{name} must be a list of identifiers")
     _require(
         all(isinstance(value, str) and pattern.fullmatch(value) for value in values),

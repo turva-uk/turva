@@ -1,0 +1,240 @@
+#!/usr/bin/env bash
+# Runs Terraform for Turva's GitHub repository settings, in terraform/github/.
+#
+# Use this rather than running terraform yourself, because it:
+#
+#   - needs no Terraform installed: it runs in a container pinned to the
+#     same version as the format check in ./s/lint and CI
+#   - finds rulesets that already exist on GitHub and imports them before
+#     plan or apply, so nobody needs a shared state file; plain terraform
+#     without the state would try to create them again
+#   - runs as you, not root, in the right folder, and refuses to talk to
+#     GitHub without a token
+#
+# Usage: ./s/terraform <init|plan|apply|...> [options]
+#
+#   ./s/terraform init       # once, and after the provider version changes
+#   ./s/terraform plan       # what would change on GitHub; changes nothing
+#   ./s/terraform apply      # make the change; needs an admin's token
+#
+# plan and apply read GITHUB_TOKEN, or take the token from gh when it is not
+# set and gh is signed in. The image is pinned once, in
+# .pre-commit-config.yaml, and read from there. Safe to run again: an
+# imported ruleset is in the state, so it is not imported twice. See
+# docs/docs/github-settings.md.
+# Only the default workspace/state and literal, top-level, uniquely named
+# branch rulesets are supported. Discovery never adopts inherited settings.
+set -euo pipefail
+
+helpers="$(cd "$(dirname "${BASH_SOURCE[0]}")/utils" && pwd)"
+
+# shellcheck source=s/utils/logging.sh
+source "$(dirname "${BASH_SOURCE[0]}")/utils/logging.sh" terraform
+
+# Print the pinned Terraform image, or nothing if the pin is missing.
+pinned_image() {
+	grep -oE 'hashicorp/terraform:[0-9.]+@sha256:[0-9a-f]{64}' .pre-commit-config.yaml |
+		head -1 || true
+}
+
+# Run Terraform in the container, as the calling user, so .terraform/ and the
+# state are not owned by root.
+run_terraform() {
+	local image="$1"
+	local tty=()
+
+	shift
+
+	if [ -t 0 ] && [ -t 1 ]; then
+		tty=(-it)
+	fi
+
+	docker run --rm ${tty[@]+"${tty[@]}"} \
+		--user "$(id -u):$(id -g)" \
+		-e HOME=/tmp \
+		-e GITHUB_TOKEN \
+		-v "$PWD/terraform/github:/workspace" \
+		-w /workspace \
+		"${image}" "$@"
+}
+
+# Print the ID of the ruleset with this name, from GitHub's JSON on standard
+# input, or nothing if GitHub has none of that name.
+ruleset_id() {
+	local name="$1"
+	local repository="$2"
+
+	python3 "${helpers}/github-rulesets.py" find "${name}" "${repository}"
+}
+
+# Read every page before importing anything. Inherited rulesets are not ours
+# to manage; duplicate names or incomplete identities need inspection, not a
+# guess. A finite page/request bound also refuses a broken pagination loop.
+list_rulesets() {
+	local repository="$1"
+	local page response count
+	local pages=""
+
+	for ((page = 1; page <= 20; page++)); do
+		if ! response=$(curl -fsS --connect-timeout 10 --max-time 30 \
+			-H "Authorization: Bearer ${GITHUB_TOKEN}" \
+			-H "Accept: application/vnd.github+json" \
+			-H "X-GitHub-Api-Version: 2026-03-10" \
+			"https://api.github.com/repos/${repository}/rulesets?per_page=100&page=${page}&includes_parents=false"); then
+			error "Could not list the rulesets on GitHub, so nothing was planned. Check GITHUB_TOKEN."
+			return 1
+		fi
+		count=$(python3 "${helpers}/github-rulesets.py" page-size <<<"${response}") || return 1
+		pages+="${pages:+,}${response}"
+		if [ "${count}" -lt 100 ]; then
+			python3 "${helpers}/github-rulesets.py" flatten <<<"[${pages}]"
+			return
+		fi
+	done
+
+	error "Ruleset pagination exceeded 20 pages; inspect GitHub before importing."
+	return 1
+}
+
+# Print the GitHub command-line tool's token, or nothing if gh is missing or
+# not signed in.
+token_from_gh() {
+	if command -v gh >/dev/null 2>&1; then
+		gh auth token 2>/dev/null || true
+	fi
+}
+
+# Print the name of each ruleset the Terraform files define, or nothing if
+# they define none. A file that cannot be read, or no Terraform files at all,
+# stops the script: grep exits 1 for "found nothing" and 2 for an error.
+defined_rulesets() {
+	local status=0
+
+	grep -hoE '^resource "github_repository_ruleset" "[A-Za-z0-9_-]+"' terraform/github/*.tf |
+		cut -d'"' -f4 || status=$?
+
+	if [ "${status}" -gt 1 ]; then
+		error "Could not read the Terraform files in terraform/github/, so nothing was planned."
+		exit 1
+	fi
+}
+
+# Import each ruleset the files define that the state does not hold yet, if
+# GitHub already has one of that name. A ruleset's Terraform name is its name
+# on GitHub, which is what makes it findable. One that GitHub does not have
+# yet is left for plan to create.
+import_existing_rulesets() {
+	local image="$1"
+	local repository="$2"
+	local defined
+	local known
+	local rulesets
+	local name
+	local id
+	local workspace
+	local pending=()
+
+	defined=$(defined_rulesets)
+	if [ -z "${defined}" ]; then
+		return 0
+	fi
+
+	workspace=$(run_terraform "${image}" workspace show)
+	if [ "${workspace}" != "default" ]; then
+		error "Only the default workspace is supported, so the imported state and planned state stay together."
+		return 1
+	fi
+
+	# With no state file there is nothing to list, and Terraform would report
+	# that as an error. Any other failure stops the script with its own message.
+	known=""
+	if [ -f terraform/github/terraform.tfstate ]; then
+		known=$(run_terraform "${image}" state list)
+	fi
+
+	rulesets=$(list_rulesets "${repository}")
+
+	for name in ${defined}; do
+		id=$(ruleset_id "${name}" "${repository}" <<<"${rulesets}")
+		if grep -qxF "github_repository_ruleset.${name}" <<<"${known}"; then
+			continue
+		fi
+
+		if [ -n "${id}" ]; then
+			pending+=("${name}:${id}")
+		fi
+	done
+
+	# Validate the whole adoption list before making even a local state change.
+	for name in ${pending[@]+"${pending[@]}"}; do
+		id=${name#*:}
+		name=${name%%:*}
+		log "Importing the existing \"${name}\" ruleset (${id}) from GitHub."
+		run_terraform "${image}" import -input=false "github_repository_ruleset.${name}" "${repository#*/}:${id}"
+	done
+}
+
+main() {
+	local repository=turva-uk/turva
+	local command="${1:-}"
+	local image
+	local argument
+
+	cd "$(dirname "${BASH_SOURCE[0]}")/.."
+
+	image=$(pinned_image)
+	if [ -z "${image}" ]; then
+		error "Could not read the pinned Terraform image from .pre-commit-config.yaml."
+		exit 1
+	fi
+
+	if [ -z "${command}" ]; then
+		error "Usage: ./s/terraform <init|plan|apply|...> [options]"
+		exit 2
+	fi
+	case "${command}" in
+	-chdir | -chdir=*)
+		error "Only the default state and configuration directory are supported."
+		exit 1
+		;;
+	esac
+
+	case "${command}" in
+	plan | apply)
+		for argument in "$@"; do
+			case "${argument}" in
+			-state | -state=* | -state-out | -state-out=* | -backup | -backup=* | -chdir | -chdir=*)
+				error "Only the default state is supported; alternate state or configuration flags could bypass the imported settings."
+				exit 1
+				;;
+			esac
+		done
+		;;
+	esac
+
+	case "${command}" in
+	plan | apply | import | refresh | destroy)
+		if [ -z "${GITHUB_TOKEN:-}" ]; then
+			GITHUB_TOKEN=$(token_from_gh)
+			export GITHUB_TOKEN
+		fi
+
+		if [ -z "${GITHUB_TOKEN}" ]; then
+			error "No GitHub token. '${command}' talks to GitHub: set GITHUB_TOKEN, or sign in with 'gh auth login'. See docs/docs/github-settings.md."
+			exit 1
+		fi
+		;;
+	esac
+
+	case "${command}" in
+	plan | apply)
+		import_existing_rulesets "${image}" "${repository}"
+		;;
+	esac
+
+	run_terraform "${image}" "$@"
+}
+
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+	main "$@"
+fi

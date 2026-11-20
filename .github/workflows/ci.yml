@@ -3,9 +3,10 @@ name: CI
 # Runs on pull requests and on pushes to main.
 #
 # It previously ran on *every branch except* main, which meant the branch this
-# project actually commits to - AGENTS.md permits direct commits to main while
-# there is one contributor - was the one branch with no tests, no lint and no
-# lock check. Only the docs build and the Actions audit ran there.
+# project then committed to directly was the one branch with no tests, no lint
+# and no lock check. Only the docs build and the Actions audit ran there. Changes
+# now reach main only through pull requests, and the push run checks the merged
+# result.
 #
 # `pull_request` plus `push: main` covers both the proposed and the merged state
 # without running twice for a branch that has a PR open.
@@ -87,6 +88,50 @@ jobs:
           . .venv/bin/activate
           pre-commit run --all-files --show-diff-on-failure --color=always
 
+      # A hook that looks in the wrong place still passes. This fails when a
+      # counting hook reports less than its floor in s/floors/minimums, or
+      # when any hook is not given a file it should check.
+      - name: Check the hooks' floors and reach
+        run: |
+          . .venv/bin/activate
+          bash s/floors/hooks
+
+  # The gitleaks pre-commit hook scans staged files, and the styling job's
+  # pre-commit run has nothing staged, so it scans nothing here. This job
+  # scans every commit the branch adds instead, so a commit made without the
+  # hook still meets it. The version is the hook's, read from
+  # .pre-commit-config.yaml by s/gitleaks/install.
+  secrets:
+    name: Secret scan (gitleaks)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.14"
+
+      - name: Install the locked YAML parser
+        run: |
+          python -m pip install --only-binary=:all: -c app/requirements.txt PyYAML
+
+      - name: Install gitleaks
+        run: |
+          bash s/gitleaks/install "$RUNNER_TEMP/gitleaks"
+          echo "$RUNNER_TEMP/gitleaks" >>"$GITHUB_PATH"
+
+      # Use immutable event SHAs, not moving branch names. Manual runs and
+      # new-history pushes scan full history, rather than main..main (nothing).
+      - name: Scan this branch's commits
+        env:
+          BASE_REF: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before || '--all' }}
+          HEAD_REF: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+        run: bash s/gitleaks/scan-commits "$BASE_REF" "$HEAD_REF"
+
   safety-file:
     name: Safety file storage layer
     runs-on: ubuntu-latest
@@ -111,6 +156,56 @@ jobs:
 
       - name: Run tests
         run: python -m pytest safety_file -q
+
+      # A suite that collects fewer tests still passes, so this fails when
+      # it collects fewer than its floor in s/floors/minimums.
+      - name: Check the test floor
+        run: bash s/floors/tests safety-file
+
+  scripts:
+    name: Script tests (bats)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.14"
+
+      - name: Install the locked YAML parser
+        run: |
+          python -m pip install --only-binary=:all: -c app/requirements.txt PyYAML
+
+      # The scripts in s/ are tested with stand-ins for docker and curl, so
+      # this job needs no container. Only tool installation uses the network.
+      - name: Install bats
+        run: sudo apt-get update && sudo apt-get install -y bats
+
+      - name: Run tests
+        run: bats s/tests
+
+      - name: Check the test floor
+        run: bash s/floors/tests bats
+
+  terraform:
+    name: GitHub settings (Terraform validate)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Installs only the checksum-locked provider and checks its schema.
+      # No GitHub token, plan or apply is used in this job.
+      - name: Initialise the locked provider
+        run: ./s/terraform init -backend=false -lockfile=readonly
+
+      - name: Validate the configuration
+        run: ./s/terraform validate -no-color
 
   frontend:
     name: Frontend (lint, types, tests, build)
@@ -153,10 +248,51 @@ jobs:
       - name: Test
         run: npm run test:ci
 
+      - name: Check the test floor
+        working-directory: .
+        run: bash s/floors/tests vitest
+
       # Last, because a bundle that builds from code that does not typecheck
       # proves nothing. This is also the artefact Caddy serves in deployment.
       - name: Build
         run: npm run build
+
+      # Every story must build, so a story broken by a component change fails
+      # here rather than when somebody next opens Storybook.
+      - name: Build Storybook
+        run: npm run build-storybook
+
+  storybook-a11y:
+    name: Storybook accessibility (WCAG 2.2 AA, light and dark)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "26"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --no-fund --no-audit
+
+      # The browser Vitest drives, at the version the lockfile's
+      # Playwright expects, with the system libraries it needs.
+      - name: Install Chromium for Playwright
+        run: npx playwright install --with-deps chromium
+
+      # Separate browser projects replay each story and its interactions in
+      # light and dark. Missing results and axe errors fail, too. No static
+      # server or fixed Storybook port is needed; the frontend job still builds it.
+      - name: Check every story with axe
+        run: npm run test-storybook:ci
 
   locks:
     name: Dependency locks are reproducible
@@ -261,6 +397,9 @@ jobs:
       # every test green.
       - name: Run tests
         run: docker compose exec -T web pytest -v
+
+      - name: Check the test floor
+        run: bash s/floors/tests django
 
       - name: Build the demo safety file
         # Exercises the storage layer end to end inside the application

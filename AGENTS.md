@@ -64,25 +64,26 @@ Scheduled overnight runs must also follow [the overnight instructions](specifica
 ./s/lock       # regenerate dependency locks after editing a .in file
 ./s/docs       # serve the docs site locally
 ./s/seed-demo  # build the demo safety file, with an account to sign in as
+./s/terraform  # GitHub repository settings, as code; see docs/docs/github-settings.md
 ```
 
 ## Before Every Commit
 
 ```sh
-./s/lint      # pre-commit --all-files, then the Zizmor Actions audit
+./s/lint      # pre-commit --all-files, including the Zizmor Actions audit
 ./s/test      # storage tests on the host; Django/API tests against container PostgreSQL
 ```
 
 Do not commit red. CI runs the same checks, on pull requests **and on pushes to
 `main`** - until 2026-10-09 the quality workflow explicitly skipped `main`, which
-is the branch this project commits to, so the gate existed everywhere except
-where it was needed.
+was then the branch this project committed to, so the gate existed everywhere
+except where it was needed.
 
 ## Git Workflow
 
-- Commit and push each validated coherent parcel; do not leave completed work only locally.
-- Direct commits to `main` are currently permitted - the project has one active contributor. Use conventional commit messages (`feat(area):`, `fix:`, `docs:`, `chore(deps):`, `ci:`).
-- Move to a descriptive branch and PR when more contributors join or `main` becomes protected.
+- Never commit or push directly to `main`. Every change goes on its own descriptive branch and reaches `main` through a pull request, whoever or whatever wrote it.
+- Commit and push each validated coherent parcel to its branch; do not leave completed work only locally.
+- Use conventional commit messages (`feat(area):`, `fix:`, `docs:`, `chore(deps):`, `ci:`).
 - Ask if the appropriate path is unclear.
 
 ## Assurance
