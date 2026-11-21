@@ -96,4 +96,6 @@ except where it was needed.
 
 Ask before publishing releases, deleting branches, force-pushing, changing secrets, closing or merging pull requests, bypassing branch protection or deployment approvals, or taking any externally visible action.
 
+- **GitHub settings change only through Terraform, from a merged `main`.** Never change a ruleset or other repository setting through the GitHub website or API, and never run `./s/terraform apply` from a branch or an unmerged edit. Change `terraform/github/`, get the pull request reviewed and merged, check a fresh plan, then apply from an up-to-date `main`. See [GitHub settings](docs/docs/github-settings.md).
+
 Never commit a `.env` file. Never put real patient data, credentials, or a real organisation's unpublished safety case into this repository or into a test fixture.
