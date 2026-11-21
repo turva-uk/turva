@@ -6,7 +6,7 @@ Terraform manages GitHub settings only. Docker Compose and Caddy remain the exis
 
 ## Desired protection for the default branch
 
-The `main` ruleset requires a pull request and one independent approval, dismisses stale approvals on reviewable pushes, and requires approval of the latest reviewable push by someone other than its pusher. It also blocks deletion and force pushes, with no bypass actors.
+The `main` ruleset requires a pull request and one approval from someone other than its author, and dismisses stale approvals on reviewable pushes. GitHub never lets authors approve their own pull request. A reviewer who pushes to someone else's pull request can still approve it, so that reviewer's own commit is approved by nobody but them. The ruleset controls who approves, not who merges: once approved, anyone with write access can merge. It also blocks deletion and force pushes, with no bypass actors.
 
 This is a partial protection policy. Required CI checks, resolved review threads and code-owner review remain follow-up work rather than choosing check identities or review ownership in this change. An administrator can disable the ruleset in an emergency, but must obtain approval and record the reason; that is not a routine merge path.
 

@@ -1,10 +1,17 @@
 # Rules for main, the default branch. Every change reaches it through a pull
 # request; nothing is pushed to it directly, force-pushed or deleted.
 #
-# Each pull request needs one approval from someone other than whoever pushed
-# last. GitHub never lets authors approve their own pull request, and
-# require_last_push_approval stops a commit being added after the approval
-# and merged unreviewed. A new commit also clears earlier approvals.
+# Each pull request needs one approval from someone other than its author.
+# GitHub never lets authors approve their own pull request, so no setting is
+# needed for that. dismiss_stale_reviews_on_push clears approvals on every
+# new push, so a commit added after the approval cannot be merged unreviewed.
+#
+# require_last_push_approval is off on purpose, so a reviewer who pushes to
+# someone else's pull request can still approve it. The known gap: that
+# reviewer's own commit is then approved by nobody but them.
+#
+# Rulesets control who approves, not who merges. Once approved, anyone with
+# write access can merge, the author included.
 #
 # There are no bypass actors, administrators included. In an emergency an
 # admin can switch the ruleset off in the repository's settings, and should
@@ -31,7 +38,7 @@ resource "github_repository_ruleset" "main" {
 
     pull_request {
       required_approving_review_count = 1
-      require_last_push_approval      = true
+      require_last_push_approval      = false
       dismiss_stale_reviews_on_push   = true
     }
   }
