@@ -105,6 +105,8 @@ Saving either artefact updates any changed reverse references and the generated 
 
 Unrecognised hazard, mitigation and assessment frontmatter fields are refused rather than silently dropped on re-save. In particular, Quill's extended version-1 `source` and `review` fields require the explicit provenance/schema work described in [the port decisions](quill-port.md); this stricter reader does not migrate or discard those fields.
 
+> **Proposed, not accepted:** [supplier-input-storage.md](supplier-input-storage.md) proposes a `sources/` tree, extraction and review records, a hazard `source` field and validation rules 9-13 for supplier DCB0129 input. Until a maintainer accepts it, this document is unchanged and those fields remain refused.
+
 ## `.turva/manifest.yaml`
 
 ```yaml

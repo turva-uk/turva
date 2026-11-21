@@ -16,6 +16,7 @@ Documentation for Turva's clinical safety management platform.
 
 - **[Core Specification](core-specification.md)** - domain model, the risk scales, and what Turva is and is not
 - **[Safety File Layout](safety-file-layout.md)** - the on-disk contract for a Clinical Safety Management File, and the rules the storage layer enforces
+- **[Supplier Input Storage](supplier-input-storage.md)** - _proposed, awaiting acceptance_: how supplier DCB0129 originals, extraction candidates and review decisions would be stored
 
 ## Direction
 
