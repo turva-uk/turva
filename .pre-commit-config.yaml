@@ -60,7 +60,7 @@ repos:
           - markupsafe==3.0.4
           - pyyaml==6.0.3
           - pytest==9.2.0
-          - types-PyYAML==6.0.12.20261103
+          - types-PyYAML==6.0.12.20261113
 
   # A security linter for Python: shell commands, unsafe YAML loading, weak
   # hashes and the like. It scans app/, safety_file/ and demo/, without the
