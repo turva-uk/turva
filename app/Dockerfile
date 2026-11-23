@@ -1,4 +1,4 @@
-FROM python:3.14.9-slim
+FROM python:3.14.10-slim
 
 # Build context is the repository root, not app/, because the image needs both
 # the Django project and the safety_file storage library as sibling packages.
