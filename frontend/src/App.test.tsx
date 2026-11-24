@@ -1,6 +1,6 @@
 import { MantineProvider } from "@mantine/core";
 import { render, screen } from "@testing-library/react";
-import { MemoryRouter } from "react-router";
+import { createMemoryRouter, RouterProvider } from "react-router";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { App } from "./App";
@@ -44,13 +44,24 @@ function start(path: string, session: () => Promise<Response>) {
     }),
   );
 
+  // A data router, as `main.tsx` uses: the shared `Form` refuses to render
+  // outside one.
+  const router = createMemoryRouter(
+    [
+      {
+        path: "*",
+        element: (
+          <SessionProvider>
+            <App />
+          </SessionProvider>
+        ),
+      },
+    ],
+    { initialEntries: [path] },
+  );
   render(
     <MantineProvider theme={theme} cssVariablesResolver={cssVariablesResolver}>
-      <MemoryRouter initialEntries={[path]}>
-        <SessionProvider>
-          <App />
-        </SessionProvider>
-      </MemoryRouter>
+      <RouterProvider router={router} />
     </MantineProvider>,
   );
 }

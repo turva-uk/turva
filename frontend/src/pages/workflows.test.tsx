@@ -1,7 +1,7 @@
 import { MantineProvider } from "@mantine/core";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter } from "react-router";
+import { createMemoryRouter, RouterProvider } from "react-router";
 import { describe, expect, it, vi } from "vitest";
 
 import { App } from "../App";
@@ -58,13 +58,24 @@ function start(path: string, mutate: (url: string, init: RequestInit) => Promise
     throw new Error(`Unexpected request: ${url}`);
   });
   vi.stubGlobal("fetch", fetcher);
+  // A data router, as `main.tsx` uses: the shared `Form` guards leaving a
+  // dirty form only inside one, and refuses to render outside it.
+  const router = createMemoryRouter(
+    [
+      {
+        path: "*",
+        element: (
+          <SessionProvider>
+            <App />
+          </SessionProvider>
+        ),
+      },
+    ],
+    { initialEntries: [path] },
+  );
   render(
     <MantineProvider theme={theme} cssVariablesResolver={cssVariablesResolver}>
-      <MemoryRouter initialEntries={[path]}>
-        <SessionProvider>
-          <App />
-        </SessionProvider>
-      </MemoryRouter>
+      <RouterProvider router={router} />
     </MantineProvider>,
   );
   return { fetcher, actor: userEvent.setup() };
@@ -110,6 +121,34 @@ describe("profile editing", () => {
     expect(number).toHaveValue("new-number");
     expect(number).toHaveAttribute("aria-invalid", "true");
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
+});
+
+describe("withdrawing the CSO declaration", () => {
+  it("hides the criteria and sends is_cso false, with the regulator kept", async () => {
+    const writes: Record<string, unknown>[] = [];
+    const { actor } = start("/profile", async (_, init) => {
+      writes.push(JSON.parse(String(init.body)));
+      return json({ ...person, is_cso: false, cso_declared_at: null });
+    });
+
+    const role = await screen.findByRole("checkbox", {
+      name: "I act as a Clinical Safety Officer",
+    });
+    await actor.click(role);
+
+    expect(
+      screen.queryByRole("checkbox", {
+        name: "I meet the criteria for a Clinical Safety Officer",
+      }),
+    ).not.toBeInTheDocument();
+
+    await actor.click(screen.getByRole("button", { name: "Save profile" }));
+    await screen.findByRole("status");
+
+    expect(writes).toEqual([
+      expect.objectContaining({ is_cso: false, professional_regulator: "GMC" }),
+    ]);
   });
 });
 
