@@ -80,7 +80,7 @@ export const ClosedWithHighResidualRisk: Story = {
   },
   play: async ({ canvasElement }) => {
     await expect(
-      within(canvasElement).getByText(/does not by itself reduce the recorded assessment/),
+      within(canvasElement).getByText(/does not by itself reduce that assessment/),
     ).toBeVisible();
   },
 };

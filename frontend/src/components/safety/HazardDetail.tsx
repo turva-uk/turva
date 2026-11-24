@@ -10,18 +10,23 @@
  * The score's words, such as "4 - Major", come from `hazard-options/`
  * when `options` is given; without it, the score is shown as its number.
  *
- * The notes are the officer's Markdown, shown through `MarkdownView`,
- * which sanitises what it renders: a safety file's text is untrusted.
+ * The recorded narratives, the hazard's and each mitigation's, are shown
+ * as the Markdown source that was saved, not rendered: the evidence reads
+ * exactly as committed. Rendering them is a separate decision, since
+ * `SAFETY.md` records that the shared Markdown display is not yet used by
+ * the application's pages.
  */
 
-import { Alert, SimpleGrid, Stack } from "@mantine/core";
+import { Alert, Box, SimpleGrid, Stack } from "@mantine/core";
+import type { ReactNode } from "react";
 
 import BaseCard from "@/components/base-card/BaseCard";
 import FormattedDate from "@/components/data/Date";
 import { ResultMessage } from "@/components/message-cards";
-import { BodyText, BodyTextBold, Heading, MarkdownView } from "@/components/typography";
+import { BodyText, BodyTextBold, Heading, TextLink } from "@/components/typography";
 import type { Assessment, Hazard, HazardOptions, Mitigation } from "@/lib/safety";
 
+import classes from "./HazardDetail.module.css";
 import RiskScoreBadge from "./RiskScoreBadge";
 
 /** "Severity: 4 - Major", or "Severity: 4" with no options to name it. */
@@ -73,9 +78,31 @@ export interface HazardDetailProps {
   mitigations: Mitigation[];
   /** What `hazard-options/` serves, to put words to each score */
   options?: HazardOptions;
+  /** Show the hazard's reference and title as a heading. Off where the page header shows them. */
+  showTitle?: boolean;
+  /** Where each linked mitigation's page is, so its title links there */
+  mitigationHref?: (mitigationId: string) => string;
+  /** Shown under the "Linked mitigations" heading, such as a button to record one */
+  mitigationAction?: ReactNode;
 }
 
-export default function HazardDetail({ hazard, mitigations, options }: HazardDetailProps) {
+/** The recorded Markdown, as it was saved. */
+function Source({ text }: { text: string }) {
+  return (
+    <Box component="pre" className={classes.source}>
+      {text}
+    </Box>
+  );
+}
+
+export default function HazardDetail({
+  hazard,
+  mitigations,
+  options,
+  showTitle = true,
+  mitigationHref,
+  mitigationAction,
+}: HazardDetailProps) {
   const named = hazard.mitigations.map((id) => ({
     id,
     mitigation: mitigations.find((m) => m.id === id),
@@ -83,9 +110,11 @@ export default function HazardDetail({ hazard, mitigations, options }: HazardDet
 
   return (
     <Stack gap="lg">
-      <Heading>
-        {hazard.id}: {hazard.title}
-      </Heading>
+      {showTitle && (
+        <Heading>
+          {hazard.id}: {hazard.title}
+        </Heading>
+      )}
       <BodyText>
         Status: {hazard.status || "Not recorded"}. Responsible person:{" "}
         {hazard.owner || "Not recorded"}.
@@ -97,21 +126,22 @@ export default function HazardDetail({ hazard, mitigations, options }: HazardDet
       {hazard.requires_elimination && (
         <ResultMessage
           variant="warning"
-          title="This hazard blocks go-live"
-          subtitle="Residual risk requires elimination. A closed or transferred status does not by itself reduce the recorded assessment."
+          title="Residual risk requires elimination"
+          subtitle={`The derived residual risk level is ${hazard.residual.risk_level}. A closed or transferred status does not by itself reduce that assessment.`}
         />
       )}
       <Field label="Cause" text={hazard.cause} />
-      <Field label="Effect" text={hazard.effect} />
+      <Field label="Effect on the care pathway" text={hazard.effect} />
       <Field label="Potential harm" text={hazard.harm} />
       <SimpleGrid cols={{ base: 1, sm: 2 }}>
         <AssessmentCard title="Initial risk" assessment={hazard.initial} options={options} />
         <AssessmentCard title="Residual risk" assessment={hazard.residual} options={options} />
       </SimpleGrid>
       <Stack gap="xs">
-        <Heading>Mitigations</Heading>
+        <Heading>Linked mitigations</Heading>
+        {mitigationAction}
         {named.length === 0 ? (
-          <BodyText c="dimmed">No mitigation is recorded against it.</BodyText>
+          <BodyText c="dimmed">No linked mitigations recorded.</BodyText>
         ) : (
           named.map(({ id, mitigation }) =>
             mitigation ? (
@@ -122,9 +152,15 @@ export default function HazardDetail({ hazard, mitigations, options }: HazardDet
                 key={id}
                 gap={4}
               >
-                <BodyTextBold>
-                  {id}: {mitigation.title}
-                </BodyTextBold>
+                {mitigationHref ? (
+                  <TextLink to={mitigationHref(id)}>
+                    {id}: {mitigation.title}
+                  </TextLink>
+                ) : (
+                  <BodyTextBold>
+                    {id}: {mitigation.title}
+                  </BodyTextBold>
+                )}
                 <BodyText>
                   {mitigation.control_type} control, {mitigation.status}
                 </BodyText>
@@ -133,7 +169,7 @@ export default function HazardDetail({ hazard, mitigations, options }: HazardDet
                 <BodyText preserveLines>
                   {mitigation.evidence || "Implementation evidence not recorded."}
                 </BodyText>
-                {mitigation.body.trim() && <MarkdownView source={mitigation.body} />}
+                {mitigation.body.trim() && <Source text={mitigation.body} />}
               </Stack>
             ) : (
               <Alert key={id} role="alert" color="red" title="Linked mitigation unavailable">
@@ -144,8 +180,13 @@ export default function HazardDetail({ hazard, mitigations, options }: HazardDet
           )
         )}
       </Stack>
-      <Field label="Justification of residual risk" text={hazard.justification} />
-      {hazard.body.trim() && <MarkdownView source={hazard.body} />}
+      <Field label="Risk justification" text={hazard.justification} />
+      {hazard.body.trim() && (
+        <Stack gap={4}>
+          <BodyTextBold>Recorded narrative (Markdown)</BodyTextBold>
+          <Source text={hazard.body} />
+        </Stack>
+      )}
     </Stack>
   );
 }
