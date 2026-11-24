@@ -21,6 +21,8 @@ import type {
   Commit,
   DocumentRef,
   Extraction,
+  SafetyDocumentContent,
+  SafetyDocumentSummary,
   Hazard,
   HazardOptions,
   Mitigation,
@@ -424,4 +426,123 @@ export const SAMPLE_EXTRAS_FOR_CSO: SafetyFileExtras = {
     two_factor_enabled: true,
     tags: [],
   },
+};
+
+/* ------------------------------------------------------------------ */
+/*  A document, as the document route sends it                         */
+/* ------------------------------------------------------------------ */
+
+/** The documents a file holds, as the document route lists them. */
+export const SAMPLE_DOCUMENT_LIST: SafetyDocumentSummary[] = [
+  { key: "index", title: "Overview" },
+  { key: "safety-case", title: "Clinical safety case report" },
+  { key: "hazard-log", title: "Hazard log" },
+];
+
+/**
+ * One document's typed nodes, with one of each kind the renderer shows:
+ * headings, a table with a mailto link, an admonition, a link to another
+ * document, a reference, an image the server left out, and text that
+ * looks like HTML, which must show as text.
+ */
+export const SAMPLE_DOCUMENT: SafetyDocumentContent = {
+  key: "safety-case",
+  title: "Clinical safety case report",
+  path: "docs/safety-case.md",
+  source_commit: SAMPLE_HEAD,
+  available: true,
+  unsupported: 1,
+  blocks: [
+    {
+      type: "element",
+      tag: "h2",
+      attrs: { id: "system" },
+      children: [{ type: "text", text: "1. System" }],
+    },
+    {
+      type: "element",
+      tag: "p",
+      children: [
+        { type: "element", tag: "strong", children: [{ type: "text", text: "BP@Home" }] },
+        { type: "text", text: " remote blood pressure monitoring. See the " },
+        {
+          type: "document",
+          document: "hazard-log",
+          fragment: "open-hazards",
+          children: [{ type: "text", text: "hazard log" }],
+        },
+        { type: "text", text: "." },
+        { type: "reference", text: "DCB0160 2.3" },
+      ],
+    },
+    {
+      type: "element",
+      tag: "h2",
+      attrs: { id: "officer" },
+      children: [{ type: "text", text: "2. Clinical Safety Officer" }],
+    },
+    {
+      type: "element",
+      tag: "table",
+      children: [
+        {
+          type: "element",
+          tag: "tbody",
+          children: [
+            {
+              type: "element",
+              tag: "tr",
+              children: [
+                { type: "element", tag: "td", children: [{ type: "text", text: "Name" }] },
+                {
+                  type: "element",
+                  tag: "td",
+                  children: [{ type: "text", text: "Dr Anita Patel" }],
+                },
+              ],
+            },
+            {
+              type: "element",
+              tag: "tr",
+              children: [
+                { type: "element", tag: "td", children: [{ type: "text", text: "Contact" }] },
+                {
+                  type: "element",
+                  tag: "td",
+                  children: [
+                    {
+                      type: "external",
+                      href: "mailto:a.patel@riverbank.example.nhs.uk",
+                      children: [{ type: "text", text: "a.patel@riverbank.example.nhs.uk" }],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+    {
+      type: "admonition",
+      kind: "warning",
+      title: "Residual risk",
+      collapsible: false,
+      children: [
+        {
+          type: "element",
+          tag: "p",
+          children: [
+            { type: "text", text: "Two hazards remain at a derived residual risk level of 3." },
+          ],
+        },
+      ],
+    },
+    { type: "unsupported", description: "an image (Pathway diagram)." },
+    {
+      type: "element",
+      tag: "p",
+      children: [{ type: "text", text: '<img src=x onerror="alert(1)"> stays text.' }],
+    },
+  ],
 };

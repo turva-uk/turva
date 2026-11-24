@@ -1,11 +1,12 @@
 import { MantineProvider } from "@mantine/core";
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router";
 import { afterEach, expect, it, vi } from "vitest";
 
 import { api, ApiError } from "../api/client";
 import type { DocumentNode, SafetyDocumentDetail } from "../api/types";
+import documentClasses from "../components/safety/DocumentNodes.module.css";
 import { SafetyDocumentPage } from "./SafetyDocumentPage";
 
 afterEach(() => vi.restoreAllMocks());
@@ -119,7 +120,9 @@ it("renders the committed document with its source commit and table structure", 
   ).toHaveTextContent("Do not go live.");
   const region = screen.getByRole("region", { name: /Table/ });
   expect(region).toHaveAttribute("tabindex", "0");
-  expect(within(region).getByRole("cell", { name: "4" })).toHaveClass("align-center");
+  expect(within(region).getByRole("cell", { name: "4" })).toHaveClass(
+    documentClasses.alignCenter ?? "missing-css-module-class",
+  );
   expect(screen.getByRole("link", { name: "Overview" })).toHaveAttribute(
     "aria-current",
     "page",
@@ -159,7 +162,10 @@ it("never executes, fetches or styles from document content", async () => {
   );
   show();
   await screen.findByRole("heading", { name: "Overview", level: 1 });
-  const main = document.querySelector(".safety-document") as HTMLElement;
+  const main = document.querySelector(
+    `.${documentClasses.document ?? "missing-css-module-class"}`,
+  );
+  if (!(main instanceof HTMLElement)) throw new Error("The document did not render");
   expect(main.querySelector("script, img, iframe, style, [style], [onerror]")).toBeNull();
   expect(main).toHaveTextContent('<script>alert("x")</script>');
   expect(screen.getByText(/Not shown: An image \(diagram\)/)).toBeInTheDocument();
@@ -250,7 +256,11 @@ it("encodes document fragments once and scrolls to the literal heading id", asyn
   );
   show("/safety-files/demo/documents/overview#doc-100%25%20reviewed");
   await screen.findByText("Section");
-  expect(scroll).toHaveBeenCalled();
+  // The page scrolls in an effect after the heading appears, so wait for
+  // the call rather than checking at once: under a full parallel run the
+  // check could come first.
+  await waitFor(() => expect(scroll).toHaveBeenCalled());
+  expect(scroll.mock.contexts[0]).toBe(document.getElementById("doc-100% reviewed"));
   expect(screen.getByRole("link", { name: "Here" })).toHaveAttribute(
     "href",
     "#doc-100%25%20reviewed",
@@ -384,7 +394,7 @@ it("removes a previous source view while another document loads", async () => {
     .setup()
     .click(screen.getByRole("link", { name: "Clinical risk management plan" }));
   expect(screen.queryByText("Previous committed source")).toBeNull();
-  expect(screen.getByLabelText("Loading the document")).toBeInTheDocument();
+  expect(screen.getByRole("status")).toHaveTextContent("Loading the document");
   resolvePlan(
     detail([text("Plan content")], {
       key: "risk-management-plan",
