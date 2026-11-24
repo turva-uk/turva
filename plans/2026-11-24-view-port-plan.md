@@ -219,8 +219,16 @@ As built:
 
 The catalogue has no mitigation components, and pages may use only components from the catalogue, so they are built before the pages move.
 
-- [ ] Create `MitigationDetail` and `MitigationForm` in `components/safety/`, with stories and tests, on the types in `lib/safety/types.ts` and the shape of `HazardDetail` and `HazardForm`. `MitigationForm` takes `mitigationOptions`, names the hazards the mitigation addresses, as Turva's write expects, and hands back values with no `expected_head`: the version read goes to the write function, as for hazards.
-- [ ] Check: `./s/frontend` passes, with the Storybook build, `./s/lint` passes, and `npm run test-storybook:ci` passes every story in light and dark mode. Put screenshots of each new story, in light and dark mode, in the pull request description under a `## Screenshots` heading, uploaded with `gh pr edit --attach`.
+- [x] Create `MitigationDetail` and `MitigationForm` in `components/safety/`, with stories and tests, on the types in `lib/safety/types.ts` and the shape of `HazardDetail` and `HazardForm`. `MitigationForm` takes `mitigationOptions`, names the hazards the mitigation addresses, as Turva's write expects, and hands back values with no `expected_head`: the version read goes to the write function, as for hazards.
+- [x] Check: `./s/frontend` passes, with the Storybook build, `./s/lint` passes, and `npm run test-storybook:ci` passes every story in light and dark mode. Put screenshots of each new story, in light and dark mode, in the pull request description under a `## Screenshots` heading, uploaded with `gh pr edit --attach`.
+
+As built:
+
+- **`MitigationDetail` shows what the mitigation page shows**, in its words: status, control type and responsible person, the evidence or the note that a proposed control is not evidence of risk reduction, the narrative as saved source, the linked hazards as links, and the note that status and links never change a risk assessment. A linked hazard whose details were not supplied says so in an alert rather than vanishing.
+- **`MitigationForm` takes the page's labels and guidance**, assumes no control type, requires evidence once a control is implemented or verified, keeps a link to a hazard not in the list, and hands back a `MitigationInput` with no `expected_head` and no risk level. A record with a status or control type Turva does not know opens read only, as `HazardForm` does. It takes `fieldErrors` and `cancelLabel` as `HazardForm` does.
+- **`lib/safety` gained `mitigationInput.ts`**: `blankMitigation`, `mitigationInputFrom`, `mitigationProblems` and `completeMitigation`, with `isMitigationStatus` and `isControlType`, so neither narrows with `as`.
+- **The recorded-source style is shared**: `HazardDetail.module.css` became `recordedSource.module.css`, used by both detail components. `HazardDetail`'s "Linked mitigation unavailable" alert now uses `StateMessage` rather than Mantine's `Alert` with the colour name `red`, which the components rule forbids.
+- **As run on 24 November 2026**: `./s/frontend` passed (1,499 tests, the build and the Storybook build), the Storybook check passed all 240 safety story runs, `./s/lint` passed, and `./s/test` passed (611 Django tests, and the host suites).
 
 ## Phase 13: The mitigation pages
 

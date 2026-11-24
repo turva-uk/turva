@@ -25,8 +25,20 @@ export {
   updateMitigation,
 } from "./api";
 export { blankHazard, hazardInputFrom, hazardProblems } from "./hazardInput";
+export {
+  blankMitigation,
+  completeMitigation,
+  mitigationInputFrom,
+  mitigationProblems,
+} from "./mitigationInput";
 export { isRiskScore, RISK_SCORES } from "./risk";
-export { EXTRACTION_FIELDS, isHazardStatus, isSafetyFileStatus } from "./types";
+export {
+  EXTRACTION_FIELDS,
+  isControlType,
+  isHazardStatus,
+  isMitigationStatus,
+  isSafetyFileStatus,
+} from "./types";
 export type {
   AssessmentInput,
   AssessmentDraft,
@@ -52,6 +64,7 @@ export type {
   Member,
   Mitigation,
   MitigationDetail,
+  MitigationDraft,
   MitigationInput,
   MitigationOptions,
   MitigationStatus,

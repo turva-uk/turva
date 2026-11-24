@@ -17,16 +17,17 @@
  * the application's pages.
  */
 
-import { Alert, Box, SimpleGrid, Stack } from "@mantine/core";
+import { Box, SimpleGrid, Stack } from "@mantine/core";
 import type { ReactNode } from "react";
 
 import BaseCard from "@/components/base-card/BaseCard";
 import FormattedDate from "@/components/data/Date";
-import { ResultMessage } from "@/components/message-cards";
+import { IconAlertCircle } from "@/components/icons/appIcons";
+import { ResultMessage, StateMessage } from "@/components/message-cards";
 import { BodyText, BodyTextBold, Heading, TextLink } from "@/components/typography";
 import type { Assessment, Hazard, HazardOptions, Mitigation } from "@/lib/safety";
 
-import classes from "./HazardDetail.module.css";
+import classes from "./recordedSource.module.css";
 import RiskScoreBadge from "./RiskScoreBadge";
 
 /** "Severity: 4 - Major", or "Severity: 4" with no options to name it. */
@@ -172,10 +173,14 @@ export default function HazardDetail({
                 {mitigation.body.trim() && <Source text={mitigation.body} />}
               </Stack>
             ) : (
-              <Alert key={id} role="alert" color="red" title="Linked mitigation unavailable">
-                {id} is recorded against this hazard, but its details were not supplied. The
-                mitigation evidence is incomplete in this view.
-              </Alert>
+              <Box key={id} role="alert">
+                <StateMessage
+                  icon={<IconAlertCircle />}
+                  colour="alert"
+                  title="Linked mitigation unavailable"
+                  description={`${id} is recorded against this hazard, but its details were not supplied. The mitigation evidence is incomplete in this view.`}
+                />
+              </Box>
             ),
           )
         )}
