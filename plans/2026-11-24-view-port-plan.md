@@ -35,9 +35,17 @@ As built:
 
 ## Phase 2: The app shell
 
-- [ ] Create `AppHeader` in `components/layouts/`, with a story and a test, and use it in `App.tsx` in place of the inline `Header`. Keep the brand band, the yellow rule, the main navigation landmark and its links, and the sign-out button with its busy state.
-- [ ] Use `PageSpinner` for `RequireSession`'s "Checking your session" loader, keeping its accessible name.
-- [ ] Check: `./s/frontend` and `./s/lint` pass. The skip link still reaches the main content. Put screenshots of each view this phase moves, in light and dark mode, in the pull request description under a `## Screenshots` heading, uploaded with `gh pr edit --attach`.
+- [x] Create `AppHeader` in `components/layouts/`, with a story and a test, and use it in `App.tsx` in place of the inline `Header`. Keep the brand band, the yellow rule, the main navigation landmark and its links, and the sign-out button with its busy state.
+- [x] Use `PageSpinner` for `RequireSession`'s "Checking your session" loader, keeping its accessible name.
+- [x] Check: `./s/frontend` and `./s/lint` pass. The skip link still reaches the main content. Put screenshots of each view this phase moves, in light and dark mode, in the pull request description under a `## Screenshots` heading, uploaded with `gh pr edit --attach`.
+
+As built:
+
+- **`AppHeader` takes `signedIn`, `onSignOut` and `signingOut` as props**, as the components rule asks, and `App.tsx` passes the session's state in. Its colours sit in `AppHeader.module.css` on `--brand-primary` and `--brand-secondary`, replacing the inline styles. The header rules in `app.css` went with it.
+- **All seven "Checking your session" waits use `PageSpinner`**, not only `RequireSession`'s, since the invitation route and the others showed the same bare loader.
+- **A new `App.test.tsx` covers the shell**: the spinner while the session is checked, the skip link reaching `#main-content`, and the navigation once signed in.
+- **The Storybook accessibility check did not run locally.** It needs Playwright's Chromium build 1248, and the host has only 1254, so CI runs it.
+- **As run on 24 November 2026**: `./s/frontend` passed (1,386 tests, the build and the Storybook build), `./s/lint` passed, and `./s/test` passed (611 Django tests, and the host suites).
 
 ## Phase 3: Sign-in, registration, verification and password reset
 

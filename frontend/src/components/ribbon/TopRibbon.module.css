@@ -1,0 +1,33 @@
+/* The brand band: the logo purple carrying white text, with the logo yellow
+   as a rule beneath it. The yellow is decorative. It echoes the
+   purple-on-yellow of the mark and carries no information, so nothing is
+   lost if a user's own styles drop it. */
+.band {
+  height: 100%;
+  padding-inline: var(--mantine-spacing-md);
+  /* The brand purple in light mode; the page's own colour in dark mode,
+     where the purple would sit as a pale bar over a dark page. */
+  background-color: var(--ribbon-bg, var(--brand-primary));
+  color: var(--mantine-color-white);
+  border-bottom: 0.25rem solid var(--brand-secondary);
+}
+
+/* The Turva wordmark: Finlandica, 40% bigger than the body text. */
+.home,
+.home:hover {
+  color: var(--mantine-color-white);
+  font-family: "Finlandica Variable", var(--mantine-font-family);
+  font-size: calc(var(--mantine-font-size-md) * 1.4);
+  font-weight: 700;
+  line-height: 1;
+  text-decoration: none;
+}
+
+/* A flex row, so whatever sits here is centred in the band. As a plain
+   block, it left room under an inline item for the descenders of text that
+   is not there, and lifted the envelope above the wordmark's middle. */
+.end {
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+}

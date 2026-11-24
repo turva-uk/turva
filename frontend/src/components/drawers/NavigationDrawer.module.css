@@ -1,0 +1,16 @@
+/*
+ * The drawer's body fills the height below its "Menu" title, so the side
+ * bar inside it can push "Sign out" to the bottom, as it does on a wide
+ * screen. Without this the body is only as tall as its links, and
+ * "Sign out" sits straight under them.
+ */
+.content {
+  display: flex;
+  flex-direction: column;
+}
+
+.body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}

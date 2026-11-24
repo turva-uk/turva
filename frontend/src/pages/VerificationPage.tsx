@@ -62,7 +62,7 @@ export function VerificationNoticePage() {
         >
           I have confirmed my email - check again
         </Button>
-        <Anchor component={Link} to="/profile">
+        <Anchor component={Link} to="/settings/profile">
           Edit your profile
         </Anchor>
       </Stack>

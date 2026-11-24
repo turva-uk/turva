@@ -43,7 +43,7 @@ export function SafetyFileCreatePage() {
       </Text>
       <Text size="sm" mb="md">
         The first version will be attributed to {user?.full_name || user?.email}.{" "}
-        <Anchor component={Link} to="/profile">
+        <Anchor component={Link} to="/settings/profile">
           Check your profile and CSO declaration
         </Anchor>{" "}
         before creating it.

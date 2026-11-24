@@ -73,7 +73,7 @@ function start(path: string, mutate: (url: string, init: RequestInit) => Promise
 describe("profile editing", () => {
   it("shows the unverified warning and saves a full deliberate form", async () => {
     const writes: Record<string, unknown>[] = [];
-    const { actor } = start("/profile", async (_, init) => {
+    const { actor } = start("/settings/profile", async (_, init) => {
       writes.push(JSON.parse(String(init.body)));
       return json(person);
     });
@@ -99,7 +99,7 @@ describe("profile editing", () => {
   });
 
   it("keeps the draft and associates server errors with the field", async () => {
-    const { actor } = start("/profile", async () =>
+    const { actor } = start("/settings/profile", async () =>
       json({ registration_number: ["That registration cannot be recorded."] }, 400),
     );
     const number = await screen.findByRole("textbox", { name: "Registration number" });
@@ -110,6 +110,55 @@ describe("profile editing", () => {
     expect(number).toHaveValue("new-number");
     expect(number).toHaveAttribute("aria-invalid", "true");
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
+});
+
+describe("settings", () => {
+  it("offers Your profile and Dark mode as cards", async () => {
+    start("/settings", async () => json(person));
+
+    expect(await screen.findByRole("heading", { name: "Your profile" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Dark mode" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Edit your profile" })).toHaveAttribute(
+      "href",
+      "/settings/profile",
+    );
+  });
+
+  it("opens the profile from its card", async () => {
+    const { actor } = start("/settings", async () => json(person));
+
+    await actor.click(await screen.findByRole("link", { name: "Edit your profile" }));
+
+    expect(await screen.findByRole("textbox", { name: "Job role" })).toBeInTheDocument();
+  });
+
+  it("switches to dark mode and back, showing which is on", async () => {
+    const { actor } = start("/settings", async () => json(person));
+
+    const toggle = await screen.findByRole("switch", { name: "Dark mode" });
+    expect(toggle).not.toBeChecked();
+
+    await actor.click(toggle);
+    await waitFor(() =>
+      expect(document.documentElement).toHaveAttribute("data-mantine-color-scheme", "dark"),
+    );
+    expect(screen.getByRole("switch", { name: "Dark mode" })).toBeChecked();
+
+    await actor.click(screen.getByRole("switch", { name: "Dark mode" }));
+    await waitFor(() =>
+      expect(document.documentElement).toHaveAttribute("data-mantine-color-scheme", "light"),
+    );
+  });
+
+  it("sends the profile's old address to its new one, under Settings", async () => {
+    start("/profile", async () => json(person));
+
+    expect(await screen.findByRole("textbox", { name: "Job role" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Your profile" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
   });
 });
 

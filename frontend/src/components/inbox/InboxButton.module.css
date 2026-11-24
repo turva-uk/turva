@@ -1,0 +1,27 @@
+/* The box is the icon's width alone, so the count, hung off its right-hand
+   edge, sits beside the envelope rather than at the far side of a stretched
+   box. The margin keeps room for that count. */
+.trigger {
+  position: relative;
+  display: inline-flex;
+  width: fit-content;
+  flex: 0 0 auto;
+  margin-right: 1.25rem;
+}
+
+.button {
+  width: auto;
+  height: auto;
+  min-width: 0;
+  min-height: 0;
+  padding: 0.25rem;
+}
+
+.count {
+  position: absolute;
+  top: -0.5rem;
+  left: 100%;
+  line-height: 1;
+  color: var(--mantine-color-white);
+  font-size: var(--mantine-font-size-md);
+}

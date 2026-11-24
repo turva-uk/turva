@@ -1,0 +1,25 @@
+.nav {
+  height: 100%;
+  /* Fills the phone drawer's body too, which is a flex column. */
+  flex: 1;
+}
+
+.list {
+  flex: 1;
+}
+
+.link {
+  font-size: var(--mantine-font-size-md);
+}
+
+.label {
+  font-size: var(--mantine-font-size-md);
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.3;
+}
+
+/* A link beneath another, such as "Your profile" under "Settings". */
+.nested {
+  padding-left: 1.35rem;
+}
