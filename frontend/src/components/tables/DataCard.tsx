@@ -32,8 +32,7 @@ import type { ReactNode } from "react";
 import { Group, Skeleton, Stack } from "@mantine/core";
 import Divider from "@/components/divider/Divider";
 import { BodyTextBold } from "@/components/typography";
-import CellContent from "./CellContent";
-import RowAction from "./RowAction";
+import OpenableCell from "./OpenableCell";
 import { shouldActivateRow } from "./rowInteraction";
 import type { Column } from "./DataTable";
 import BaseCard from "@/components/base-card/BaseCard";
@@ -46,8 +45,6 @@ export interface DataCardProps<T> {
   columns: Column<T>[];
   /** Click handler - receives the row data */
   onClick?: (row: T) => void;
-  /** Accessible record-action name, preferably including its identifier. */
-  actionLabel?: string;
   /** Loading state - shows skeleton placeholders */
   loading?: boolean;
   /**
@@ -87,7 +84,6 @@ export default function DataCard<T>({
   row,
   columns,
   onClick,
-  actionLabel = "Open record",
   loading = false,
   footer,
 }: DataCardProps<T>) {
@@ -119,7 +115,11 @@ export default function DataCard<T>({
               <span className={classes.header}>
                 <BodyTextBold>{column.header}:</BodyTextBold>
               </span>
-              <CellContent>{content}</CellContent>
+              {/* The first field is the keyboard way into the card. */}
+              <OpenableCell
+                content={content}
+                onOpen={onClick && index === 0 ? () => onClick(row) : undefined}
+              />
             </Group>
             {index < fields.length - 1 && <Divider mt="sm" />}
           </div>
@@ -154,11 +154,6 @@ export default function DataCard<T>({
         </div>
       ) : (
         body
-      )}
-      {onClick && (
-        <Group justify="flex-end" mt="sm">
-          <RowAction label={actionLabel} onOpen={() => onClick(row)} />
-        </Group>
       )}
     </BaseCard>
   );

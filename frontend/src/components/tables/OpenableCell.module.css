@@ -1,0 +1,25 @@
+/* Navy on the light page, and a pale navy on the dark one: the filled
+   navy Mantine uses for its own ring is barely visible on dark navy. */
+:global(:root) {
+  --openable-ring-colour: var(--mantine-color-primary-5);
+}
+
+:global([data-mantine-color-scheme="dark"]) {
+  --openable-ring-colour: var(--mantine-color-primary-1);
+}
+
+/* Looks like the text it wraps: the row is what shows it can be opened,
+   by its pointer and hover. */
+.open {
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  border-radius: var(--mantine-radius-xs);
+}
+
+/* The ring sits just outside the text, so a keyboard user sees which
+   row's first cell Enter will open. */
+.open:focus-visible {
+  outline: 0.125rem solid var(--openable-ring-colour);
+  outline-offset: 0.125rem;
+}

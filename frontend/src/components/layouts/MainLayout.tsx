@@ -28,6 +28,7 @@ import { useNavigate } from "react-router";
 import NavigationDrawer from "@/components/drawers/NavigationDrawer";
 import Footer from "@/components/footer/Footer";
 import InboxButton from "@/components/inbox/InboxButton";
+import NavSublinkProvider from "@/components/navigation/NavSublinkProvider";
 import SideNav from "@/components/navigation/SideNav";
 import TopRibbon from "@/components/ribbon/TopRibbon";
 import {
@@ -68,58 +69,62 @@ export default function MainLayout({
   const showBurger = signedIn && collapsed;
 
   return (
-    <AppShell
-      header={{ height: LAYOUT_RIBBON_HEIGHT }}
-      footer={signedIn && signedInAs ? { height: FOOTER_HEIGHT } : undefined}
-      navbar={
-        signedIn
-          ? {
-              width: LAYOUT_SIDEBAR_WIDTH,
-              breakpoint: "md",
-              collapsed: { mobile: true, desktop: !showSideBar },
+    // The page and the side bar share the page's own sublink, such as an
+    // organisation's name under "Organisations".
+    <NavSublinkProvider>
+      <AppShell
+        header={{ height: LAYOUT_RIBBON_HEIGHT }}
+        footer={signedIn && signedInAs ? { height: FOOTER_HEIGHT } : undefined}
+        navbar={
+          signedIn
+            ? {
+                width: LAYOUT_SIDEBAR_WIDTH,
+                breakpoint: "md",
+                collapsed: { mobile: true, desktop: !showSideBar },
+              }
+            : undefined
+        }
+        padding={LAYOUT_PADDING_X}
+        classNames={{ root: classes.shell, footer: classes.footer, navbar: classes.navbar }}
+      >
+        <AppShell.Header>
+          <TopRibbon
+            showBurger={showBurger}
+            navOpen={drawerOpen}
+            onBurgerClick={drawer.toggle}
+            end={
+              signedIn ? (
+                <InboxButton label="Inbox" onClick={() => void navigate("/inbox")} />
+              ) : undefined
             }
-          : undefined
-      }
-      padding={LAYOUT_PADDING_X}
-      classNames={{ root: classes.shell, footer: classes.footer, navbar: classes.navbar }}
-    >
-      <AppShell.Header>
-        <TopRibbon
-          showBurger={showBurger}
-          navOpen={drawerOpen}
-          onBurgerClick={drawer.toggle}
-          end={
-            signedIn ? (
-              <InboxButton label="Inbox" onClick={() => void navigate("/inbox")} />
-            ) : undefined
-          }
-        />
-      </AppShell.Header>
+          />
+        </AppShell.Header>
 
-      {showSideBar && (
-        <AppShell.Navbar>
-          <SideNav onSignOut={onSignOut} signingOut={signingOut} />
-        </AppShell.Navbar>
-      )}
+        {showSideBar && (
+          <AppShell.Navbar>
+            <SideNav onSignOut={onSignOut} signingOut={signingOut} />
+          </AppShell.Navbar>
+        )}
 
-      {showBurger && (
-        <NavigationDrawer opened={drawerOpen} onClose={drawer.close}>
-          <SideNav onSignOut={onSignOut} signingOut={signingOut} onNavigate={drawer.close} />
-        </NavigationDrawer>
-      )}
+        {showBurger && (
+          <NavigationDrawer opened={drawerOpen} onClose={drawer.close}>
+            <SideNav onSignOut={onSignOut} signingOut={signingOut} onNavigate={drawer.close} />
+          </NavigationDrawer>
+        )}
 
-      <AppShell.Main id="main-content" tabIndex={-1}>
-        <Container fluid maw={1280} px={0}>
-          {children}
-        </Container>
-      </AppShell.Main>
+        <AppShell.Main id="main-content" tabIndex={-1}>
+          <Container fluid maw={1280} px={0}>
+            {children}
+          </Container>
+        </AppShell.Main>
 
-      {signedIn && signedInAs && (
-        // A plain slot: `Footer` is the page's one footer landmark.
-        <AppShell.Footer component="div">
-          <Footer text={`Signed in as ${signedInAs}`} />
-        </AppShell.Footer>
-      )}
-    </AppShell>
+        {signedIn && signedInAs && (
+          // A plain slot: `Footer` is the page's one footer landmark.
+          <AppShell.Footer component="div">
+            <Footer text={`Signed in as ${signedInAs}`} />
+          </AppShell.Footer>
+        )}
+      </AppShell>
+    </NavSublinkProvider>
   );
 }

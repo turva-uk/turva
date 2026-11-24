@@ -30,6 +30,22 @@ interface TestHazard {
 }
 
 describe("DataTable", () => {
+  it("names the table by its label for a screen reader, without showing it", () => {
+    renderWithMantine(
+      <DataTable<{ id: string; name: string }>
+        data={[{ id: "1", name: "Anita" }]}
+        columns={[{ header: "Name", render: (row) => row.name }]}
+        getRowKey={(row) => row.id}
+        label="Members of this organisation"
+      />,
+    );
+
+    expect(
+      screen.getByRole("table", { name: "Members of this organisation" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("Members of this organisation")).not.toBeInTheDocument();
+  });
+
   describe("Rendering with data", () => {
     it("renders table with headers and data rows", () => {
       const users: TestUser[] = [
@@ -124,6 +140,31 @@ describe("DataTable", () => {
 
       expect(handleRowClick).toHaveBeenCalledWith(users[0]);
       expect(handleRowClick).toHaveBeenCalledTimes(1);
+    });
+
+    it("opens a row from its first cell, which is a button named by its own text", async () => {
+      const user = userEvent.setup();
+      const users: TestUser[] = [{ id: 1, name: "Alice", email: "alice@example.com" }];
+      const columns: Column<TestUser>[] = [
+        { header: "Name", render: (u) => u.name },
+        { header: "Email", render: (u) => u.email },
+      ];
+      const handleRowClick = vi.fn();
+
+      renderWithMantine(
+        <DataTable
+          data={users}
+          columns={columns}
+          onRowClick={handleRowClick}
+          getRowKey={(u) => u.id}
+        />,
+      );
+      await user.click(screen.getByRole("button", { name: "Alice" }));
+
+      expect(
+        screen.queryByRole("button", { name: "alice@example.com" }),
+      ).not.toBeInTheDocument();
+      expect(handleRowClick).toHaveBeenCalledExactlyOnceWith(users[0]);
     });
 
     it("applies pointer cursor to rows", () => {

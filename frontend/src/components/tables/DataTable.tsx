@@ -34,7 +34,6 @@ import {
   useMantineTheme,
   useComputedColorScheme,
   NativeSelect,
-  VisuallyHidden,
 } from "@mantine/core";
 import { useElementSize, useMediaQuery } from "@mantine/hooks";
 import { BodyText, BodyTextBold } from "@/components/typography";
@@ -43,8 +42,7 @@ import { IconAlertCircle } from "@/components/icons/appIcons";
 import SortHeader, { type SortDirection } from "./SortHeader";
 import TablePagination from "./TablePagination";
 import DataCard, { DataCardSkeleton } from "./DataCard";
-import CellContent from "./CellContent";
-import RowAction from "./RowAction";
+import OpenableCell from "./OpenableCell";
 import { shouldActivateRow } from "./rowInteraction";
 import classes from "./DataTable.module.css";
 
@@ -125,6 +123,13 @@ export interface DataTableProps<T> {
    * the per-column calculation for a table that knows better.
    */
   cardsBelow?: number;
+  /**
+   * The table's name for a screen reader, such as "Members of this
+   * organisation". It is not shown: the heading above the table says the
+   * same on screen. A screen reader lists tables by name, so give every
+   * table one.
+   */
+  label?: string;
 }
 
 /**
@@ -197,6 +202,7 @@ function DataTableView<T>({
   controls,
   minColumnWidth = 8,
   cardsBelow,
+  label,
 }: DataTableProps<T>) {
   if (
     initialPageSize !== undefined &&
@@ -232,8 +238,7 @@ function DataTableView<T>({
   const remPx = useMemo(() => rootFontSizePx(), []);
   // The native Open button and its cell padding need a full column, not
   // just the minimum touch-target width.
-  const needPx =
-    (cardsBelow ?? (columns.length + (onRowClick ? 1 : 0)) * minColumnWidth) * remPx;
+  const needPx = (cardsBelow ?? columns.length * minColumnWidth) * remPx;
   const [tooNarrow, setTooNarrow] = useState(false);
   // Derived state with a margin, set during render as `page` is below:
   // once on cards, stay on cards until there is comfortably room.
@@ -359,7 +364,7 @@ function DataTableView<T>({
 
     return (
       <div ref={measureRef}>
-        <Table striped stripedColor={stripedColor}>
+        <Table striped stripedColor={stripedColor} aria-label={label}>
           <Table.Thead>
             <Table.Tr>
               {columns.map((column, index) => (
@@ -371,11 +376,6 @@ function DataTableView<T>({
                   <BodyTextBold>{column.header}</BodyTextBold>
                 </Table.Th>
               ))}
-              {onRowClick && (
-                <Table.Th scope="col">
-                  <VisuallyHidden>Record actions</VisuallyHidden>
-                </Table.Th>
-              )}
             </Table.Tr>
           </Table.Thead>
           <Table.Tbody>
@@ -386,11 +386,6 @@ function DataTableView<T>({
                     <Skeleton height={25} mt={4} mb={4} />
                   </Table.Td>
                 ))}
-                {onRowClick && (
-                  <Table.Td>
-                    <Skeleton height={25} w={50} mt={4} mb={4} />
-                  </Table.Td>
-                )}
               </Table.Tr>
             ))}
           </Table.Tbody>
@@ -445,13 +440,7 @@ function DataTableView<T>({
           />
         )}
         {visibleData.map((row) => (
-          <DataCard
-            key={getRowKey(row)}
-            row={row}
-            columns={columns}
-            onClick={onRowClick}
-            actionLabel={`Open record ${getRowKey(row)}`}
-          />
+          <DataCard key={getRowKey(row)} row={row} columns={columns} onClick={onRowClick} />
         ))}
         {showPagination && (
           <TablePagination>
@@ -480,6 +469,7 @@ function DataTableView<T>({
         stripedColor={stripedColor}
         highlightOnHover
         highlightOnHoverColor={hoverColor}
+        aria-label={label}
       >
         <Table.Thead>
           <Table.Tr>
@@ -509,11 +499,6 @@ function DataTableView<T>({
                 )}
               </Table.Th>
             ))}
-            {onRowClick && (
-              <Table.Th scope="col">
-                <VisuallyHidden>Record actions</VisuallyHidden>
-              </Table.Th>
-            )}
           </Table.Tr>
         </Table.Thead>
         <Table.Tbody>
@@ -535,17 +520,13 @@ function DataTableView<T>({
                   className={classes.cell}
                   style={{ verticalAlign: "middle" }}
                 >
-                  <CellContent>{column.render(row)}</CellContent>
-                </Table.Td>
-              ))}
-              {onRowClick && (
-                <Table.Td>
-                  <RowAction
-                    label={`Open record ${getRowKey(row)}`}
-                    onOpen={() => onRowClick(row)}
+                  {/* The first cell is the keyboard way into the row. */}
+                  <OpenableCell
+                    content={column.render(row)}
+                    onOpen={onRowClick && index === 0 ? () => onRowClick(row) : undefined}
                   />
                 </Table.Td>
-              )}
+              ))}
             </Table.Tr>
           ))}
         </Table.Tbody>

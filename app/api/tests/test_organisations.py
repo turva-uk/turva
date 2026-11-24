@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import hashlib
 from concurrent.futures import ThreadPoolExecutor
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 from io import StringIO
 from threading import Event
 from uuid import uuid4
@@ -21,6 +21,7 @@ from django.test import Client
 from django.urls import reverse
 from django.utils import timezone
 
+import app.api.organisations as organisation_api
 from app.api.tests.test_hazard_writes import VALUES as HAZARD
 from app.api.tests.test_mitigation_writes import VALUES as MITIGATION
 from app.api.tests.test_pdf_download import body, download
@@ -129,6 +130,63 @@ def invite(client, context, email="invitee@riverbank.example.nhs.uk"):
     assert response.status_code == 201, response.content
     token = mail.outbox[-1].body.split("#")[1].split()[0]
     return Invitation.objects.get(pk=response.json()["invitation"]["id"]), token
+
+
+def test_administration_history_names_members_but_not_people_only_invited(team_context):
+    client = Client()
+    owner = team_context["owner"]
+    owner.first_name, owner.last_name = "Joseph", "Okafor"
+    owner.save(update_fields=["first_name", "last_name"])
+    outsider = make_user("s.whitlock@riverbank.example.nhs.uk", first="Sam", last="Whitlock")
+
+    invite(client, team_context, email=outsider.email)
+    events = client.get(endpoint("organisation-detail", team_context)).json()["events"]
+
+    issued = next(event for event in events if event["action"] == "invitation.issued")
+    changed = next(
+        event
+        for event in events
+        if event["action"] == "membership.changed" and event["subject"] == owner.email
+    )
+    assert issued["subject"] == outsider.email
+    assert issued["subject_name"] is None
+    assert issued["actor_name"] == team_context["admin"].get_full_name()
+    assert changed["subject_name"] == "Joseph Okafor"
+
+
+def test_adopted_files_say_when_their_history_last_changed(team_context):
+    client = Client()
+    adopt(team_context)
+    client.force_login(team_context["admin"])
+
+    files = client.get(endpoint("organisation-detail", team_context)).json()["files"]
+
+    latest = team_context["file"].repository().history(limit=1)[0].committed_at
+    assert [set(value) for value in files] == [{"slug", "name", "last_updated"}]
+    assert datetime.fromisoformat(files[0]["last_updated"]) == latest
+
+
+def test_adopted_files_come_newest_first_and_unreadable_ones_last(monkeypatch, team_context):
+    organisation = team_context["organisation"]
+    owner = team_context["owner"]
+    names = ["Fictional older", "Fictional newer", "Fictional unreadable"]
+    for name in names:
+        made = a_safety_file(owner, name=name)
+        SafetyFile.objects.filter(pk=made.pk).update(organisation_unit=organisation)
+    times = {
+        "Fictional older": datetime(2026, 11, 1, tzinfo=UTC),
+        "Fictional newer": datetime(2026, 11, 20, tzinfo=UTC),
+        "Fictional unreadable": None,
+    }
+    monkeypatch.setattr(organisation_api, "last_updated", lambda value: times[value.name])
+
+    files = organisation_api.file_data(organisation)
+
+    assert [value["name"] for value in files] == [
+        "Fictional newer",
+        "Fictional older",
+        "Fictional unreadable",
+    ]
 
 
 def accept(client, invitation, token):

@@ -3,7 +3,20 @@ import { Box } from "@mantine/core";
 import { fn } from "storybook/test";
 
 import { LAYOUT_SIDEBAR_WIDTH } from "@/components/layouts/layoutConstants";
+import NavSublinkProvider from "./NavSublinkProvider";
+import { usePageSublink } from "./pageSublink";
 import SideNav from "./SideNav";
+
+/** Stands in for the organisation page, which names its own sublink. */
+function OrganisationSublink() {
+  usePageSublink({
+    parent: "/organisations",
+    to: "/organisations/riverbank-health-federation",
+    label: "Riverbank Health Federation",
+  });
+
+  return null;
+}
 
 const meta: Meta<typeof SideNav> = {
   title: "Layout/Side navigation",
@@ -46,4 +59,20 @@ export const SigningOut: Story = {
 export const DarkMode: Story = {
   parameters: { routerPath: "/settings/profile" },
   globals: { colorScheme: "dark" },
+};
+
+/**
+ * On an organisation's page: the page names itself beneath Organisations,
+ * in place of a link back to the list.
+ */
+export const InAnOrganisation: Story = {
+  parameters: { routerPath: "/organisations/riverbank-health-federation" },
+  decorators: [
+    (Story) => (
+      <NavSublinkProvider>
+        <OrganisationSublink />
+        <Story />
+      </NavSublinkProvider>
+    ),
+  ],
 };

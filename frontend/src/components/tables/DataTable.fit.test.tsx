@@ -97,11 +97,11 @@ describe("DataTable fit", () => {
     expect(screen.getByRole("table")).toBeInTheDocument();
   });
 
-  it("reserves a full column for native record actions", () => {
+  it("needs no column of its own to open a row, as the first cell does it", () => {
     size.width = 688;
     render(seven.slice(0, 5), { onRowClick: vi.fn() });
-    expect(screen.queryByRole("table")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Open record 1" })).toBeInTheDocument();
+    expect(screen.getByRole("table")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "a1" })).toBeInTheDocument();
   });
 
   it("lets a table say its own width with cardsBelow", () => {

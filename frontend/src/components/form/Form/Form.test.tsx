@@ -537,6 +537,67 @@ describe("Form with confirm prop", () => {
     expect(screen.getByTestId("submit-button")).toHaveAttribute("aria-disabled", "true");
     expect(screen.queryByText("Are you sure?")).not.toBeInTheDocument();
   });
+
+  describe("asking only when a change needs it", () => {
+    function RenameForm({
+      onSubmit,
+    }: {
+      onSubmit: (data: TestFormValues) => Promise<FormSubmitResult>;
+    }) {
+      return (
+        <Form<TestFormValues>
+          defaultValues={{ name: "Dr Smith" }}
+          onSubmit={onSubmit}
+          submitLabel="Send"
+          submittingLabel="Sending…"
+          confirm={{
+            when: (data) => data.name !== "Dr Smith",
+            title: "Confirm rename",
+            children: (data) => `Rename Dr Smith to ${data.name}?`,
+            acceptLabel: "Rename",
+          }}
+        >
+          <Stack gap="md">
+            <FormStatus />
+            <ValidatedNameField />
+            <SubmitButton />
+          </Stack>
+        </Form>
+      );
+    }
+
+    it("saves straight away when the change does not need asking about", async () => {
+      const user = userEvent.setup();
+      const onSubmit = vi
+        .fn()
+        .mockResolvedValue({ state: "success", message: { title: "Sent" } });
+      renderWithMantine(<RenameForm onSubmit={onSubmit} />);
+
+      await user.click(screen.getByTestId("submit-button"));
+
+      await waitFor(() => expect(onSubmit).toHaveBeenCalledOnce());
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    });
+
+    it("asks when it does, with a message saying what will change", async () => {
+      const user = userEvent.setup();
+      const onSubmit = vi
+        .fn()
+        .mockResolvedValue({ state: "success", message: { title: "Sent" } });
+      renderWithMantine(<RenameForm onSubmit={onSubmit} />);
+
+      await user.clear(screen.getByLabelText("Name"));
+      await user.type(screen.getByLabelText("Name"), "Dr Jones");
+      await user.click(screen.getByTestId("submit-button"));
+
+      expect(await screen.findByText("Rename Dr Smith to Dr Jones?")).toBeInTheDocument();
+      expect(onSubmit).not.toHaveBeenCalled();
+
+      await user.click(screen.getByRole("button", { name: "Rename" }));
+
+      await waitFor(() => expect(onSubmit).toHaveBeenCalledOnce());
+    });
+  });
 });
 
 describe("Server messages for fields", () => {

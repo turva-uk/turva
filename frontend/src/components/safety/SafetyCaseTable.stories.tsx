@@ -40,8 +40,9 @@ export const NarrowRecordActions: Story = {
   ),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.queryByRole("table")).toBeNull();
-    await expect(canvas.getByRole("button", { name: "Open record bp-at-home" })).toBeVisible();
+    await expect(
+      canvas.getByRole("button", { name: "BP@Home remote blood pressure monitoring" }),
+    ).toBeVisible();
     await expect(canvas.getByText("1 Mar 2026")).toHaveAttribute(
       "datetime",
       "2026-03-01T09:00:00Z",

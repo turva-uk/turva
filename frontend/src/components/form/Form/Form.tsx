@@ -58,11 +58,16 @@ function isFieldPath<T extends FieldValues>(
   return Object.hasOwn(fieldErrors, key);
 }
 
-export interface FormConfirmConfig {
+export interface FormConfirmConfig<T extends FieldValues = FieldValues> {
+  /**
+   * Ask only when this returns true for the values being saved; any other
+   * save goes straight through. Without it, every save asks.
+   */
+  when?: (data: T) => boolean;
   /** Bold centred heading in the modal */
   title?: string;
-  /** Message body */
-  children: ReactNode;
+  /** Message body, or a function of the values being saved, to say what will change */
+  children: ReactNode | ((data: T) => ReactNode);
   /** Red action button label (defaults to "Confirm") */
   acceptLabel?: string;
   /** Label shown during submission (defaults to "Confirming…") */
@@ -92,7 +97,7 @@ export interface FormProps<T extends FieldValues> {
   /** When true, submit button is disabled until the form is dirty (defaults to false) */
   disableWhenClean?: boolean;
   /** When provided, a confirmation modal gates submission after validation passes */
-  confirm?: FormConfirmConfig;
+  confirm?: FormConfirmConfig<T>;
   /** Block navigation when form is dirty (defaults to true) */
   blockNavigation?: boolean;
   /** Form content (FormStatus, fields, SubmitButton) */
@@ -218,6 +223,7 @@ export default function Form<T extends FieldValues>({
   const [submissionPending, setSubmissionPending] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const pendingDataRef = useRef<T | null>(null);
+  const [confirmMessage, setConfirmMessage] = useState<ReactNode>(null);
 
   useEffect(
     () =>
@@ -355,8 +361,11 @@ export default function Form<T extends FieldValues>({
         busyRef.current = false;
         return;
       }
-      if (confirm) {
+      if (confirm && (confirm.when?.(data) ?? true)) {
         pendingDataRef.current = data;
+        setConfirmMessage(
+          typeof confirm.children === "function" ? confirm.children(data) : confirm.children,
+        );
         setConfirmOpen(true);
         setFormState("idle");
       } else {
@@ -449,7 +458,7 @@ export default function Form<T extends FieldValues>({
             cancelLabel={confirm.cancelLabel}
             icon={confirm.icon}
           >
-            {confirm.children}
+            {confirmMessage}
           </ConfirmModal>
         )}
       </FormProvider>

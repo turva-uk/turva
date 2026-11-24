@@ -46,6 +46,7 @@ export const InconsistentCompletion: Story = {
       canvas.getByText("A process step is marked done but still has outstanding requirements."),
     ).toBeVisible();
     await expect(canvas.queryByText("Done")).toBeNull();
-    await expect(canvas.queryByRole("button", { name: /^Open record/ })).toBeNull();
+    // No row is shown, so none can be opened.
+    await expect(canvas.queryByText(SAMPLE_PROCESS.steps[0]!.title)).toBeNull();
   },
 };
