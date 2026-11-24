@@ -53,6 +53,25 @@ describe("ButtonPair", () => {
     });
   });
 
+  describe("Spacing", () => {
+    it("sits a small step below what is above it by default", () => {
+      renderWithMantine(<ButtonPair {...defaultProps} />);
+
+      const group = screen.getByRole("button", { name: "OK" }).parentElement;
+
+      expect(group?.getAttribute("style")).toContain("--mantine-spacing-xs");
+    });
+
+    it("takes the space above it from mt", () => {
+      renderWithMantine(<ButtonPair {...defaultProps} mt="xl" />);
+
+      const group = screen.getByRole("button", { name: "OK" }).parentElement;
+
+      expect(group?.getAttribute("style")).toContain("--mantine-spacing-xl");
+      expect(group?.getAttribute("style")).not.toContain("--mantine-spacing-xs");
+    });
+  });
+
   describe("Interactions", () => {
     it("calls onAccept when accept button is clicked", async () => {
       const user = userEvent.setup();

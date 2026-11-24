@@ -350,6 +350,16 @@ describe("FormStatus (prop-driven)", () => {
 });
 
 describe("SubmitButton", () => {
+  it("sits well below the last field, with extra-large space above it", () => {
+    renderWithMantine(
+      <TestForm onSubmit={async () => ({ state: "success", message: { title: "OK" } })} />,
+    );
+
+    const group = screen.getByTestId("submit-button").parentElement;
+
+    expect(group?.getAttribute("style")).toContain("--mantine-spacing-xl");
+  });
+
   it("renders cancel button when onCancel is provided", async () => {
     const user = userEvent.setup();
     const onCancel = vi.fn();
@@ -526,5 +536,89 @@ describe("Form with confirm prop", () => {
     // With mode: "onChange", the button is disabled when required field is empty
     expect(screen.getByTestId("submit-button")).toHaveAttribute("aria-disabled", "true");
     expect(screen.queryByText("Are you sure?")).not.toBeInTheDocument();
+  });
+});
+
+describe("Server messages for fields", () => {
+  function RegisteredName() {
+    const { methods } = useFormContext<TestFormValues>();
+
+    return (
+      <TextField
+        label="Name"
+        {...methods.register("name")}
+        error={methods.formState.errors.name?.message}
+      />
+    );
+  }
+
+  it("shows each message under its field and keeps the draft", async () => {
+    const user = userEvent.setup();
+    renderWithMantine(
+      <Form<TestFormValues>
+        defaultValues={{ name: "" }}
+        onSubmit={async () => ({
+          state: "error",
+          message: { title: "Could not save" },
+          fieldErrors: { name: "That name is already taken." },
+        })}
+      >
+        <Stack gap="md">
+          <FormStatus />
+          <RegisteredName />
+          <SubmitButton />
+        </Stack>
+      </Form>,
+    );
+
+    await user.type(screen.getByLabelText("Name"), "Riverbank");
+    await user.click(screen.getByTestId("submit-button"));
+
+    expect(await screen.findByText("That name is already taken.")).toBeInTheDocument();
+    expect(screen.getByLabelText("Name")).toHaveValue("Riverbank");
+    expect(screen.getByLabelText("Name")).toHaveAttribute("aria-invalid", "true");
+  });
+});
+
+describe("FormStatus focus and the kept draft", () => {
+  it.each(["error", "timeout", "validation_error"] as const)(
+    "moves focus to the %s card, so a keyboard user hears it",
+    async (variant) => {
+      renderWithMantine(<FormStatus variant={variant} title="Could not save" />);
+
+      await waitFor(() =>
+        expect(screen.getByTestId("form-status").parentElement).toHaveFocus(),
+      );
+    },
+  );
+
+  it("leaves focus alone for a success", async () => {
+    renderWithMantine(<FormStatus variant="success" title="Saved" />);
+
+    await delay(50);
+    expect(document.body).toHaveFocus();
+  });
+
+  it("says the entries were kept when asked to, on a failure", () => {
+    renderWithMantine(
+      <FormStatus
+        variant="error"
+        title="Could not save"
+        description="Somebody saved first."
+        retainsDraft
+      />,
+    );
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Somebody saved first. Your entries have not been cleared.",
+    );
+  });
+
+  it("does not say so on a success", () => {
+    renderWithMantine(<FormStatus variant="success" title="Saved" retainsDraft />);
+
+    expect(screen.getByRole("status")).not.toHaveTextContent(
+      "Your entries have not been cleared.",
+    );
   });
 });

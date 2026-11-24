@@ -59,6 +59,9 @@ export default function SubmitButton({
 
   return (
     <ButtonPair
+      // 32px here, with the form's 16px gap, keeps the submit button 48px
+      // below the last field, so it reads as the end of the form.
+      mt="xl"
       acceptType="submit"
       acceptDisabled={isDisabled}
       cancelDisabled={

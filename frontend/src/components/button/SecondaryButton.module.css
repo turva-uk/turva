@@ -1,0 +1,5 @@
+/* Unavailable for now: faded, with the ordinary pointer. */
+.disabled {
+  opacity: 0.6;
+  cursor: default;
+}

@@ -38,12 +38,28 @@ import { useFormContext } from "./FormContext";
 type FormStatusVariant =
   "success" | "partial_success" | "error" | "validation_error" | "timeout";
 
+/**
+ * The line a failure adds when `retainsDraft` is set. ADR 0004 needs a
+ * refused save, such as one somebody else's save overtook, to say the draft
+ * is still there.
+ */
+export const DRAFT_KEPT = "Your entries have not been cleared.";
+
+/** The variants that report a failure: they take focus and can say the draft was kept. */
+const FAILURES: ReadonlySet<FormStatusVariant> = new Set([
+  "error",
+  "timeout",
+  "validation_error",
+]);
+
 interface FormStatusPropsFromContext {
   /** When used inside a <Form>, no props needed */
   variant?: never;
   title?: never;
   description?: never;
   onDismiss?: never;
+  /** On a failure, add a line saying the entries have not been cleared */
+  retainsDraft?: boolean;
 }
 
 interface FormStatusPropsManual {
@@ -55,6 +71,8 @@ interface FormStatusPropsManual {
   description?: ReactNode;
   /** Called when dismiss button is clicked */
   onDismiss?: () => void;
+  /** On a failure, add a line saying the entries have not been cleared */
+  retainsDraft?: boolean;
 }
 
 export type FormStatusProps = FormStatusPropsFromContext | FormStatusPropsManual;
@@ -110,29 +128,45 @@ function FormStatusCard({
   title,
   description,
   onDismiss,
+  retainsDraft = false,
 }: {
   variant: FormStatusVariant;
   title: string;
   description?: ReactNode;
   onDismiss?: () => void;
+  retainsDraft?: boolean;
 }) {
   const config = VARIANT_CONFIG[variant];
   const ref = useRef<HTMLDivElement>(null);
   const reducedMotion = useReducedMotion();
+  const failure = FAILURES.has(variant);
+  const detail =
+    failure && retainsDraft ? (
+      <>
+        {description}
+        {description ? " " : null}
+        {DRAFT_KEPT}
+      </>
+    ) : (
+      description
+    );
 
-  // Scroll into view whenever the card appears (mounts) or the message changes
+  // Scroll into view whenever the card appears (mounts) or the message
+  // changes. A failure also takes focus, so a keyboard or screen reader user
+  // lands on it rather than on the button they pressed.
   useEffect(() => {
     const id = requestAnimationFrame(() => {
+      if (failure) ref.current?.focus({ preventScroll: true });
       ref.current?.scrollIntoView({
         behavior: reducedMotion ? "instant" : "smooth",
         block: "start",
       });
     });
     return () => cancelAnimationFrame(id);
-  }, [reducedMotion]);
+  }, [reducedMotion, failure]);
 
   return (
-    <div ref={ref} style={{ scrollMarginTop: 20 }}>
+    <div ref={ref} tabIndex={failure ? -1 : undefined} style={{ scrollMarginTop: 20 }}>
       <BaseCard
         bg={config.bg}
         data-testid="form-status"
@@ -146,7 +180,7 @@ function FormStatusCard({
             </Box>
             <Stack gap={4}>
               <Heading c="white">{title}</Heading>
-              {description && <BodyTextInline c="white">{description}</BodyTextInline>}
+              {detail && <BodyTextInline c="white">{detail}</BodyTextInline>}
             </Stack>
           </Group>
           {onDismiss && (
@@ -165,7 +199,7 @@ function FormStatusCard({
 }
 
 /** Context-aware wrapper - reads from Form context */
-function FormStatusFromContext() {
+function FormStatusFromContext({ retainsDraft }: { retainsDraft?: boolean }) {
   const ctx = useFormContext();
 
   if (
@@ -183,6 +217,7 @@ function FormStatusFromContext() {
       title={ctx.statusMessage.title}
       description={ctx.statusMessage.description}
       onDismiss={ctx.dismissStatus}
+      retainsDraft={retainsDraft}
     />
   );
 }
@@ -195,9 +230,10 @@ export default function FormStatus(props: FormStatusProps) {
         title={props.title}
         description={props.description}
         onDismiss={props.onDismiss}
+        retainsDraft={props.retainsDraft}
       />
     );
   }
 
-  return <FormStatusFromContext />;
+  return <FormStatusFromContext retainsDraft={props.retainsDraft} />;
 }
