@@ -1,159 +1,147 @@
-import {
-  Alert,
-  Anchor,
-  Box,
-  Button,
-  Loader,
-  SimpleGrid,
-  Stack,
-  Text,
-  Title,
-} from "@mantine/core";
-import { Link, useParams } from "react-router";
+import { Box, Group, Stack } from "@mantine/core";
+import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router";
 
-import type { HazardDetail } from "../api/types";
-import { useApiResource } from "../api/useApiResource";
-import { HistoryTable } from "../components/HistoryTable";
-import { RiskLevel } from "../components/RiskLevel";
+import { ApiError } from "../api/client";
+import type { HazardDetail as HazardDetailData, HazardOptions } from "../api/types";
+import IconTextButton from "../components/button/IconTextButton";
+import SecondaryButton from "../components/button/SecondaryButton";
+import { IconAlertCircle } from "../components/icons/appIcons";
+import { PageSpinner } from "../components/loading-spinner";
+import { StateMessage } from "../components/message-cards";
+import AuditTrailTable from "../components/safety/AuditTrailTable";
+import HazardDetail from "../components/safety/HazardDetail";
+import { BodyText, Heading, PageHeader, TextLink } from "../components/typography";
+import { getHazard, hazardOptions, isNotFound } from "../lib/safety";
+
+const NOT_FOUND = "That hazard does not exist, or you do not have access to it.";
 
 export function HazardDetailPage() {
-  const { slug, hazardId } = useParams();
-  const { data, error } = useApiResource<HazardDetail>(
-    `/safety-files/${slug}/hazards/${hazardId}/`,
-    "That hazard does not exist, or you do not have access to it.",
-  );
-  if (error)
+  const { slug = "", hazardId = "" } = useParams();
+  const [data, setData] = useState<HazardDetailData | null>(null);
+  const [options, setOptions] = useState<HazardOptions | undefined>(undefined);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    getHazard(slug, hazardId, controller.signal)
+      .then(setData)
+      .catch((reason: unknown) => {
+        if (controller.signal.aborted) return;
+        if (isNotFound(reason)) setError(NOT_FOUND);
+        else setError(reason instanceof ApiError ? reason.message : "Something went wrong.");
+      });
+    // The scores' words. Without them each score shows as its number, so a
+    // failure here does not stop the hazard showing.
+    hazardOptions(controller.signal)
+      .then(setOptions)
+      .catch(() => undefined);
+
+    return () => controller.abort();
+  }, [slug, hazardId]);
+
+  if (error) {
     return (
-      <Alert color="red" role="alert" title="Could not load that hazard">
-        {error}
-      </Alert>
+      <Stack maw={960}>
+        <PageHeader title="Hazard" />
+        <Box role="alert">
+          <StateMessage
+            icon={<IconAlertCircle />}
+            colour="alert"
+            title="Could not load that hazard"
+            description={error}
+          />
+        </Box>
+      </Stack>
     );
-  if (!data) return <Loader aria-label="Loading the hazard" />;
+  }
+  if (!data) return <PageSpinner label="Loading the hazard" />;
+
+  return <Hazard data={data} options={options} slug={slug} />;
+}
+
+function Hazard({
+  data,
+  options,
+  slug,
+}: {
+  data: HazardDetailData;
+  options: HazardOptions | undefined;
+  slug: string;
+}) {
+  const navigate = useNavigate();
   const { hazard, safety_file: file } = data;
+
   return (
     <Box maw={960}>
-      <Anchor component={Link} to={`/safety-files/${slug}`}>
-        Back to {file.name}
-      </Anchor>
-      <Title order={1} size="h2" mt="md">
-        {hazard.id}: {hazard.title}
-      </Title>
-      {data.can_edit && (
-        <Button component={Link} to={`/safety-files/${slug}/hazards/${hazard.id}/edit`} mt="sm">
-          Edit hazard
-        </Button>
-      )}
-      <Text mt="xs">
-        Status: {hazard.status} · Responsible person: {hazard.owner || "Not recorded"}
-      </Text>
-      <Text size="sm" c="dimmed">
-        Created {hazard.created} · Updated {hazard.updated}
-      </Text>
-      {data.problems.length > 0 && (
-        <Alert color="red" role="alert" mt="md" title="This safety file does not validate">
-          <ul>
-            {data.problems.map((p) => (
-              <li key={p}>{p}</li>
-            ))}
-          </ul>
-        </Alert>
-      )}
-      {hazard.requires_elimination && (
-        <Alert color="red" role="alert" mt="md" title="Residual risk requires elimination">
-          The derived residual risk level is {hazard.residual.risk_level}. A closed or
-          transferred status does not by itself reduce that assessment.
-        </Alert>
-      )}
-      <SimpleGrid cols={{ base: 1, sm: 2 }} mt="lg">
-        <Box>
-          <Title order={2} size="h3">
-            Initial risk
-          </Title>
-          <RiskLevel assessment={hazard.initial} label="initial" />
-        </Box>
-        <Box>
-          <Title order={2} size="h3">
-            Residual risk
-          </Title>
-          <RiskLevel assessment={hazard.residual} label="residual" />
-        </Box>
-      </SimpleGrid>
-      <Stack mt="lg" gap="lg">
-        {(
-          [
-            ["Cause", hazard.cause],
-            ["Effect on the care pathway", hazard.effect],
-            ["Potential harm", hazard.harm],
-            ["Risk justification", hazard.justification],
-          ] as const
-        ).map(([label, value]) => (
-          <Box key={label}>
-            <Title order={2} size="h3" mb="xs">
-              {label}
-            </Title>
-            <Text style={{ whiteSpace: "pre-wrap" }}>{value || "Not recorded."}</Text>
-          </Box>
-        ))}
-        {hazard.body && (
-          <Box>
-            <Title order={2} size="h3" mb="xs">
-              Recorded narrative (Markdown)
-            </Title>
-            <Text component="pre" className="evidence-text">
-              {hazard.body}
-            </Text>
+      <Stack gap="lg">
+        <TextLink to={`/safety-files/${slug}`} standalone>
+          Back to {file.name}
+        </TextLink>
+        <PageHeader
+          title={`${hazard.id}: ${hazard.title}`}
+          action={
+            data.can_edit ? (
+              <IconTextButton
+                icon="pencil"
+                label="Edit hazard"
+                onClick={() => void navigate(`/safety-files/${slug}/hazards/${hazard.id}/edit`)}
+              />
+            ) : undefined
+          }
+        />
+
+        {data.problems.length > 0 && (
+          <Box role="alert">
+            <StateMessage
+              icon={<IconAlertCircle />}
+              colour="alert"
+              title="This safety file does not validate"
+              description={
+                <ul>
+                  {data.problems.map((problem) => (
+                    <li key={problem}>{problem}</li>
+                  ))}
+                </ul>
+              }
+            />
           </Box>
         )}
-        <Box>
-          <Title order={2} size="h3" mb="sm">
-            Linked mitigations
-          </Title>
-          {data.can_edit && (
-            <Button
-              component={Link}
-              variant="outline"
-              mb="sm"
-              to={`/safety-files/${slug}/mitigations/new?hazard=${hazard.id}`}
-            >
-              Record a mitigation for this hazard
-            </Button>
-          )}
-          {data.mitigations.length === 0 && <Text>No linked mitigations recorded.</Text>}
-          {data.mitigations.map((m) => (
-            <Box key={m.id} component="section" mb="lg" aria-label={m.id}>
-              <Title order={3} size="h4">
-                <Anchor component={Link} to={`/safety-files/${slug}/mitigations/${m.id}`}>
-                  {m.id}: {m.title}
-                </Anchor>
-              </Title>
-              <Text size="sm">
-                {m.status} · {m.control_type} control · Responsible person:{" "}
-                {m.owner || "Not recorded"}
-              </Text>
-              <Text mt="xs" style={{ whiteSpace: "pre-wrap" }}>
-                {m.evidence || "Implementation evidence not recorded."}
-              </Text>
-              {m.body && (
-                <Text component="pre" className="evidence-text">
-                  {m.body}
-                </Text>
-              )}
-            </Box>
-          ))}
-        </Box>
-        <Box>
-          <Title order={2} size="h3" mb="sm">
-            Hazard history
-          </Title>
-          <HistoryTable
+
+        <HazardDetail
+          hazard={hazard}
+          mitigations={data.mitigations}
+          options={options}
+          showTitle={false}
+          mitigationHref={(id) => `/safety-files/${slug}/mitigations/${id}`}
+          mitigationAction={
+            data.can_edit ? (
+              <Group justify="flex-end">
+                <SecondaryButton
+                  onClick={() =>
+                    void navigate(`/safety-files/${slug}/mitigations/new?hazard=${hazard.id}`)
+                  }
+                >
+                  Record a mitigation for this hazard
+                </SecondaryButton>
+              </Group>
+            ) : undefined
+          }
+        />
+
+        <Stack gap="xs">
+          <Heading>Hazard history</Heading>
+          <AuditTrailTable
             history={data.history}
             caption="Up to 50 most recent changes to this hazard, including renames"
           />
-        </Box>
-        <Text size="xs" c="dimmed">
+        </Stack>
+
+        <BodyText c="dimmed">
           Repository version: <code>{data.head_sha}</code>. This is recorded evidence, not
           confirmation that the system is safe.
-        </Text>
+        </BodyText>
       </Stack>
     </Box>
   );

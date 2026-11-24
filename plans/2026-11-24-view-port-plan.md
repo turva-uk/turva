@@ -187,8 +187,16 @@ As built:
 
 ## Phase 10: The hazard page
 
-- [ ] Move `HazardDetailPage` onto `HazardDetail`, passing `hazardOptions` so each score shows its words, and onto `DataTable` for the hazard's history. Fetch through `getHazard`.
-- [ ] Check: `./s/frontend` and `./s/lint` pass, with `HazardDetailPage.test.tsx` rewritten where the new components need it, still testing what this check names. Put screenshots of each view this phase moves, in light and dark mode, in the pull request description under a `## Screenshots` heading, uploaded with `gh pr edit --attach`.
+- [x] Move `HazardDetailPage` onto `HazardDetail`, passing `hazardOptions` so each score shows its words, and onto `DataTable` for the hazard's history. Fetch through `getHazard`.
+- [x] Check: `./s/frontend` and `./s/lint` pass, with `HazardDetailPage.test.tsx` rewritten where the new components need it, still testing what this check names. Put screenshots of each view this phase moves, in light and dark mode, in the pull request description under a `## Screenshots` heading, uploaded with `gh pr edit --attach`.
+
+As built:
+
+- **`HazardDetail` takes the page's wording and what it lacked**: "Effect on the care pathway", "Risk justification", "Linked mitigations" and "No linked mitigations recorded.", and the blocking notice as "Residual risk requires elimination" with the derived level. New props link each mitigation (`mitigationHref`), add the record-mitigation action under its heading (`mitigationAction`), and leave the title to the `PageHeader` (`showTitle`).
+- **The recorded narratives show as the stored Markdown source**, the hazard's under "Recorded narrative (Markdown)" and each mitigation's too, as the page showed them, not rendered through `MarkdownView`. `SAFETY.md` records that the shared Markdown display is not yet used by the application's pages; rendering the narratives is a decision for later, with its own assurance note.
+- **The page fetches through `getHazard` and `hazardOptions`**; if the options cannot be loaded, each score shows as its number. "Edit hazard" is an `IconTextButton` in the `PageHeader`, and the history is an `AuditTrailTable`.
+- **`HazardDetailPage.test.tsx`'s sample hazard gained the fields the API always sends**, the hazard's `mitigations` and each mitigation's `owner` and `body`, and a new test checks the edit and record buttons and the named history table.
+- **As run on 24 November 2026**: `./s/frontend` passed (1,466 tests, the build and the Storybook build), the Storybook check passed all 214 safety stories, `./s/lint` passed, and `./s/test` passed (611 Django tests, and the host suites).
 
 ## Phase 11: The hazard form
 

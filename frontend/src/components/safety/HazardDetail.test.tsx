@@ -5,7 +5,7 @@
 import { describe, expect, it } from "vitest";
 import { screen } from "@testing-library/react";
 
-import { renderWithMantine } from "@/test/test-utils";
+import { renderWithMantine, renderWithRouter } from "@/test/test-utils";
 import {
   BLOCKING_HAZARD,
   MITIGATED_HAZARD,
@@ -52,17 +52,65 @@ describe("HazardDetail", () => {
 
   it("warns when the residual level blocks go-live", () => {
     renderWithMantine(<HazardDetail hazard={BLOCKING} mitigations={SAMPLE_MITIGATIONS} />);
-    expect(screen.getByText("This hazard blocks go-live")).toBeInTheDocument();
-    expect(screen.getByText("No mitigation is recorded against it.")).toBeInTheDocument();
+    expect(screen.getByText("Residual risk requires elimination")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        `The derived residual risk level is ${BLOCKING.residual.risk_level}. A closed or transferred status does not by itself reduce that assessment.`,
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByText("No linked mitigations recorded.")).toBeInTheDocument();
   });
 
   it("does not warn for a hazard reduced to an acceptable level", () => {
     renderWithMantine(<HazardDetail hazard={REDUCED} mitigations={SAMPLE_MITIGATIONS} />);
-    expect(screen.queryByText("This hazard blocks go-live")).not.toBeInTheDocument();
+    expect(screen.queryByText("Residual risk requires elimination")).not.toBeInTheDocument();
   });
 
-  it("renders the notes as Markdown", () => {
+  it("shows the recorded narrative as the Markdown source that was saved", () => {
     renderWithMantine(<HazardDetail hazard={REDUCED} mitigations={SAMPLE_MITIGATIONS} />);
-    expect(screen.getByRole("heading", { name: "Notes" })).toBeInTheDocument();
+
+    expect(screen.getByText("Recorded narrative (Markdown)")).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Notes" })).not.toBeInTheDocument();
+    expect(
+      screen.getByText(
+        (_content, element) =>
+          element?.tagName === "PRE" && element.textContent === REDUCED.body,
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("links each mitigation when told where its page is, and shows the action given", () => {
+    renderWithRouter(
+      <HazardDetail
+        hazard={REDUCED}
+        mitigations={SAMPLE_MITIGATIONS}
+        mitigationHref={(id) => `/safety-files/demo/mitigations/${id}`}
+        mitigationAction={<button type="button">Record a mitigation for this hazard</button>}
+      />,
+    );
+
+    expect(
+      screen.getByRole("link", { name: /MIT-001: Same-day automated flagging/ }),
+    ).toHaveAttribute("href", "/safety-files/demo/mitigations/MIT-001");
+    expect(
+      screen.getByRole("button", { name: "Record a mitigation for this hazard" }),
+    ).toBeInTheDocument();
+  });
+
+  it("leaves the title to the page header when asked", () => {
+    renderWithMantine(
+      <HazardDetail hazard={REDUCED} mitigations={SAMPLE_MITIGATIONS} showTitle={false} />,
+    );
+
+    expect(
+      screen.queryByRole("heading", { name: `${REDUCED.id}: ${REDUCED.title}` }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("uses the page's words for the effect and the justification", () => {
+    renderWithMantine(<HazardDetail hazard={REDUCED} mitigations={SAMPLE_MITIGATIONS} />);
+
+    expect(screen.getByText("Effect on the care pathway")).toBeInTheDocument();
+    expect(screen.getByText("Risk justification")).toBeInTheDocument();
   });
 });
