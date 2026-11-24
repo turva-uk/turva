@@ -22,7 +22,11 @@
  * ```tsx
  * <RiskScoreBadge assessment={hazard.residual} />
  * <RiskScoreBadge assessment={hazard.residual} compact />
+ * <RiskScoreBadge assessment={hazard.residual} withScores />
  * ```
+ *
+ * `withScores` puts the severity and likelihood in front, as "S4 L3", so a
+ * reader sees what the level was derived from without opening the hazard.
  */
 
 import { Badge, Group } from "@mantine/core";
@@ -41,6 +45,8 @@ type Props = {
   assessment: Assessment;
   /** Show the level's number alone, with its words in a tooltip */
   compact?: boolean;
+  /** Show the severity and likelihood in front of the level, as "S4 L3" */
+  withScores?: boolean;
 };
 
 function colourFor(level: number): BadgeColourConfig {
@@ -58,7 +64,11 @@ function describeAssessment(assessment: Assessment): string {
   );
 }
 
-export default function RiskScoreBadge({ assessment, compact = false }: Props) {
+export default function RiskScoreBadge({
+  assessment,
+  compact = false,
+  withScores = false,
+}: Props) {
   if (
     !isRiskScore(assessment.risk_level) ||
     !isRiskScore(assessment.severity) ||
@@ -97,7 +107,18 @@ export default function RiskScoreBadge({ assessment, compact = false }: Props) {
   // a badge of the whole label ran past the edge of a half-width card.
   // One name for the pair, so a screen reader hears the level once.
   return (
-    <Group gap="xs" wrap="nowrap" align="center" role="img" aria-label={words}>
+    <Group
+      gap="xs"
+      wrap={withScores ? "wrap" : "nowrap"}
+      align="center"
+      role="img"
+      aria-label={words}
+    >
+      {withScores && (
+        <BodyText>
+          S{assessment.severity} L{assessment.likelihood}
+        </BodyText>
+      )}
       <Badge color={colour.bg} c={colour.text} variant={BADGE_VARIANT}>
         {assessment.risk_level}
       </Badge>

@@ -172,9 +172,18 @@ As built:
 
 ## Phase 9: The safety file page
 
-- [ ] Move `SafetyFileDetailPage` onto `HazardTable` in place of `HazardLog`, and `DataTable` for the mitigations and the history in place of `MitigationList` and `HistoryTable`, fetching through `getFile`. `PDFDownload` stays as it is. The page shows the risk levels the server sent, and works none out.
-- [ ] Delete `HazardLog`, its test and `MitigationList`, which nothing else uses. `HistoryTable` stays until Phase 13.
-- [ ] Check: `./s/frontend` and `./s/lint` pass. The pull request says `SAFETY.md` needs no change, since the levels shown are the server's (TH-008). Put screenshots of each view this phase moves, in light and dark mode, in the pull request description under a `## Screenshots` heading, uploaded with `gh pr edit --attach`.
+- [x] Move `SafetyFileDetailPage` onto `HazardTable` in place of `HazardLog`, and `DataTable` for the mitigations and the history in place of `MitigationList` and `HistoryTable`, fetching through `getFile`. `PDFDownload` stays as it is. The page shows the risk levels the server sent, and works none out.
+- [x] Delete `HazardLog`, its test and `MitigationList`, which nothing else uses. `HistoryTable` stays until Phase 13.
+- [x] Check: `./s/frontend` and `./s/lint` pass. The pull request says `SAFETY.md` needs no change, since the levels shown are the server's (TH-008). Put screenshots of each view this phase moves, in light and dark mode, in the pull request description under a `## Screenshots` heading, uploaded with `gh pr edit --attach`.
+
+As built:
+
+- **`HazardTable` keeps what the old log showed.** Each level shows with the scores it came from and its words, through a new `withScores` on `RiskScoreBadge`, as "S4 L3, 4, Mandatory elimination"; the old log did the same. That reverses `HazardTable`'s number-alone cells, and its test changed with it. It also gained a status filter, harm in its search, and `caption` and `emptyMessage`. The levels are still the server's; nothing works one out (TH-008).
+- **A new `AuditTrailTable` in `components/safety/`** shows a file's commits, with a story and a test. The hazard and mitigation pages use it in Phases 10 and 13, where `HistoryTable` goes.
+- **The mitigations are a `DataTable`**, with fixed widths for ID, status and control type, and each linked hazard on its own line through `CellLines`, so no reference breaks at its hyphen.
+- **The page fetches through `getFile`**, and its notices, the missing repository, validation problems and blocking residual risk, are `StateMessage`s in `alert` regions, as they were alerts before.
+- **A new `SafetyFileDetailPage.test.tsx`** checks the three named tables, the blocking notice, validation problems, the missing repository and the record buttons for somebody who may edit.
+- **As run on 24 November 2026**: `./s/frontend` passed (1,462 tests, the build and the Storybook build), the Storybook check passed all 214 safety stories, `./s/lint` passed, and `./s/test` passed (611 Django tests, and the host suites).
 
 ## Phase 10: The hazard page
 
