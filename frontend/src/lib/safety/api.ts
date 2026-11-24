@@ -23,6 +23,7 @@ import type {
   HazardOptions,
   MitigationDetail,
   MitigationOptions,
+  SafetyDocumentDetail,
   SafetyFile,
   SafetyFileDetail,
 } from "@/api/types";
@@ -55,6 +56,20 @@ function filePath(slug: string): string {
 /** One route boundary for document requests and navigation; not an access grant. */
 export function documentPath(slug: string, key: string): string {
   return `${filePath(slug)}documents/${routeIdentifier(key, "document")}/`;
+}
+
+/**
+ * One of a file's documents, as the typed nodes the server built from its
+ * committed Markdown, with the commit it was read at.
+ *
+ * @throws Error before any request if the slug or key is not an identifier.
+ */
+export function getDocument(
+  slug: string,
+  key: string,
+  signal?: AbortSignal,
+): Promise<SafetyDocumentDetail> {
+  return api.get<SafetyDocumentDetail>(documentPath(slug, key), signal);
 }
 
 /* ------------------------------------------------------------------ */

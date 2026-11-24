@@ -19,12 +19,16 @@ import type { Assessment, Hazard, Mitigation, SafetyFile } from "@/api/types";
 export type {
   Assessment,
   Commit,
+  DocumentNode,
   Hazard,
   HazardDetail,
   HazardOptions,
   Mitigation,
   MitigationDetail,
   MitigationOptions,
+  SafetyDocumentContent,
+  SafetyDocumentDetail,
+  SafetyDocumentSummary,
   SafetyFile,
   SafetyFileDetail,
 } from "@/api/types";

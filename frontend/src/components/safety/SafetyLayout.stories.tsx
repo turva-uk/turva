@@ -36,6 +36,7 @@ import {
   SAMPLE_FILE_DETAIL,
   SAMPLE_HAZARD_OPTIONS,
   SAMPLE_HAZARDS,
+  SAMPLE_DOCUMENT,
   SAMPLE_HEAD,
   SAMPLE_MITIGATIONS,
 } from "@/test/safetyFile";
@@ -44,6 +45,7 @@ import DocumentTable from "./DocumentTable";
 import HazardDetail from "./HazardDetail";
 import HazardTable from "./HazardTable";
 import OfficerList from "./OfficerList";
+import DocumentNodes from "./DocumentNodes";
 import SafetyDocumentSheet from "./SafetyDocumentSheet";
 import SafetyStatusBadge from "./SafetyStatusBadge";
 
@@ -185,8 +187,9 @@ export const Document: Story = {
         system={file.name}
         status={SAMPLE_EXTRAS.status}
         commit={SAMPLE_HEAD}
-        text={"# Clinical Safety Case Report\n\n## 1. System\n\nBP@Home."}
-      />
+      >
+        <DocumentNodes document={SAMPLE_DOCUMENT} slug={file.slug} />
+      </SafetyDocumentSheet>
     </SafetyPage>
   ),
 };

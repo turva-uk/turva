@@ -1,154 +1,139 @@
-import { Alert, Anchor, Box, Group, Loader, Text, Title } from "@mantine/core";
-import { useEffect } from "react";
-import { Link, useLocation, useParams } from "react-router";
+import { Box, Stack } from "@mantine/core";
+import { useEffect, useState } from "react";
+import { useLocation, useParams } from "react-router";
 
+import { ApiError } from "../api/client";
 import type { SafetyDocumentDetail } from "../api/types";
-import { useApiResource } from "../api/useApiResource";
-import { SafetyDocument } from "../components/SafetyDocument";
-import { documentPath } from "../lib/safety/api";
+import { IconAlertCircle } from "../components/icons/appIcons";
+import { PageSpinner } from "../components/loading-spinner";
+import { StateMessage } from "../components/message-cards";
+import DocumentList from "../components/safety/DocumentList";
+import DocumentNodes from "../components/safety/DocumentNodes";
+import SafetyDocumentSheet from "../components/safety/SafetyDocumentSheet";
+import { BodyText, PageHeader, TextLink } from "../components/typography";
+import { documentPath, getDocument, isNotFound } from "../lib/safety";
 
 const NOT_FOUND =
   "That document does not exist in this safety file, or you do not have access to it.";
 
 export function SafetyDocumentPage() {
-  const { slug, documentKey } = useParams<{ slug: string; documentKey: string }>();
+  const { slug = "", documentKey = "" } = useParams<{ slug: string; documentKey: string }>();
+
+  // Refuse a bad identifier before any request, rather than letting a
+  // dot segment or separator reach the URL.
   let path: string;
   try {
-    path = documentPath(slug ?? "", documentKey ?? "");
+    path = documentPath(slug, documentKey);
   } catch {
     return (
-      <Alert color="red" role="alert" title="Could not load that document">
-        The safety file or document identifier is invalid. Return to the safety files list.
-        <Anchor component={Link} to="/safety-files" display="block">
-          All safety files
-        </Anchor>
-      </Alert>
+      <Failure description="The safety file or document identifier is invalid. Return to the safety files list." />
     );
   }
-  return <DocumentContent path={path} />;
+
+  // Keyed on the path, so moving to another document starts afresh: the
+  // last document never shows under the next one's heading (TH-001).
+  return <DocumentContent key={path} slug={slug} documentKey={documentKey} />;
 }
 
-function DocumentContent({ path }: { path: string }) {
-  const { hash } = useLocation();
-  const { data, error } = useApiResource<SafetyDocumentDetail>(path, NOT_FOUND);
+function Failure({ description }: { description: string }) {
+  return (
+    <Stack maw={960} gap="lg">
+      <TextLink to="/safety-files" standalone>
+        All safety files
+      </TextLink>
+      <PageHeader title="Document" />
+      <Box role="alert">
+        <StateMessage
+          icon={<IconAlertCircle />}
+          colour="alert"
+          title="Could not load that document"
+          description={description}
+        />
+      </Box>
+    </Stack>
+  );
+}
 
-  // A link to a section in another document arrives before that document has
-  // loaded, so the browser cannot scroll to it by itself.
+function DocumentContent({ slug, documentKey }: { slug: string; documentKey: string }) {
+  const { hash } = useLocation();
+  const [data, setData] = useState<SafetyDocumentDetail | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    getDocument(slug, documentKey, controller.signal)
+      .then(setData)
+      .catch((reason: unknown) => {
+        if (controller.signal.aborted) return;
+        if (isNotFound(reason)) setError(NOT_FOUND);
+        else
+          setError(
+            reason instanceof ApiError
+              ? reason.message
+              : "Something went wrong. Please try again.",
+          );
+      });
+
+    return () => controller.abort();
+  }, [slug, documentKey]);
+
+  // A link to a section in another document arrives before that document
+  // has loaded, so the browser cannot scroll to it by itself.
   useEffect(() => {
     if (!data || !hash) return;
+
     let id = hash.slice(1);
     try {
       id = decodeURIComponent(id);
     } catch {
-      // A malformed pasted/source fragment must not unmount the evidence page.
-      // Retain it literally rather than guessing a repaired heading address.
+      // A malformed fragment must not unmount the evidence page. Keep it
+      // literally rather than guessing a repaired heading address.
     }
     document.getElementById(id)?.scrollIntoView();
   }, [data, hash]);
 
-  if (error) {
-    return (
-      <Box>
-        <Anchor component={Link} to="/safety-files">
-          All safety files
-        </Anchor>
-        <Alert color="red" role="alert" title="Could not load that document" mt="md">
-          {error}
-        </Alert>
-      </Box>
-    );
-  }
-  if (!data) return <Loader aria-label="Loading the document" />;
+  if (error) return <Failure description={error} />;
+  if (!data) return <PageSpinner label="Loading the document" />;
 
   const { document: doc, safety_file: file, last_changed: last } = data;
 
   return (
     <Box maw={960}>
-      <Anchor component={Link} to={`/safety-files/${file.slug}`}>
-        Back to {file.name}
-      </Anchor>
-      <nav aria-label="Safety documents">
-        <Group gap="xs" mt="sm" wrap="wrap" component="ul" className="document-tabs">
-          {data.documents.map((item) => (
-            <li key={item.key}>
-              <Link
-                to={documentPath(file.slug, item.key)}
-                className="document-tab"
-                aria-current={item.key === doc.key ? "page" : undefined}
-              >
-                {item.title}
-              </Link>
-            </li>
-          ))}
-        </Group>
-      </nav>
-      <Title order={1} size="h2" mt="md">
-        {doc.title}
-      </Title>
-      <Text size="sm" mt="xs">
-        Read-only view of <code>{doc.path}</code> at commit <code>{doc.source_commit}</code>,
-        the version captured when this page loaded. This is not a PDF export or an approval.
-      </Text>
-      {last && (
-        <Text size="sm" c="dimmed">
-          Last changed in <code>{last.short_sha}</code> by {last.author_name} on{" "}
-          <time dateTime={last.committed_at}>
-            {new Date(last.committed_at).toLocaleString("en-GB", {
-              dateStyle: "medium",
-              timeStyle: "short",
-            })}
-          </time>
-          : {last.subject}
-        </Text>
-      )}
+      <Stack gap="lg">
+        <TextLink to={`/safety-files/${file.slug}`} standalone>
+          Back to {file.name}
+        </TextLink>
+        <DocumentList
+          documents={data.documents}
+          current={doc.key}
+          href={(key) => documentPath(file.slug, key)}
+        />
+        <PageHeader title={doc.title} />
+        <Stack gap={4}>
+          <BodyText>
+            Read-only view of <code>{doc.path}</code> at commit <code>{doc.source_commit}</code>
+            , the version captured when this page loaded. This is not a PDF export or an
+            approval.
+          </BodyText>
+          {last && (
+            <BodyText c="dimmed">
+              Last changed in <code>{last.short_sha}</code> by {last.author_name} on{" "}
+              <time dateTime={last.committed_at}>
+                {new Date(last.committed_at).toLocaleString("en-GB", {
+                  dateStyle: "medium",
+                  timeStyle: "short",
+                })}
+              </time>
+              : {last.subject}
+            </BodyText>
+          )}
+        </Stack>
 
-      {!doc.available ? (
-        <>
-          <Alert
-            color="red"
-            role="alert"
-            mt="md"
-            title={
-              doc.reason === "unsupported-formatting"
-                ? "Formatted view unavailable"
-                : "This document cannot be shown"
-            }
-          >
-            {doc.message}
-          </Alert>
-          {doc.reason === "unsupported-formatting" && typeof doc.source === "string" && (
-            <section>
-              <Title order={2} size="h3" id="committed-source" mt="md">
-                Committed Markdown source
-              </Title>
-              <div
-                role="region"
-                aria-labelledby="committed-source"
-                tabIndex={0}
-                className="document-source"
-              >
-                <pre>
-                  <code>{doc.source}</code>
-                </pre>
-              </div>
-            </section>
-          )}
-        </>
-      ) : (
-        <>
-          {doc.unsupported > 0 && (
-            <Alert color="yellow" mt="md" title="Some content is not shown">
-              This document contains {doc.unsupported}{" "}
-              {doc.unsupported === 1 ? "item" : "items"} Turva does not display here, such as
-              images, embedded or active content, or links with unsupported addresses. Each is
-              marked where it occurs. Review the committed source for the complete record.
-            </Alert>
-          )}
-          <Box mt="lg">
-            <SafetyDocument blocks={doc.blocks} slug={file.slug} />
-          </Box>
-        </>
-      )}
+        <SafetyDocumentSheet system={file.name} commit={data.head_sha}>
+          <DocumentNodes document={doc} slug={file.slug} />
+        </SafetyDocumentSheet>
+      </Stack>
     </Box>
   );
 }
