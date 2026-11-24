@@ -65,7 +65,9 @@ export default function EllipsisMenu({ items, "aria-label": ariaLabel }: Ellipsi
             <Menu.Item
               key={item.label}
               className={classes.touchItem}
-              color={foreground}
+              // The words take the colour, but not the hover: Mantine tints a
+              // coloured item's hover from that colour, which left a red
+              // destructive item below 4.5:1 on its own hover in dark mode.
               style={foreground ? { color: foreground } : undefined}
               data-autofocus={index === 0 || undefined}
               leftSection={item.icon ? <Icon icon={item.icon} size="md" /> : undefined}

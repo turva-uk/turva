@@ -137,7 +137,7 @@ type TextColourConfig = {
 export const textColours: Record<string, TextColourConfig> = {
   default: {
     value: "inherit",
-    usage: "Heading, PageHeader - default black headings",
+    usage: "Heading, PageHeader - the page's own text colour",
   },
   body: {
     value: "var(--mantine-color-text)",

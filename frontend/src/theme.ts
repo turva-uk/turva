@@ -138,13 +138,16 @@ export const statusTextColourValues = {
     accent: "#6741d9",
     alert: "#b02525",
   },
+  // Each at least 4.5:1 on the dark body, cards and inputs, and on a
+  // hovered menu item, `#5c496e`: the deep purple surfaces are lighter
+  // than Mantine's grey, so the paler words needed one step lighter.
   dark: {
     success: "#63e6be",
     warning: "#66d9e8",
-    outstanding: "#faa2c1",
-    info: "#74c0fc",
-    accent: "#b197fc",
-    alert: "#ff8787",
+    outstanding: "#fbacc8",
+    info: "#8acafc",
+    accent: "#cbb9fd",
+    alert: "#ffafaf",
   },
 } as const;
 
@@ -198,15 +201,19 @@ export const DISPLAY_FONT = "'Cormorant Garamond Variable', serif";
  * Link colours for each colour scheme. Mantine's `Anchor` reads
  * `--mantine-color-anchor`, which points at `--link-color`.
  *
- * Shared with `legacyTheme.ts`, so the existing pages and the shared
- * components cannot drift apart on links. In light mode it is `BRAND_TEXT`,
- * as before. In dark mode it is purple shade 1, with shade 0 on hover, which
- * are light enough to read on Mantine's dark body; `BRAND_TEXT` was 2.1:1 there.
+ * In light mode it is primary shade 7, one step paler than `BRAND_TEXT`, so
+ * a link stands apart from the primary shade 9 body text: 6.33:1 on white and
+ * 5.61:1 on the sunk panel, AA rather than AAA. Against the text it is only
+ * 1.42:1, so the underline `TextLink` always draws is what marks a link. On
+ * hover it darkens to `BRAND_TEXT`, stopping short of the text's own shade.
+ *
+ * In dark mode it is purple shade 1, with shade 0 on hover, which are light
+ * enough to read on Mantine's dark body; `BRAND_TEXT` was 2.1:1 there.
  */
 export const linkColourVariables = {
   light: {
-    "--link-color": BRAND_TEXT,
-    "--link-hover-color": TURVA_PURPLE[9],
+    "--link-color": primaryScale[7],
+    "--link-hover-color": BRAND_TEXT,
     "--mantine-color-anchor": "var(--link-color)",
   },
   dark: {
@@ -216,7 +223,21 @@ export const linkColourVariables = {
   },
 } as const;
 
-/** Readable validation text and invalid fields in both application themes. */
+/**
+ * The surfaces of dark mode: deep purples beneath the brand's, so a page
+ * reads as Turva's in the dark rather than as Mantine's grey. The body is
+ * the darkest, cards one step lighter, and inputs a step lighter again,
+ * with near-black borders. Separate from `TURVA_PURPLE`, which
+ * `app/config/tests/test_palette.py` pins and which stays as it is.
+ */
+export const DARK_SURFACES = {
+  body: "#1e1b34",
+  card: "#2f2b4c",
+  input: "#46416b",
+  inputBorder: "#0f0d1d",
+} as const;
+
+/** Readable validation text and invalid fields in both colour schemes. */
 export const errorColourVariables = {
   light: {
     "--mantine-color-error": "var(--error-color)",
@@ -226,7 +247,9 @@ export const errorColourVariables = {
   },
   dark: {
     "--mantine-color-error": "var(--error-color)",
-    "--error-color": "#ff8a65",
+    // A light coral: at least 4.5:1 on the dark body, cards and inputs,
+    // since an invalid field's typed text takes this colour too.
+    "--error-color": "#ff9979",
     "--error-focus-color": "#ffb3b3",
   },
 } as const;
@@ -276,6 +299,8 @@ export const cssVariablesResolver: CSSVariablesResolver = (theme) => ({
     "--card-bg": "var(--mantine-color-white)",
     "--card-border": "var(--mantine-color-gray-3)",
     "--card-border-color": "var(--mantine-color-gray-3)",
+    // The ribbon carries the brand purple in light mode.
+    "--ribbon-bg": BRAND,
     ...statusTextVariables(statusTextColourValues.light),
   },
   dark: {
@@ -285,14 +310,32 @@ export const cssVariablesResolver: CSSVariablesResolver = (theme) => ({
     "--mantine-color-dimmed": theme.colors.dark[1],
     ...errorColourVariables.dark,
     ...linkColourVariables.dark,
-    "--card-bg": "var(--mantine-color-dark-6)",
-    "--card-border": "var(--mantine-color-dark-4)",
+    "--mantine-color-body": DARK_SURFACES.body,
+    "--card-bg": DARK_SURFACES.card,
+    "--card-border": DARK_SURFACES.input,
     "--card-border-color": "transparent",
+    // Inputs, and the other surfaces Mantine draws from `dark-6`.
+    "--mantine-color-default": DARK_SURFACES.input,
+    "--mantine-color-dark-6": DARK_SURFACES.input,
+    // Input borders.
+    "--mantine-color-dark-4": DARK_SURFACES.inputBorder,
+    // The ribbon is the page's own colour in dark mode: the brand purple
+    // would sit as a pale bar over a dark page.
+    "--ribbon-bg": DARK_SURFACES.body,
     ...statusTextVariables(statusTextColourValues.dark),
   },
 });
 
 export const theme = createTheme({
+  /**
+   * Default text colour - primary shade 9 instead of pure black. Mantine uses
+   * `black` for light-mode body text and headings, and for anything else it
+   * draws in black, such as a default button's label. 9.02:1 on white and
+   * 7.99:1 on the sunk panel. Dark mode keeps Mantine's grey text. With
+   * `autoContrast` off, Mantine never puts it on the yellow, whose text is
+   * `ACCENT_INK`.
+   */
+  black: primaryScale[9],
   fontFamily: BODY_FONT,
   fontFamilyMonospace:
     "'SF Mono', SFMono-Regular, ui-monospace, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
@@ -325,15 +368,11 @@ export const theme = createTheme({
     // headings need normal text contrast (the default yellow heading fails AA).
     Alert: { styles: { title: { color: "var(--mantine-color-text)" } } },
     // No fixed colour on Anchor: `--mantine-color-anchor` is `--link-color`,
-    // BRAND_TEXT in light mode and a pale purple in dark, where BRAND_TEXT
+    // primary shade 7 in light mode and a pale purple in dark, where BRAND_TEXT
     // would be 2.1:1 on the dark body.
-    Button: { defaultProps: { radius: 0 } },
-    TextInput: { defaultProps: { radius: 0 } },
-    Select: { defaultProps: { radius: 0 } },
-    MultiSelect: { defaultProps: { radius: 0 } },
-    Textarea: { defaultProps: { radius: 0 } },
-    Card: { defaultProps: { radius: 0 } },
-    PasswordInput: { defaultProps: { radius: 0 } },
+    //
+    // Buttons, fields and cards set no radius, so they all take Mantine's
+    // default, `md`, and share one rounded corner.
     // Mantine's close button is an icon with no accessible name. "Close
     // dialog" rather than "Close", so it differs from a text button that
     // says "Close" in the same modal.

@@ -7,7 +7,7 @@ import { describe, expect, it, vi } from "vitest";
 import { App } from "../App";
 import type { User } from "../api/types";
 import { SessionProvider } from "../auth/SessionProvider";
-import { legacyCssVariablesResolver, legacyTheme } from "../legacyTheme";
+import { cssVariablesResolver, theme } from "../theme";
 
 const person: User = {
   id: "demo-user",
@@ -59,7 +59,7 @@ function start(path: string, mutate: (url: string, init: RequestInit) => Promise
   });
   vi.stubGlobal("fetch", fetcher);
   render(
-    <MantineProvider theme={legacyTheme} cssVariablesResolver={legacyCssVariablesResolver}>
+    <MantineProvider theme={theme} cssVariablesResolver={cssVariablesResolver}>
       <MemoryRouter initialEntries={[path]}>
         <SessionProvider>
           <App />

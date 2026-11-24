@@ -83,7 +83,7 @@ The remaining sections preserve longer-term and assurance work. They are not an 
 - [ ] **R54 - User onboarding.** Guide new users through setup without implying that completing onboarding establishes CSO competence.
 - [ ] **R55 - Contextual interface help.** Provide control-level help, tooltips and guides, distinct from the clinical process guidance in R12.
 - [ ] **R56 - User-configurable comfort themes.** Check every colour pairing and preserve the agreed risk palette, labels and readability across themes.
-- [~] **R57 - Application dark-mode rollout.** Shared components have tested light/dark catalogue states; existing application pages still use the legacy theme. Integrate and inspect the actual workflows before claiming application-wide dark-mode support.
+- [~] **R57 - Application dark-mode rollout.** Shared components have tested light/dark catalogue states, and since the view port plan's first phase every application page renders with the shared theme and stylesheets. The pages are still moving onto the shared components one group at a time, and the app has no colour scheme switch yet. Integrate and inspect the actual workflows before claiming application-wide dark-mode support.
 - [~] **R58 - Contrast and motion preferences.** Reduced-motion CSS is present. Complete contrast-preference support and verify the delivered application paths, rather than treating catalogue coverage as an application audit.
 - [ ] **R59 - Primary-action colour decision.** Review whether brand yellow with dark text should identify the primary action; record the hierarchy decision and contrast evidence.
 
