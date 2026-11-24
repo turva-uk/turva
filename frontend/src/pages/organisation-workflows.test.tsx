@@ -163,6 +163,19 @@ it("shows an honest empty organisation state without an invitation or file grant
   expect(writes).toHaveLength(0);
 });
 
+it("lists each organisation with its reference, your role and your CSO appointment", async () => {
+  const { writes } = start("/organisations");
+
+  const link = await screen.findByRole("link", { name: organisation.name });
+
+  expect(link).toHaveAttribute("href", `/organisations/${organisation.id}`);
+  const row = link.closest("tr");
+  expect(row).toHaveTextContent(organisation.id);
+  expect(row).toHaveTextContent("Organisation administrator");
+  expect(row).toHaveTextContent("Appointed CSO");
+  expect(writes).toHaveLength(0);
+});
+
 it("sends membership invitations only on deliberate save and reports failed delivery", async () => {
   const { actor, writes } = start("/organisations/riverbank", {
     write: () => json({ email_sent: false }, 201),
