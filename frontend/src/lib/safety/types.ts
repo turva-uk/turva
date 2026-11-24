@@ -53,6 +53,26 @@ export function isHazardStatus(value: string): value is HazardStatus {
   return value === "open" || value === "closed" || value === "transferred";
 }
 
+/** Narrows a mitigation status Turva's API sends as a string. */
+export function isMitigationStatus(value: string): value is MitigationStatus {
+  return (
+    value === "proposed" ||
+    value === "implemented" ||
+    value === "verified" ||
+    value === "withdrawn"
+  );
+}
+
+/** Narrows a control type Turva's API sends as a string. */
+export function isControlType(value: string): value is ControlType {
+  return (
+    value === "elimination" ||
+    value === "technical" ||
+    value === "warning" ||
+    value === "procedural"
+  );
+}
+
 /* ------------------------------------------------------------------ */
 /*  What a request sends                                               */
 /* ------------------------------------------------------------------ */
@@ -104,6 +124,14 @@ export interface MitigationInput {
   hazards: string[];
   evidence: string;
   body: string;
+}
+
+/**
+ * A mitigation as a form holds it before it is complete: the control type
+ * may not be chosen yet. Nothing assumes one for the officer.
+ */
+export interface MitigationDraft extends Omit<MitigationInput, "control_type"> {
+  control_type: ControlType | null;
 }
 
 /** What a hazard write hands back: the hazard, and the version it made. */
