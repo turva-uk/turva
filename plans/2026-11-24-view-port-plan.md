@@ -107,8 +107,14 @@ As built:
 
 ## Phase 5: The organisations list
 
-- [ ] Move `OrganisationsPage` onto `DataTable` and `PageHeader`. Keep its request as it is.
-- [ ] Check: `./s/frontend` and `./s/lint` pass. Put screenshots of each view this phase moves, in light and dark mode, in the pull request description under a `## Screenshots` heading, uploaded with `gh pr edit --attach`.
+- [x] Move `OrganisationsPage` onto `DataTable` and `PageHeader`. Keep its request as it is.
+- [x] Check: `./s/frontend` and `./s/lint` pass. Put screenshots of each view this phase moves, in light and dark mode, in the pull request description under a `## Screenshots` heading, uploaded with `gh pr edit --attach`.
+
+As built:
+
+- **The list is a `DataTable` with four sortable columns**: the organisation as a link, its reference, your role and your CSO appointment, in the page's own words. `DataTable` shows the loading, error and empty states the page used to build by hand.
+- **A new test checks a row** shows the reference, the role and the appointment.
+- **As run on 24 November 2026**: `./s/frontend` passed (1,425 tests, the build and the Storybook build), `./s/lint` passed, and `./s/test` passed (611 Django tests, and the host suites).
 
 ## Phase 6: The organisation page
 
