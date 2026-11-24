@@ -8,6 +8,12 @@ set shell := ["bash", "-c"]
 #
 # Use `just` for the short aliases, or call ./s/<script> directly. Both work.
 
+# Each developer's own global justfile, so their personal recipes run here as
+# plain `just <recipe>`. Optional: skipped for anybody who has none. It must
+# set nothing, such as `shell`, which this file sets, and must not reuse a
+# recipe name from this file, or just will not load.
+import? '~/.config/just/justfile'
+
 default:
     @just --list
 
