@@ -8,3 +8,5 @@ export { default as IconTextButton } from "./IconTextButton";
 export { default as PreviousNextButton } from "./PreviousNextButton";
 export { default as PublicButton } from "./PublicButton";
 export { default as SearchButton } from "./SearchButton";
+export { default as SecondaryButton } from "./SecondaryButton";
+export type { SecondaryButtonProps } from "./SecondaryButton";

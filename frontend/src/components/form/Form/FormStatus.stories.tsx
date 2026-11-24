@@ -72,6 +72,25 @@ export const AllVariants: Story = {
 };
 
 /**
+ * A refused save that kept the draft, as when somebody else saved first.
+ * `retainsDraft` adds the last sentence. A failure card also takes focus
+ * when it appears.
+ */
+export const DraftKept: Story = {
+  render: () => (
+    <Stack gap="xs">
+      <FormStatus
+        variant="error"
+        title="Could not save"
+        description="Somebody saved this hazard after you opened it."
+        retainsDraft
+      />
+      <StoryNote>error, with retainsDraft</StoryNote>
+    </Stack>
+  ),
+};
+
+/**
  * Dark mode
  */
 export const DarkMode: Story = {

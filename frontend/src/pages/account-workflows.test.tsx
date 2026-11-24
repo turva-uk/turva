@@ -1,8 +1,8 @@
 import { MantineProvider } from "@mantine/core";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter } from "react-router";
-import { expect, it, vi } from "vitest";
+import { createMemoryRouter, RouterProvider } from "react-router";
+import { describe, expect, it, vi } from "vitest";
 
 import { App } from "../App";
 import type { User } from "../api/types";
@@ -76,13 +76,24 @@ function start(
       throw new Error(`Unexpected write ${url}`);
     }),
   );
+  // A data router, as `main.tsx` uses: the shared `Form` guards leaving a
+  // dirty form only inside one, and refuses to render outside it.
+  const router = createMemoryRouter(
+    [
+      {
+        path: "*",
+        element: (
+          <SessionProvider>
+            <App />
+          </SessionProvider>
+        ),
+      },
+    ],
+    { initialEntries: [path] },
+  );
   render(
     <MantineProvider>
-      <MemoryRouter initialEntries={[path]}>
-        <SessionProvider>
-          <App />
-        </SessionProvider>
-      </MemoryRouter>
+      <RouterProvider router={router} />
     </MantineProvider>,
   );
   return { actor: userEvent.setup(), writes };
@@ -97,9 +108,15 @@ it("registers, preserves the new session and reports failed email delivery hones
   await actor.type(screen.getByLabelText(/^Confirm password/, { selector: "input" }), password);
   await actor.click(screen.getByRole("button", { name: "Create account" }));
   await screen.findByRole("heading", { name: "Confirm your email address" });
-  expect(screen.getByRole("alert")).toHaveTextContent(
-    "Account created, but email delivery failed",
-  );
+  // A warning for somebody to act on later, read out politely: nothing on
+  // the page failed for them to fix.
+  expect(
+    screen
+      .getAllByRole("status")
+      .some((status) =>
+        status.textContent?.includes("Account created, but email delivery failed"),
+      ),
+  ).toBe(true);
   expect(writes).toHaveLength(1);
   await actor.click(screen.getByRole("button", { name: "Resend confirmation email" }));
   expect(
@@ -164,4 +181,62 @@ it("does not pretend to sign out when the server logout fails", async () => {
   expect(await screen.findByRole("alert")).toHaveTextContent("You have not been signed out");
   expect(screen.getByRole("button", { name: "Sign out" })).toBeInTheDocument();
   expect(screen.queryByRole("heading", { name: "Sign in" })).not.toBeInTheDocument();
+});
+
+describe("signing in", () => {
+  it("sends the email and password to the same endpoint, then opens the safety files", async () => {
+    const bodies: unknown[] = [];
+    const { actor } = start("/login", null, (url, init) => {
+      bodies.push([url, JSON.parse(String(init.body))]);
+      return json({ authenticated: true, user: { ...person, is_verified: true } });
+    });
+
+    await actor.type(
+      await screen.findByRole("textbox", { name: "Email address" }),
+      person.email,
+    );
+    await actor.type(screen.getByLabelText(/^Password/, { selector: "input" }), password);
+    await actor.click(screen.getByRole("button", { name: "Sign in" }));
+
+    await screen.findByRole("heading", { name: /safety files/i });
+    expect(bodies).toEqual([
+      [expect.stringMatching(/\/auth\/login\/$/), { email: person.email, password }],
+    ]);
+  });
+
+  it("shows a refused sign-in and keeps what was typed", async () => {
+    const { actor } = start("/login", null, () =>
+      json({ detail: "Unable to sign in with those details." }, 400),
+    );
+
+    const email = await screen.findByRole("textbox", { name: "Email address" });
+    await actor.type(email, person.email);
+    await actor.type(screen.getByLabelText(/^Password/, { selector: "input" }), password);
+    await actor.click(screen.getByRole("button", { name: "Sign in" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Unable to sign in with those details.",
+    );
+    expect(email).toHaveValue(person.email);
+  });
+});
+
+it("shows the server's message for a registration field under that field", async () => {
+  const { actor } = start("/register", null, () =>
+    json({ email: ["A user with that email address already exists."] }, 400),
+  );
+
+  await actor.type(await screen.findByRole("textbox", { name: "Email address" }), person.email);
+  await actor.type(screen.getByRole("textbox", { name: "First name" }), person.first_name);
+  await actor.type(screen.getByRole("textbox", { name: "Last name" }), person.last_name);
+  await actor.type(screen.getByLabelText(/^Password/, { selector: "input" }), password);
+  await actor.type(screen.getByLabelText(/^Confirm password/, { selector: "input" }), password);
+  await actor.click(screen.getByRole("button", { name: "Create account" }));
+
+  const email = screen.getByRole("textbox", { name: "Email address" });
+  await waitFor(() => expect(email).toHaveAttribute("aria-invalid", "true"));
+  expect(
+    screen.getAllByText("A user with that email address already exists.").length,
+  ).toBeGreaterThan(0);
+  expect(screen.getByRole("alert")).toHaveTextContent("Your entries have not been cleared.");
 });

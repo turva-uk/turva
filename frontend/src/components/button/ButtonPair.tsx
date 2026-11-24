@@ -25,6 +25,7 @@ import type { ReactNode } from "react";
 import { Button, Group } from "@mantine/core";
 import { LAYOUT_STICKY_BOTTOM } from "@/components/layouts/layoutConstants";
 import classes from "./ButtonPair.module.css";
+import SecondaryButton from "./SecondaryButton";
 
 interface ButtonPairProps {
   /** Label for the accept/confirm button (defaults to "OK") */
@@ -103,16 +104,9 @@ export default function ButtonPair({
         {acceptChildren ?? acceptLabel}
       </Button>
       {onCancel && (
-        <Button
-          type="button"
-          variant="outline"
-          onClick={cancelDisabled ? (event) => event.preventDefault() : onCancel}
-          aria-disabled={cancelDisabled || undefined}
-          styles={{ root: cancelDisabled ? { opacity: 0.6, cursor: "default" } : undefined }}
-          size="md"
-        >
+        <SecondaryButton onClick={onCancel} disabled={cancelDisabled}>
           {cancelLabel}
-        </Button>
+        </SecondaryButton>
       )}
     </Group>
   );
