@@ -125,6 +125,12 @@ export interface DataTableProps<T> {
    * the per-column calculation for a table that knows better.
    */
   cardsBelow?: number;
+  /**
+   * The table's caption, shown under it and read out as its name, such as
+   * "Active members of this organisation". Leave it out where a heading
+   * just above already says what the table holds.
+   */
+  caption?: string;
 }
 
 /**
@@ -197,6 +203,7 @@ function DataTableView<T>({
   controls,
   minColumnWidth = 8,
   cardsBelow,
+  caption,
 }: DataTableProps<T>) {
   if (
     initialPageSize !== undefined &&
@@ -359,7 +366,8 @@ function DataTableView<T>({
 
     return (
       <div ref={measureRef}>
-        <Table striped stripedColor={stripedColor}>
+        <Table striped stripedColor={stripedColor} captionSide="bottom">
+          {caption && <Table.Caption>{caption}</Table.Caption>}
           <Table.Thead>
             <Table.Tr>
               {columns.map((column, index) => (
@@ -480,7 +488,9 @@ function DataTableView<T>({
         stripedColor={stripedColor}
         highlightOnHover
         highlightOnHoverColor={hoverColor}
+        captionSide="bottom"
       >
+        {caption && <Table.Caption>{caption}</Table.Caption>}
         <Table.Thead>
           <Table.Tr>
             {columns.map((column, index) => (

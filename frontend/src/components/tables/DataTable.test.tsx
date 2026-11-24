@@ -30,6 +30,21 @@ interface TestHazard {
 }
 
 describe("DataTable", () => {
+  it("names the table by its caption, when given one", () => {
+    renderWithMantine(
+      <DataTable<{ id: string; name: string }>
+        data={[{ id: "1", name: "Anita" }]}
+        columns={[{ header: "Name", render: (row) => row.name }]}
+        getRowKey={(row) => row.id}
+        caption="Active members of this organisation"
+      />,
+    );
+
+    expect(
+      screen.getByRole("table", { name: "Active members of this organisation" }),
+    ).toBeInTheDocument();
+  });
+
   describe("Rendering with data", () => {
     it("renders table with headers and data rows", () => {
       const users: TestUser[] = [

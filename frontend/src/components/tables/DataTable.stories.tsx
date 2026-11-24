@@ -81,6 +81,19 @@ export const Default: Story = {
 };
 
 /**
+ * With a caption, shown under the table and read out as its name. For a
+ * table with no heading just above it to say what it holds.
+ */
+export const WithCaption: Story = {
+  args: {
+    data: sampleUsers,
+    columns: userColumns,
+    getRowKey: (user) => user.id,
+    caption: "Active members of this organisation",
+  },
+};
+
+/**
  * With hazard data
  *
  * Demonstrates the table with rows from a safety file's hazard log.

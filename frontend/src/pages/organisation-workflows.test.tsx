@@ -1,7 +1,7 @@
 import { MantineProvider } from "@mantine/core";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter } from "react-router";
+import { createMemoryRouter, RouterProvider } from "react-router";
 import { expect, it, vi } from "vitest";
 
 import { App } from "../App";
@@ -145,13 +145,24 @@ function start(
     throw new Error(`Unexpected request ${path}`);
   });
   vi.stubGlobal("fetch", fetcher);
+  // A data router, as `main.tsx` uses: the shared `Form` guards leaving a
+  // dirty form only inside one, and refuses to render outside it.
+  const router = createMemoryRouter(
+    [
+      {
+        path: "*",
+        element: (
+          <SessionProvider>
+            <App />
+          </SessionProvider>
+        ),
+      },
+    ],
+    { initialEntries: [route] },
+  );
   render(
     <MantineProvider>
-      <MemoryRouter initialEntries={[route]}>
-        <SessionProvider>
-          <App />
-        </SessionProvider>
-      </MemoryRouter>
+      <RouterProvider router={router} />
     </MantineProvider>,
   );
   return { actor: userEvent.setup(), writes, fetcher };
@@ -207,7 +218,11 @@ it("requires confirmation to remove a role and keeps stale membership decisions"
     within(member).getByRole("checkbox", { name: "Appointed Clinical Safety Officer" }),
   );
   const save = within(member).getByRole("button", { name: `Save roles for ${colleague.name}` });
-  expect(save).toBeDisabled();
+  // The shared submit button stays focusable while unavailable: it says so
+  // with aria-disabled, and a press sends nothing.
+  expect(save).toHaveAttribute("aria-disabled", "true");
+  await actor.click(save);
+  expect(writes).toHaveLength(0);
   await actor.click(within(member).getByRole("checkbox", { name: /I understand/ }));
   await actor.click(save);
   await screen.findByText(/This membership changed after you opened it/);
@@ -376,12 +391,14 @@ it("requires a separate confirmation before revoking an invitation", async () =>
     await screen.findByRole("button", { name: `Revoke invitation to ${invitation.email}` }),
   );
   expect(writes).toHaveLength(0);
-  await actor.click(screen.getByRole("button", { name: "Keep invitation" }));
+  await actor.click(await screen.findByRole("button", { name: "Keep invitation" }));
   expect(writes).toHaveLength(0);
   await actor.click(
     screen.getByRole("button", { name: `Revoke invitation to ${invitation.email}` }),
   );
-  await actor.click(screen.getByRole("button", { name: "Confirm invitation revocation" }));
+  await actor.click(
+    await screen.findByRole("button", { name: "Confirm invitation revocation" }),
+  );
   await waitFor(() => expect(writes).toHaveLength(1));
   expect(writes[0]!.path).toBe(
     "/api/v1/organisations/riverbank/invitations/fictional-invitation/revoke/",
