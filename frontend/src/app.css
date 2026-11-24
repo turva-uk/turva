@@ -22,26 +22,6 @@ body {
   line-height: 1.6;
 }
 
-.turva-header-content {
-  align-content: center;
-}
-
-.main-navigation {
-  margin-left: auto;
-}
-
-@media (max-width: 47.99em) {
-  .main-navigation {
-    order: 3;
-    width: 100%;
-    margin-left: 0;
-  }
-
-  .header-sign-out {
-    margin-left: auto;
-  }
-}
-
 .governance-form .mantine-Checkbox-body {
   min-height: 44px;
   align-items: center;

@@ -3,6 +3,7 @@
 import "@fontsource-variable/atkinson-hyperlegible-next";
 import "@fontsource-variable/cormorant-garamond";
 import "@fontsource-variable/cormorant-garamond/wght-italic.css";
+import "@fontsource-variable/finlandica";
 import "@mantine/core/styles.css";
 import "@mantine/dates/styles.css";
 import "@mantine/tiptap/styles.css";

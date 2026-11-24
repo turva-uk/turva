@@ -1,0 +1,18 @@
+.nav {
+  height: 100%;
+}
+
+.list {
+  flex: 1;
+}
+
+.link {
+  font-size: var(--mantine-font-size-md);
+}
+
+.label {
+  font-size: var(--mantine-font-size-md);
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.3;
+}

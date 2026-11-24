@@ -11,3 +11,6 @@ declare module "@fontsource-variable/atkinson-hyperlegible-next";
  */
 declare module "@fontsource-variable/cormorant-garamond";
 declare module "@fontsource-variable/cormorant-garamond/wght-italic.css";
+
+/** Finlandica, the Turva wordmark's typeface in the top ribbon. */
+declare module "@fontsource-variable/finlandica";
