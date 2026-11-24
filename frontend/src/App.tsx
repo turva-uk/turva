@@ -23,7 +23,6 @@ import { FileTeamPage } from "./pages/FileTeamPage";
 import { RegistrationPage } from "./pages/RegistrationPage";
 import { VerificationConfirmPage, VerificationNoticePage } from "./pages/VerificationPage";
 import { PasswordResetConfirmPage, PasswordResetRequestPage } from "./pages/PasswordResetPage";
-import "./app.css";
 
 /**
  * Gate a route behind a session.

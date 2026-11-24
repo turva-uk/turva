@@ -4,7 +4,7 @@ import { useNavigate, useParams } from "react-router";
 
 import { ApiError } from "../api/client";
 import type { Mitigation, SafetyFileDetail } from "../api/types";
-import { PDFDownload } from "../components/PDFDownload";
+import PDFDownload from "../components/safety/PDFDownload";
 import AddButton from "../components/button/AddButton";
 import { IconAlertCircle } from "../components/icons/appIcons";
 import { PageSpinner } from "../components/loading-spinner";

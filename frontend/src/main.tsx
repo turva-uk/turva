@@ -11,6 +11,7 @@ import "./styles/typography.css";
 import "./styles/dark-overrides.css";
 import "./styles/touch-targets.css";
 import "./styles/disabled-controls.css";
+import "./styles/global.css";
 
 import { MantineProvider } from "@mantine/core";
 import { StrictMode } from "react";

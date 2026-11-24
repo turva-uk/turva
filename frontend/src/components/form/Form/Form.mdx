@@ -6,7 +6,7 @@ import { Meta } from "@storybook/addon-docs/blocks";
 
 `Form` is the shared single-page form wrapper. It registers values through React Hook Form and owns validation, request feedback, confirmation and departure warnings. It does not save evidence itself or confer clinical approval.
 
-Existing application pages still use `@mantine/form` and their tested submission adapters. Keeping both libraries is a temporary migration boundary, not permission to mix them within one form. Migrate a page separately, with tests for its API errors, retained drafts, permissions and version preconditions; remove the old dependency only after its last caller moves.
+Every application page now uses this form and its fields; none uses `@mantine/form`. A new form uses this one too, with tests for its API errors, retained drafts, permissions and version preconditions.
 
 ## A registered profile field
 

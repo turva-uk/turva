@@ -6,7 +6,9 @@
  * colour, at the same size as the filled buttons beside it.
  *
  * While `disabled`, it says so to a screen reader and ignores presses, but
- * keeps the ordinary pointer, as every disabled control here does.
+ * keeps the ordinary pointer, as every disabled control here does. While
+ * `loading`, it shows a spinner in place of its words and ignores presses,
+ * for something that takes a few seconds, such as preparing a PDF.
  *
  * @example
  * ```tsx
@@ -26,6 +28,8 @@ export interface SecondaryButtonProps {
   onClick: () => void;
   /** The button cannot be pressed just now */
   disabled?: boolean;
+  /** What the button started is under way */
+  loading?: boolean;
   /** For tests to find it */
   "data-testid"?: string;
 }
@@ -34,6 +38,7 @@ export default function SecondaryButton({
   children,
   onClick,
   disabled = false,
+  loading = false,
   "data-testid": testId,
 }: SecondaryButtonProps) {
   return (
@@ -41,6 +46,7 @@ export default function SecondaryButton({
       type="button"
       variant="outline"
       size="md"
+      loading={loading}
       onClick={disabled ? (event) => event.preventDefault() : onClick}
       aria-disabled={disabled || undefined}
       className={disabled ? classes.disabled : undefined}
