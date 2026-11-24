@@ -1,254 +1,257 @@
-import {
-  Alert,
-  Anchor,
-  Box,
-  Button,
-  Loader,
-  MultiSelect,
-  NativeSelect,
-  Pill,
-  Stack,
-  Text,
-  Textarea,
-  TextInput,
-  Title,
-} from "@mantine/core";
-import { useForm } from "@mantine/form";
-import { Link, useNavigate, useParams, useSearchParams } from "react-router";
+import { Box, Stack } from "@mantine/core";
+import { useEffect, useState } from "react";
+import type { FieldPath } from "react-hook-form";
+import { useNavigate, useParams, useSearchParams } from "react-router";
 
-import { api } from "../api/client";
-import type {
-  Hazard,
-  Mitigation,
-  MitigationDetail,
-  MitigationOptions,
-  SafetyFile,
-  SafetyFileDetail,
-} from "../api/types";
-import { useApiResource } from "../api/useApiResource";
-import { useSubmission } from "../api/useSubmission";
+import { ApiError } from "../api/client";
 import { useSession } from "../auth/useSession";
-import { SaveFailure } from "../components/SaveFailure";
+import type { Hazard, Mitigation, MitigationOptions, SafetyFile } from "../api/types";
+import { FormStatus } from "../components/form/Form";
+import { IconAlertCircle, IconAlertTriangle } from "../components/icons/appIcons";
+import { PageSpinner } from "../components/loading-spinner";
+import { StateMessage } from "../components/message-cards";
+import MitigationForm from "../components/safety/MitigationForm";
+import { BodyText, ExternalTextLink, PageHeader, TextLink } from "../components/typography";
+import { apiFailure } from "../lib/forms";
+import {
+  addMitigation,
+  blankMitigation,
+  getFile,
+  getMitigation,
+  mitigationOptions,
+  updateMitigation,
+  type MitigationInput,
+} from "../lib/safety";
+
+/** The fields the server may name in a refused save. */
+const FIELDS: readonly FieldPath<MitigationInput>[] = [
+  "title",
+  "owner",
+  "status",
+  "control_type",
+  "hazards",
+  "evidence",
+  "body",
+];
+
+/** What the form opens on: the file, the mitigation if editing, and the version read. */
+interface Opened {
+  file: SafetyFile;
+  mitigation: Mitigation | null;
+  hazards: Hazard[];
+  head: string | null;
+  canEdit: boolean;
+  repositoryMissing: boolean;
+}
 
 export function MitigationFormPage({ editing = false }: { editing?: boolean }) {
-  const { slug, mitigationId } = useParams();
+  const { slug = "", mitigationId = "" } = useParams();
   const [query] = useSearchParams();
-  const path = editing
-    ? `/safety-files/${slug}/mitigations/${mitigationId}/`
-    : `/safety-files/${slug}/`;
-  const { data, error } = useApiResource<SafetyFileDetail | MitigationDetail>(path);
-  const options = useApiResource<MitigationOptions>("/mitigation-options/");
-  if (error || options.error)
+  const [opened, setOpened] = useState<Opened | null>(null);
+  const [options, setOptions] = useState<MitigationOptions | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const fail = (reason: unknown) => {
+      if (controller.signal.aborted) return;
+      setError(reason instanceof ApiError ? reason.message : "Something went wrong.");
+    };
+
+    const read = editing
+      ? getMitigation(slug, mitigationId, controller.signal).then((detail) => ({
+          file: detail.safety_file,
+          mitigation: detail.mitigation,
+          hazards: detail.hazards,
+          head: detail.head_sha,
+          canEdit: detail.can_edit,
+          repositoryMissing: false,
+        }))
+      : getFile(slug, controller.signal).then((detail) => ({
+          file: detail.safety_file,
+          mitigation: null,
+          hazards: detail.hazards ?? [],
+          head: detail.head_sha ?? null,
+          canEdit: detail.can_edit,
+          repositoryMissing: detail.repository_missing,
+        }));
+    read.then(setOpened).catch(fail);
+    mitigationOptions(controller.signal).then(setOptions).catch(fail);
+
+    return () => controller.abort();
+  }, [editing, slug, mitigationId]);
+
+  if (error) {
     return (
-      <Alert color="red" role="alert" title="Could not open the mitigation form">
-        {error || options.error}
-      </Alert>
+      <Notice title="Could not open the mitigation form" description={error} colour="alert" />
     );
-  if (!data || !options.data) return <Loader aria-label="Loading the mitigation form" />;
-  if (!data.can_edit)
+  }
+  if (!opened || !options) return <PageSpinner label="Loading the mitigation form" />;
+  if (!opened.canEdit) {
     return (
-      <Alert color="yellow" title="Read-only safety file">
-        Only a verified legacy owner or a currently appointed, named file CSO may edit
-        mitigations.
-      </Alert>
+      <Notice
+        title="Read-only safety file"
+        description="Only a verified legacy owner or a currently appointed, named file CSO may edit mitigations."
+        colour="warning"
+      />
     );
-  if (("repository_missing" in data && data.repository_missing) || !data.head_sha)
+  }
+  if (opened.repositoryMissing || !opened.head) {
     return (
-      <Alert color="red" role="alert">
-        The repository version could not be read. No save is available. Ask an administrator to
-        inspect it.
-      </Alert>
+      <Notice
+        title="The repository version could not be read"
+        description="No save is available. Ask an administrator to inspect it."
+        colour="alert"
+      />
     );
+  }
+
   return (
-    <MitigationForm
-      key={`${slug}:${mitigationId ?? "new"}`}
-      file={data.safety_file}
-      source={"mitigation" in data ? data.mitigation : null}
-      head={data.head_sha}
-      hazards={data.hazards ?? []}
-      options={options.data}
+    <MitigationEditor
+      key={`${slug}:${mitigationId || "new"}`}
+      file={opened.file}
+      source={opened.mitigation}
+      hazards={opened.hazards}
+      head={opened.head}
+      options={options}
       initialHazard={query.get("hazard")}
     />
   );
 }
 
-function MitigationForm({
+/** A page-level notice, read out as the page opens when it is an alert. */
+function Notice({
+  title,
+  description,
+  colour,
+}: {
+  title: string;
+  description: string;
+  colour: "alert" | "warning";
+}) {
+  const card = (
+    <StateMessage
+      icon={colour === "alert" ? <IconAlertCircle /> : <IconAlertTriangle />}
+      colour={colour}
+      title={title}
+      description={description}
+    />
+  );
+
+  return (
+    <Stack maw={800}>
+      <PageHeader title="Mitigation" />
+      {colour === "alert" ? <Box role="alert">{card}</Box> : card}
+    </Stack>
+  );
+}
+
+function MitigationEditor({
   file,
   source,
-  head,
   hazards,
+  head,
   options,
   initialHazard,
 }: {
   file: SafetyFile;
   source: Mitigation | null;
-  head: string;
   hazards: Hazard[];
+  head: string;
   options: MitigationOptions;
   initialHazard: string | null;
 }) {
-  const { user } = useSession();
   const navigate = useNavigate();
-  const { run, submitting, failure } = useSubmission();
-  const form = useForm({
-    initialValues: {
-      title: source?.title ?? "",
-      owner: source?.owner ?? user?.email ?? "",
-      status: source?.status ?? "proposed",
-      control_type: source?.control_type ?? "",
-      hazards:
-        source?.hazards ??
-        hazards.filter((hazard) => hazard.id === initialHazard).map((hazard) => hazard.id),
-      evidence: source?.evidence ?? "",
-      body: source?.body ?? "",
-    },
-  });
+  const { user } = useSession();
+  // A new mitigation names the person recording it as responsible, and,
+  // when opened from a hazard, links that hazard, as this page always has.
+  const [blank] = useState(() =>
+    blankMitigation(
+      user?.email ?? "",
+      hazards.filter((hazard) => hazard.id === initialHazard).map((hazard) => hazard.id),
+    ),
+  );
+  const [saving, setSaving] = useState(false);
+  const [failure, setFailure] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<string, string>>>({});
   const latest = source
     ? `/safety-files/${file.slug}/mitigations/${source.id}`
     : `/safety-files/${file.slug}`;
+
+  async function save(input: MitigationInput) {
+    // The version this form opened goes with every save, retries included.
+    // A newer version is never fetched to make a stale judgement save.
+    setSaving(true);
+    setFailure(null);
+    setFieldErrors({});
+    try {
+      const saved = source
+        ? await updateMitigation(file.slug, source.id, input, head)
+        : await addMitigation(file.slug, input, head);
+      void navigate(`/safety-files/${file.slug}/mitigations/${saved.mitigation.id}`);
+    } catch (error) {
+      if (!(error instanceof ApiError)) {
+        setFailure("Something went wrong. Nothing was saved; try again.");
+        return;
+      }
+      const result = apiFailure<MitigationInput>(
+        error,
+        "Could not save the mitigation",
+        FIELDS,
+      );
+      setFailure(
+        typeof result.message.description === "string" && result.message.description
+          ? result.message.description
+          : "Nothing was saved.",
+      );
+      setFieldErrors(result.fieldErrors ?? {});
+    } finally {
+      setSaving(false);
+    }
+  }
+
   return (
     <Box maw={800}>
-      <Anchor component={Link} to={latest}>
-        Back to {source?.id ?? file.name}
-      </Anchor>
-      <Title order={1} size="h2" mt="md" mb="sm">
-        {source ? `Edit ${source.id}` : "Record a mitigation"}
-      </Title>
-      <Text mb="md">
-        {file.name}. Save the whole form to record the evidence and both sides of its hazard
-        links in one attributable version. Do not enter patient data.
-      </Text>
-      <SaveFailure message={failure} />
-      {failure && (
-        <Anchor href={latest} target="_blank" rel="noopener noreferrer" display="block" mb="md">
-          Open the latest recorded version in another tab without losing this draft
-        </Anchor>
-      )}
-      <form
-        noValidate
-        onSubmit={form.onSubmit((values) =>
-          run(async () => {
-            const path = `/safety-files/${file.slug}/mitigations/${source ? `${source.id}/` : ""}`;
-            const payload = { ...values, expected_head: head };
-            const saved = source
-              ? await api.patch<{ mitigation: Mitigation }>(path, payload)
-              : await api.post<{ mitigation: Mitigation }>(path, payload);
-            void navigate(`/safety-files/${file.slug}/mitigations/${saved.mitigation.id}`);
-          }, form.setErrors),
+      <Stack gap="lg">
+        <TextLink to={latest} standalone>
+          Back to {source?.id ?? file.name}
+        </TextLink>
+        <PageHeader title={source ? `Edit ${source.id}` : "Record a mitigation"} />
+        <BodyText>
+          {file.name}. Save the whole form to record the evidence and both sides of its hazard
+          links in one attributable version. Do not enter patient data.
+        </BodyText>
+
+        {failure && (
+          <Stack gap="xs">
+            <FormStatus
+              variant="error"
+              title="Could not save the mitigation"
+              description={failure}
+              retainsDraft
+            />
+            <ExternalTextLink href={latest}>
+              Open the latest recorded version in another tab without losing this draft
+            </ExternalTextLink>
+          </Stack>
         )}
-      >
-        <Stack gap="lg">
-          <TextInput
-            label="Mitigation title"
-            required
-            maxLength={200}
-            {...form.getInputProps("title")}
-          />
-          <TextInput
-            label="Responsible email address"
-            type="email"
-            required
-            description="This records responsibility. It does not invite anyone or grant access."
-            {...form.getInputProps("owner")}
-          />
-          <NativeSelect
-            label="Control type"
-            required
-            data={[
-              { value: "", label: "Select a control type" },
-              ...options.control_types.map((value) => ({
-                value,
-                label: value.charAt(0).toUpperCase() + value.slice(1),
-              })),
-            ]}
-            {...form.getInputProps("control_type")}
-          />
-          <Text size="sm" c="dimmed">
-            Controls are listed strongest first: elimination, technical, warning, then
-            procedural.
-          </Text>
-          <NativeSelect
-            label="Mitigation status"
-            data={options.statuses.map((value) => ({
-              value,
-              label: value.charAt(0).toUpperCase() + value.slice(1),
-            }))}
-            {...form.getInputProps("status")}
-          />
-          <MultiSelect
-            label="Linked hazards"
-            description="Adding or removing a link updates both records. It does not change the hazard's assessment."
-            data={hazards.map((hazard) => ({
-              value: hazard.id,
-              label: `${hazard.id}: ${hazard.title}`,
-            }))}
-            searchable
-            nothingFoundMessage="No hazards match"
-            renderPill={({ option, onRemove, disabled }) => (
-              <Pill
-                withRemoveButton
-                onRemove={onRemove}
-                disabled={disabled}
-                removeButtonProps={{
-                  "aria-label": `Remove ${String(option.value)} from linked hazards`,
-                  "aria-hidden": false,
-                  tabIndex: 0,
-                }}
-                styles={{
-                  root: {
-                    height: "auto",
-                    width: "100%",
-                    maxWidth: "100%",
-                    flex: "0 0 100%",
-                    alignItems: "flex-start",
-                  },
-                  label: {
-                    minWidth: 0,
-                    flex: "1 1 0%",
-                    whiteSpace: "normal",
-                    overflow: "visible",
-                    lineHeight: 1.5,
-                    paddingBlock: 8,
-                  },
-                  remove: { height: 44, minWidth: 44, flexShrink: 0, alignSelf: "center" },
-                }}
-              >
-                {option.label}
-              </Pill>
-            )}
-            {...form.getInputProps("hazards")}
-          />
-          <Textarea
-            label="Implementation and verification evidence"
-            required={["implemented", "verified"].includes(form.values.status)}
-            description="Record what demonstrates the control is in place and effective: a test, report, date or document reference. Proposed controls are not evidence of risk reduction."
-            autosize
-            minRows={4}
-            {...form.getInputProps("evidence")}
-          />
-          <Textarea
-            label="Additional narrative (Markdown)"
-            autosize
-            minRows={5}
-            {...form.getInputProps("body")}
-          />
-          <Alert color="yellow" title="Mitigation status does not change risk">
-            Linking, implementing, verifying or withdrawing a mitigation never changes a
-            hazard's severity or likelihood automatically. Review the assessment separately. A
-            recorded verification is the author's judgement, not certification by Turva.
-          </Alert>
-          <Text size="sm">
-            Opening version <code>{head.slice(0, 8)}</code>. A save elsewhere in this safety
-            file makes this form stale. Nothing saves until you choose Save mitigation.
-          </Text>
-          <Button type="submit" loading={submitting} style={{ alignSelf: "flex-start" }}>
-            Save mitigation
-          </Button>
-          <Anchor component={Link} to={latest}>
-            Discard this unsaved draft and return to the recorded version
-          </Anchor>
-        </Stack>
-      </form>
+
+        <BodyText>
+          Opening version <code>{head.slice(0, 8)}</code>. A save elsewhere in this safety file
+          makes this form stale. Nothing saves until you choose Save mitigation.
+        </BodyText>
+
+        <MitigationForm
+          initial={source ?? blank}
+          hazards={hazards}
+          options={options}
+          onSubmit={(input) => void save(input)}
+          onCancel={() => void navigate(latest)}
+          cancelLabel="Discard draft"
+          saving={saving}
+          fieldErrors={fieldErrors}
+        />
+      </Stack>
     </Box>
   );
 }

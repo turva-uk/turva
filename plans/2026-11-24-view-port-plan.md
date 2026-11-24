@@ -232,9 +232,17 @@ As built:
 
 ## Phase 13: The mitigation pages
 
-- [ ] Move `MitigationDetailPage` onto `MitigationDetail` and `DataTable` for its history, and `MitigationFormPage` onto `MitigationForm`, writing through `addMitigation` and `updateMitigation` with `expected_head`, and keeping the draft on a 409.
-- [ ] Delete `HistoryTable`, which nothing uses after this phase.
-- [ ] Check: `./s/frontend` and `./s/lint` pass, and `./s/test` passes, with `mitigation-writes.test.tsx` rewritten where the new components need it, still testing what this check names. Put screenshots of each view this phase moves, in light and dark mode, in the pull request description under a `## Screenshots` heading, uploaded with `gh pr edit --attach`.
+- [x] Move `MitigationDetailPage` onto `MitigationDetail` and `DataTable` for its history, and `MitigationFormPage` onto `MitigationForm`, writing through `addMitigation` and `updateMitigation` with `expected_head`, and keeping the draft on a 409.
+- [x] Delete `HistoryTable`, which nothing uses after this phase.
+- [x] Check: `./s/frontend` and `./s/lint` pass, and `./s/test` passes, with `mitigation-writes.test.tsx` rewritten where the new components need it, still testing what this check names. Put screenshots of each view this phase moves, in light and dark mode, in the pull request description under a `## Screenshots` heading, uploaded with `gh pr edit --attach`.
+
+As built:
+
+- **`MitigationDetailPage` is a `PageHeader`, `MitigationDetail` and `AuditTrailTable`**, the same shape as the hazard page, with "Edit mitigation" in the header for an editor. `HistoryTable` is deleted.
+- **`MitigationFormPage` saves through `addMitigation` and `updateMitigation`** with the `head_sha` it opened, keeps the draft on a refusal with the link to the latest version in another tab, and puts the server's field messages under their fields. A new mitigation names the person recording it, and links the hazard it was opened from, as before.
+- **`MultiSelectField` draws its own pills**, so each remove button can be reached with Tab and is named for what it removes. Mantine's pill hid that button from screen readers and the keyboard; the page had worked round it by hand. The mitigation form names them "Remove HAZ-001 from linked hazards", as the page did.
+- **`mitigation-writes.test.tsx` kept its checks and changed its lookups**: selects are chosen as comboboxes, and the server's evidence message is checked as the evidence field's accessible description rather than by its `p` tag, which ties it to the field.
+- **As run on 24 November 2026**: `./s/frontend` passed (1,504 tests, the build and the Storybook build), the Storybook check passed all 440 safety and form story runs, `./s/lint` passed, and `./s/test` passed (611 Django tests, and the host suites).
 
 ## Phase 14: The safety document page
 
