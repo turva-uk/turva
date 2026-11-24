@@ -70,6 +70,12 @@ function json(body: unknown, status = 200) {
   });
 }
 
+/** Choose an option in one of the catalogue's selects: open it, then pick. */
+async function choose(actor: ReturnType<typeof userEvent.setup>, name: string, option: string) {
+  await actor.click(screen.getByRole("combobox", { name }));
+  await actor.click(await screen.findByRole("option", { name: option }));
+}
+
 function start({
   editing = false,
   canEdit = true,
@@ -130,7 +136,7 @@ function start({
   });
   vi.stubGlobal("fetch", fetcher);
   render(
-    <MantineProvider>
+    <MantineProvider env="test">
       <MemoryRouter
         initialEntries={[
           editing
@@ -147,6 +153,8 @@ function start({
   return { actor: userEvent.setup(), writes, fetcher };
 }
 
+// A long interaction: four selects and five fields. Under the full parallel
+// suite it runs past the five-second default, so it is given longer.
 it("does not assume a low risk and saves only after a deliberate whole-form action", async () => {
   const { actor, writes, fetcher } = start();
   const title = await screen.findByRole("textbox", { name: "Hazard title" });
@@ -156,7 +164,7 @@ it("does not assume a low risk and saves only after a deliberate whole-form acti
     "Severity - residual",
     "Likelihood - residual",
   ]) {
-    expect(screen.getByRole("combobox", { name })).toHaveValue("0");
+    expect(screen.getByRole("combobox", { name })).toHaveValue("");
   }
   expect(fetcher.mock.calls.some(([url]) => url.includes("assessment-preview"))).toBe(false);
   await actor.type(title, "Fictional new hazard");
@@ -166,18 +174,12 @@ it("does not assume a low risk and saves only after a deliberate whole-form acti
     "Delayed care",
   );
   await actor.type(screen.getByRole("textbox", { name: "Potential harm" }), "Avoidable harm");
-  await actor.selectOptions(screen.getByRole("combobox", { name: "Severity - initial" }), "4");
-  await actor.selectOptions(
-    screen.getByRole("combobox", { name: "Likelihood - initial" }),
-    "3",
-  );
-  await actor.selectOptions(screen.getByRole("combobox", { name: "Severity - residual" }), "4");
-  await actor.selectOptions(
-    screen.getByRole("combobox", { name: "Likelihood - residual" }),
-    "1",
-  );
+  await choose(actor, "Severity - initial", "4 - Major");
+  await choose(actor, "Likelihood - initial", "3 - Medium");
+  await choose(actor, "Severity - residual", "4 - Major");
+  await choose(actor, "Likelihood - residual", "1 - Very low");
   expect(
-    await screen.findByLabelText(/^residual severity 4, likelihood 1, risk level 2,/),
+    await screen.findByRole("img", { name: /^Risk level 2, .*: severity 4, likelihood 1$/ }),
   ).toBeInTheDocument();
   expect(writes).toHaveLength(0);
   await actor.click(screen.getByRole("button", { name: "Save hazard" }));
@@ -194,7 +196,7 @@ it("does not assume a low risk and saves only after a deliberate whole-form acti
   expect(writes[0]).not.toHaveProperty("id");
   expect(writes[0]).not.toHaveProperty("mitigations");
   expect(writes[0]).not.toHaveProperty("risk_level");
-});
+}, 20_000);
 
 it("keeps a stale draft and its original precondition, with a separate-tab comparison link", async () => {
   const { actor, writes } = start({
@@ -240,8 +242,10 @@ it("preserves both assessments and narrative on edit, and makes closure explicit
     write: () => json({ detail: "A closed hazard requires a justification." }, 400),
   });
   await screen.findByRole("textbox", { name: "Hazard title" });
-  expect(screen.getByRole("combobox", { name: "Likelihood - residual" })).toHaveValue("1");
-  await actor.selectOptions(screen.getByRole("combobox", { name: "Hazard status" }), "closed");
+  expect(screen.getByRole("combobox", { name: "Likelihood - residual" })).toHaveValue(
+    "1 - Very low",
+  );
+  await choose(actor, "Hazard status", "Closed");
   expect(screen.getByText(/Closing or transferring does not reduce risk/)).toBeInTheDocument();
   expect(
     screen.getByRole("textbox", { name: "Risk justification or closure reason" }),

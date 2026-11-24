@@ -163,6 +163,8 @@ describe("safety presentation integrity (TH-001/TH-008)", () => {
     expect(screen.queryByRole("img", { name: /^Risk level/ })).not.toBeInTheDocument();
   });
 
+  // A long interaction: four selects and five fields. Under the full parallel
+  // suite it runs past the five-second default, so it is given longer.
   it("requires all four clinical choices before submitting a new hazard", async () => {
     const onSubmit = vi.fn();
     const preview = vi.fn(samplePreview);
@@ -174,15 +176,23 @@ describe("safety presentation integrity (TH-001/TH-008)", () => {
         onCancel={vi.fn()}
       />,
     );
-    await userEvent.type(screen.getByRole("textbox", { name: "Hazard" }), "Fictional draft");
     await userEvent.type(
-      screen.getByRole("textbox", { name: "Owner's email" }),
+      screen.getByRole("textbox", { name: "Hazard title" }),
+      "Fictional draft",
+    );
+    await userEvent.type(
+      screen.getByRole("textbox", { name: "Responsible email address" }),
       "cso@example.test",
     );
+    // Cause, effect and harm are required as well, as the page has always
+    // required them, so they are filled; the four scores are what is tested.
+    for (const name of ["Cause", "Effect on the care pathway", "Potential harm"]) {
+      await userEvent.type(screen.getByRole("textbox", { name }), "Fictional text");
+    }
     await userEvent.click(screen.getByRole("button", { name: "Save hazard" }));
     expect(onSubmit).not.toHaveBeenCalled();
     expect(preview).not.toHaveBeenCalled();
-    for (const name of ["Initial risk", "Residual risk"]) {
+    for (const name of ["Initial assessment", "Residual assessment"]) {
       const group = within(screen.getByRole("group", { name }));
       await userEvent.click(group.getByRole("combobox", { name: /^Severity/ }));
       await userEvent.click(await screen.findByRole("option", { name: "4 - Major" }));
@@ -195,7 +205,7 @@ describe("safety presentation integrity (TH-001/TH-008)", () => {
       initial: { severity: 4, likelihood: 1 },
       residual: { severity: 4, likelihood: 1 },
     });
-  });
+  }, 20_000);
 
   it("retains unsupported Markdown source through an unrelated title edit", async () => {
     const body = "Before <!-- >= --> 5 mg.\n\n![Reviewed diagram](evidence/diagram.png)";
@@ -209,8 +219,10 @@ describe("safety presentation integrity (TH-001/TH-008)", () => {
         onCancel={vi.fn()}
       />,
     );
-    expect(screen.getByRole("textbox", { name: "Notes" })).toHaveValue(body);
-    await userEvent.type(screen.getByRole("textbox", { name: "Hazard" }), " edited");
+    expect(
+      screen.getByRole("textbox", { name: "Additional narrative (Markdown)" }),
+    ).toHaveValue(body);
+    await userEvent.type(screen.getByRole("textbox", { name: "Hazard title" }), " edited");
     await userEvent.click(screen.getByRole("button", { name: "Save hazard" }));
     expect(onSubmit.mock.calls[0]![0]).toMatchObject({ body });
   });
@@ -246,7 +258,9 @@ describe("safety presentation integrity (TH-001/TH-008)", () => {
     );
     expect(screen.getByRole("alert")).toHaveTextContent(/read-only/i);
     expect(screen.getByLabelText("Recorded status")).toHaveValue("under review");
-    expect(screen.getByLabelText("Notes")).toHaveAttribute("aria-readonly", "true");
+    expect(screen.getByLabelText("Additional narrative (Markdown)")).toHaveAttribute(
+      "readonly",
+    );
     expect(screen.queryByRole("button", { name: "Save hazard" })).not.toBeInTheDocument();
     expect(onSubmit).not.toHaveBeenCalled();
   });
@@ -289,7 +303,9 @@ describe("safety presentation integrity (TH-001/TH-008)", () => {
       />,
     );
     expect(await screen.findAllByText(/could not work out the risk level/)).toHaveLength(2);
-    expect(screen.getByRole("textbox", { name: "Hazard" })).toHaveValue(MITIGATED_HAZARD.title);
+    expect(screen.getByRole("textbox", { name: "Hazard title" })).toHaveValue(
+      MITIGATED_HAZARD.title,
+    );
   });
 
   it("does not replace an opened draft with incoming record props", async () => {
@@ -302,19 +318,22 @@ describe("safety presentation integrity (TH-001/TH-008)", () => {
     const { rerender } = renderWithMantine(
       <HazardForm {...props} initial={MITIGATED_HAZARD} />,
     );
-    await userEvent.type(screen.getByRole("textbox", { name: "Hazard" }), " retained edit");
+    await userEvent.type(
+      screen.getByRole("textbox", { name: "Hazard title" }),
+      " retained edit",
+    );
     rerender(
       <HazardForm
         {...props}
         initial={{ ...MITIGATED_HAZARD, title: "Incoming version", body: "Incoming notes" }}
       />,
     );
-    expect(screen.getByRole("textbox", { name: "Hazard" })).toHaveValue(
+    expect(screen.getByRole("textbox", { name: "Hazard title" })).toHaveValue(
       `${MITIGATED_HAZARD.title} retained edit`,
     );
-    expect(screen.getByRole("textbox", { name: "Notes" })).not.toHaveTextContent(
-      "Incoming notes",
-    );
+    expect(
+      screen.getByRole("textbox", { name: "Additional narrative (Markdown)" }),
+    ).not.toHaveValue("Incoming notes");
     rerender(
       <HazardForm
         {...props}
@@ -322,8 +341,12 @@ describe("safety presentation integrity (TH-001/TH-008)", () => {
         initial={{ ...MITIGATED_HAZARD, title: "Incoming version", body: "Incoming notes" }}
       />,
     );
-    expect(screen.getByRole("textbox", { name: "Hazard" })).toHaveValue("Incoming version");
-    expect(screen.getByRole("textbox", { name: "Notes" })).toHaveTextContent("Incoming notes");
+    expect(screen.getByRole("textbox", { name: "Hazard title" })).toHaveValue(
+      "Incoming version",
+    );
+    expect(
+      screen.getByRole("textbox", { name: "Additional narrative (Markdown)" }),
+    ).toHaveValue("Incoming notes");
   });
 
   it("retains the draft and revokes editing when permission becomes read-only", async () => {
@@ -337,17 +360,25 @@ describe("safety presentation integrity (TH-001/TH-008)", () => {
     };
     const { rerender } = renderWithMantine(<HazardForm {...props} />);
     await screen.findAllByRole("img", { name: /^Risk level/ });
-    await userEvent.type(screen.getByRole("textbox", { name: "Hazard" }), " retained draft");
+    await userEvent.type(
+      screen.getByRole("textbox", { name: "Hazard title" }),
+      " retained draft",
+    );
     rerender(<HazardForm {...props} readOnly />);
-    expect(screen.getByRole("textbox", { name: "Hazard" })).toHaveValue(
+    expect(screen.getByRole("textbox", { name: "Hazard title" })).toHaveValue(
       `${MITIGATED_HAZARD.title} retained draft`,
     );
-    expect(screen.getByRole("textbox", { name: "Hazard" })).toHaveAttribute("readonly");
-    await userEvent.type(screen.getByRole("textbox", { name: "Hazard" }), " unwanted change");
-    expect(screen.getByRole("textbox", { name: "Hazard" })).toHaveValue(
+    expect(screen.getByRole("textbox", { name: "Hazard title" })).toHaveAttribute("readonly");
+    await userEvent.type(
+      screen.getByRole("textbox", { name: "Hazard title" }),
+      " unwanted change",
+    );
+    expect(screen.getByRole("textbox", { name: "Hazard title" })).toHaveValue(
       `${MITIGATED_HAZARD.title} retained draft`,
     );
-    expect(screen.getByLabelText("Notes")).toHaveAttribute("contenteditable", "false");
+    expect(screen.getByLabelText("Additional narrative (Markdown)")).toHaveAttribute(
+      "readonly",
+    );
     await userEvent.click(screen.getByRole("button", { name: "Save hazard" }));
     expect(onSubmit).not.toHaveBeenCalled();
   });
@@ -364,7 +395,7 @@ describe("safety presentation integrity (TH-001/TH-008)", () => {
       />,
     );
     await screen.findAllByRole("img", { name: /^Risk level/ });
-    await userEvent.type(screen.getByRole("textbox", { name: "Hazard" }), "{Enter}");
+    await userEvent.type(screen.getByRole("textbox", { name: "Hazard title" }), "{Enter}");
     expect(onSubmit).toHaveBeenCalledTimes(1);
   });
 });

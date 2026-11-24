@@ -155,8 +155,10 @@ function FormStatusCard({
   // changes. A failure also takes focus, so a keyboard or screen reader user
   // lands on it rather than on the button they pressed.
   useEffect(() => {
+    // Focus at once, as the card appears, so nothing else is focused in
+    // between; the scroll waits for the layout to settle.
+    if (failure) ref.current?.focus({ preventScroll: true });
     const id = requestAnimationFrame(() => {
-      if (failure) ref.current?.focus({ preventScroll: true });
       ref.current?.scrollIntoView({
         behavior: reducedMotion ? "instant" : "smooth",
         block: "start",
@@ -166,13 +168,22 @@ function FormStatusCard({
   }, [reducedMotion, failure]);
 
   return (
-    <div ref={ref} tabIndex={failure ? -1 : undefined} style={{ scrollMarginTop: 20 }}>
-      <BaseCard
-        bg={config.bg}
-        data-testid="form-status"
-        role={config.role}
-        aria-live={config.live}
-      >
+    // The role sits on the element that takes focus, so a screen reader
+    // lands on the alert itself rather than on a box around it.
+    <div
+      ref={ref}
+      tabIndex={failure ? -1 : undefined}
+      role={config.role}
+      aria-live={config.live}
+      data-testid="form-status"
+      style={{
+        // Clear of a fixed header, such as the app's ribbon: Mantine's
+        // AppShell sets its height here. Without it the card's title
+        // scrolled under the ribbon.
+        scrollMarginTop: "calc(var(--app-shell-header-offset, 0rem) + 1.25rem)",
+      }}
+    >
+      <BaseCard bg={config.bg}>
         <Group gap="md" wrap="nowrap" align="flex-start" justify="space-between">
           <Group gap="md" wrap="nowrap" align="flex-start">
             <Box style={{ flexShrink: 0, position: "relative", top: "-0.625rem" }}>
