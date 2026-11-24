@@ -94,8 +94,16 @@ As built:
 
 ## Phase 4: Invitation and profile
 
-- [ ] Move `InvitationPage` and `ProfilePage` onto the form fields, `PageHeader` and the buttons, as Phase 3 did. The profile keeps the professional registration fields and the Clinical Safety Officer declaration exactly as they are sent today; `declare_cso()` stays the only way to become a CSO.
-- [ ] Check: `./s/frontend` and `./s/lint` pass. Put screenshots of each view this phase moves, in light and dark mode, in the pull request description under a `## Screenshots` heading, uploaded with `gh pr edit --attach`.
+- [x] Move `InvitationPage` and `ProfilePage` onto the form fields, `PageHeader` and the buttons, as Phase 3 did. The profile keeps the professional registration fields and the Clinical Safety Officer declaration exactly as they are sent today; `declare_cso()` stays the only way to become a CSO.
+- [x] Check: `./s/frontend` and `./s/lint` pass. Put screenshots of each view this phase moves, in light and dark mode, in the pull request description under a `## Screenshots` heading, uploaded with `gh pr edit --attach`.
+
+As built:
+
+- **The profile still sends one `PATCH /profile/` with the same eight fields**, the CSO declaration among them, so `declare_cso()` on the server stays the only way to become a CSO. A new test checks that unticking the role hides the criteria and sends `is_cso: false`.
+- **"No regulator recorded" is the regulator select's placeholder.** The pages rule forbids a clear button, so choosing the selected regulator again clears it.
+- **Accepting an invitation is a `Form` with no fields**, like the verification pages, and its notices are status cards. The token still travels only in the request body, never a URL.
+- **`workflows.test.tsx` and `App.test.tsx` render the app in a data router**, as `main.tsx` does, since the profile form now guards leaving it and a guarded `Form` refuses to render outside one.
+- **As run on 24 November 2026**: `./s/frontend` passed (1,424 tests, the build and the Storybook build), `./s/lint` passed, and `./s/test` passed (611 Django tests, and the host suites).
 
 ## Phase 5: The organisations list
 
