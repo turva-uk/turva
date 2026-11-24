@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import { screen } from "@testing-library/react";
 
 import { IconAlertTriangle } from "@/components/icons/appIcons";
-import { renderWithMantine } from "@/test/test-utils";
+import { renderWithMantine, renderWithRouter } from "@/test/test-utils";
 import { statusColours } from "@/styles/semanticColours";
 import GuidanceNote from "./GuidanceNote";
 
@@ -68,5 +68,29 @@ describe("GuidanceNote", () => {
     expect(styleOf("guidance-note")).toContain(
       `--guidance-note-stripe: ${statusColours.info.bg}`,
     );
+  });
+
+  it("offers no button without an action", () => {
+    renderNote("warning");
+
+    expect(screen.queryByRole("link")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+  });
+
+  it("offers an action as a link styled as an outline button", () => {
+    renderWithRouter(
+      <GuidanceNote
+        icon={<IconAlertTriangle />}
+        title="Recorded in your name: Dr Anita Patel"
+        description="Check your profile and CSO declaration are right."
+        action={{ label: "Check your profile", to: "/settings/profile" }}
+      />,
+    );
+
+    const link = screen.getByRole("link", { name: "Check your profile" });
+
+    expect(link).toHaveAttribute("href", "/settings/profile");
+    expect(link).toHaveAttribute("data-variant", "outline");
+    expect(screen.getByTestId("guidance-note")).toContainElement(link);
   });
 });

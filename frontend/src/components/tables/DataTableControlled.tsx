@@ -75,6 +75,8 @@ export interface DataTableControlledProps<T> {
    * button, shown in the same row as search and filter, before them.
    */
   action?: ReactNode;
+  /** The table's name for a screen reader, not shown on screen. See `DataTable`. */
+  label?: string;
 }
 
 function DataTableControlledInner<T>({
@@ -92,6 +94,7 @@ function DataTableControlledInner<T>({
   searchFields,
   filterPredicate,
   onFilteredData,
+  label,
   action,
 }: DataTableControlledProps<T>) {
   const [filters, setFilters] = useState<string[]>([]);
@@ -160,6 +163,7 @@ function DataTableControlledInner<T>({
       pageSize={pageSize}
       fullControls
       controls={controls}
+      label={label}
     />
   );
 }

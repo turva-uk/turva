@@ -165,6 +165,8 @@ function statusTextVariables(
  *
  * Fixed at every screen width. Body text is 19px, the GOV.UK and NHS
  * minimum, because people often read Turva while something has gone wrong.
+ * Nothing is smaller: `xs` and `sm` are 19px too, so a component given a
+ * small size by Mantine, or by a `size` prop, still meets the minimum.
  */
 export const typographyTokens = {
   fontWeights: {
@@ -172,8 +174,8 @@ export const typographyTokens = {
     bold: 700,
   },
   fontSizes: {
-    xs: "1rem", // 16px
-    sm: "1rem", // 16px
+    xs: "1.1875rem", // 19px, the minimum
+    sm: "1.1875rem", // 19px, the minimum
     md: "1.1875rem", // 19px, body text
     lg: "1.5rem", // 24px
     xl: "2rem", // 32px
@@ -183,8 +185,8 @@ export const typographyTokens = {
     h2: { fontSize: "1.75rem", lineHeight: "1.35" }, // 28px
     h3: { fontSize: "1.5rem", lineHeight: "1.4" }, // 24px
     h4: { fontSize: "1.1875rem", lineHeight: "1.5" }, // 19px
-    h5: { fontSize: "1rem", lineHeight: "1.55" }, // 16px
-    h6: { fontSize: "1rem", lineHeight: "1.55" }, // 16px
+    h5: { fontSize: "1.1875rem", lineHeight: "1.5" }, // 19px, the minimum
+    h6: { fontSize: "1.1875rem", lineHeight: "1.5" }, // 19px, the minimum
   },
 } as const;
 

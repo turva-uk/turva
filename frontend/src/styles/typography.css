@@ -17,8 +17,8 @@
 }
 
 /**
- * Accessibility: Ensure text remains readable at all sizes
- * Minimum font size should never go below 14px for body content
+ * Accessibility: no text is ever below 19px, the GOV.UK and NHS minimum.
+ * The small sizes above are 19px too; see typographyTokens in theme.ts.
  */
 body {
   font-size: 1.1875rem; /* 19px - fixed across all viewports */
@@ -35,8 +35,7 @@ body {
 }
 
 /**
- * Small text - 16px
- * Handled by sm/xs font size variables above
+ * There is no small text: the sm and xs variables above are 19px.
  */
 
 /**

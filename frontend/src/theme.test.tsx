@@ -104,6 +104,26 @@ describe("shared component tokens", () => {
     expect(BODY_FONT).toContain("Atkinson Hyperlegible Next Variable");
   });
 
+  it("sets no text size below 19px, for text or headings", () => {
+    const minimum = 1.1875; // rem, 19px
+    const sizes = [
+      ...Object.values(typographyTokens.fontSizes),
+      ...Object.values(typographyTokens.headings).map((heading) => heading.fontSize),
+    ];
+
+    for (const size of sizes) {
+      expect(size).toMatch(/^[\d.]+rem$/);
+      expect(parseFloat(size)).toBeGreaterThanOrEqual(minimum);
+    }
+  });
+
+  it("gives Mantine's small sizes the 19px minimum too", () => {
+    const resolved = cssVariablesResolver(mergeMantineTheme(DEFAULT_THEME, theme));
+
+    expect(resolved.variables["--typo-xs"]).toBe("1.1875rem");
+    expect(resolved.variables["--typo-sm"]).toBe("1.1875rem");
+  });
+
   it("takes its breakpoints from breakpoints.json", () => {
     expect(theme.breakpoints).toEqual(breakpoints);
   });
