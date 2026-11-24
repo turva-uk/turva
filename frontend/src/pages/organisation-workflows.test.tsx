@@ -161,7 +161,7 @@ function start(
     { initialEntries: [route] },
   );
   render(
-    <MantineProvider>
+    <MantineProvider env="test">
       <RouterProvider router={router} />
     </MantineProvider>,
   );
@@ -256,9 +256,21 @@ it("requires explicit adoption and sends only opened CSO appointments on whole-t
   const select = await screen.findByRole("combobox", { name: "Organisation for this file" });
   const save = screen.getByRole("button", { name: "Adopt file into this organisation" });
   expect(select).toHaveValue("");
-  expect(save).toBeDisabled();
-  await actor.selectOptions(select, organisation.id);
-  expect(screen.getByRole("combobox", { name: "One accountable CSO" })).toHaveValue(self.id);
+  // The shared submit button stays focusable while unavailable: it says so
+  // with aria-disabled, and a press sends nothing.
+  expect(save).toHaveAttribute("aria-disabled", "true");
+  await actor.click(save);
+  expect(writes).toHaveLength(0);
+  // The catalogue's select is a combobox: open it, then choose.
+  await actor.click(select);
+  await actor.click(
+    await screen.findByRole("option", {
+      name: `${organisation.name} (${organisation.id.slice(0, 8)})`,
+    }),
+  );
+  expect(screen.getByRole("combobox", { name: "One accountable CSO" })).toHaveValue(
+    `${self.name} (${self.email})`,
+  );
   await actor.click(
     screen.getByRole("checkbox", { name: `${colleague.name} (${colleague.email})` }),
   );
