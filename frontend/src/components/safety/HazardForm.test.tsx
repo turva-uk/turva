@@ -63,7 +63,7 @@ describe("HazardForm", () => {
 
       expect(
         await screen.findByRole("img", { name: /^Risk level 4, Mandatory elimination/ }),
-      ).toHaveTextContent(/^4\s*Mandatory elimination$/);
+      ).toHaveTextContent(/^S4 L3\s*4\s*Mandatory elimination$/);
       expect(
         await screen.findByRole("img", {
           name: /^Risk level 2, Acceptable if cost of reduction exceeds benefit/,

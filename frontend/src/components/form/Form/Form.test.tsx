@@ -647,9 +647,7 @@ describe("FormStatus focus and the kept draft", () => {
     async (variant) => {
       renderWithMantine(<FormStatus variant={variant} title="Could not save" />);
 
-      await waitFor(() =>
-        expect(screen.getByTestId("form-status").parentElement).toHaveFocus(),
-      );
+      await waitFor(() => expect(screen.getByTestId("form-status")).toHaveFocus());
     },
   );
 

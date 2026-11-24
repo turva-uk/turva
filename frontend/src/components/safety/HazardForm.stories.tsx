@@ -52,12 +52,17 @@ export const NewHazard: Story = {
     await expect(canvas.getAllByRole("combobox", { name: /^Severity/ })[0]).toHaveValue("");
     await expect(canvas.queryByRole("img", { name: /^Risk level/ })).toBeNull();
     await userEvent.type(
-      canvas.getByRole("textbox", { name: "Hazard" }),
+      canvas.getByRole("textbox", { name: "Hazard title" }),
       "Fictional deliberate assessment",
     );
+    // Cause, effect and harm are required too, so they are filled; the four
+    // scores are what this story shows being required.
+    for (const name of ["Cause", "Effect on the care pathway", "Potential harm"]) {
+      await userEvent.type(canvas.getByRole("textbox", { name }), "Fictional text");
+    }
     await userEvent.click(canvas.getByRole("button", { name: "Save hazard" }));
     await expect(args.onSubmit).not.toHaveBeenCalled();
-    for (const name of ["Initial risk", "Residual risk"]) {
+    for (const name of ["Initial assessment", "Residual assessment"]) {
       const group = within(canvas.getByRole("group", { name }));
       await userEvent.click(group.getByRole("combobox", { name: /^Severity/ }));
       await userEvent.click(
@@ -72,7 +77,7 @@ export const NewHazard: Story = {
         }),
       );
     }
-    await userEvent.type(canvas.getByRole("textbox", { name: "Hazard" }), "{Enter}");
+    await userEvent.type(canvas.getByRole("textbox", { name: "Hazard title" }), "{Enter}");
     await expect(args.onSubmit).toHaveBeenCalledTimes(1);
     await expect(args.onSubmit).toHaveBeenLastCalledWith(
       expect.objectContaining({
@@ -112,7 +117,7 @@ export const Saving: Story = {
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement);
     await userEvent.click(canvas.getByRole("button", { name: "Cancel" }));
-    await userEvent.type(canvas.getByRole("textbox", { name: "Hazard" }), "{Enter}");
+    await userEvent.type(canvas.getByRole("textbox", { name: "Hazard title" }), "{Enter}");
     await expect(args.onSubmit).not.toHaveBeenCalled();
     await expect(args.onCancel).not.toHaveBeenCalled();
   },
@@ -143,9 +148,9 @@ export const UnsupportedRecord: Story = {
     await expect(canvas.getByRole("textbox", { name: "Recorded status" })).toHaveValue(
       "under review",
     );
-    await expect(canvas.getByRole("textbox", { name: "Notes" })).toHaveValue(
-      "Before <!-- >= --> after.",
-    );
+    await expect(
+      canvas.getByRole("textbox", { name: "Additional narrative (Markdown)" }),
+    ).toHaveValue("Before <!-- >= --> after.");
     await expect(canvas.queryByRole("button", { name: "Save hazard" })).toBeNull();
     await expect(args.onSubmit).not.toHaveBeenCalled();
   },
@@ -166,17 +171,18 @@ export const RetainedDraftAfterRevocation: Story = {
   render: (args) => <RevocationDemo {...args} />,
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement);
-    const title = canvas.getByRole("textbox", { name: "Hazard" });
+    const title = canvas.getByRole("textbox", { name: "Hazard title" });
     await userEvent.type(title, " retained draft");
     await userEvent.click(canvas.getByRole("button", { name: "Simulate read-only access" }));
     await waitFor(() => expect(title).toHaveAttribute("readonly"));
     await userEvent.type(title, " unwanted change");
     await expect(title).toHaveValue(`${MITIGATED_HAZARD.title} retained draft`);
-    await expect(canvas.getByRole("textbox", { name: "Notes" })).toHaveAttribute("readonly");
-    const severity = within(canvas.getByRole("group", { name: "Initial risk" })).getByRole(
-      "combobox",
-      { name: /^Severity/ },
-    );
+    await expect(
+      canvas.getByRole("textbox", { name: "Additional narrative (Markdown)" }),
+    ).toHaveAttribute("readonly");
+    const severity = within(
+      canvas.getByRole("group", { name: "Initial assessment" }),
+    ).getByRole("combobox", { name: /^Severity/ });
     const recordedSeverity = severity.getAttribute("value");
     await userEvent.click(severity);
     await userEvent.keyboard("{ArrowDown}{Enter}");
@@ -184,7 +190,7 @@ export const RetainedDraftAfterRevocation: Story = {
     await expect(severity).toHaveAttribute("aria-expanded", "false");
     await expect(severity).toHaveValue(recordedSeverity);
     await expect(within(canvasElement.ownerDocument.body).queryByRole("listbox")).toBeNull();
-    const status = canvas.getByRole("combobox", { name: "Status" });
+    const status = canvas.getByRole("combobox", { name: "Hazard status" });
     await userEvent.click(status);
     await userEvent.keyboard("{ArrowDown}{Enter}");
     await expect(status).toHaveValue("Open");

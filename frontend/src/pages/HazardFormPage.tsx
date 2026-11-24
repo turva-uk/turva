@@ -1,114 +1,158 @@
-import {
-  Alert,
-  Anchor,
-  Box,
-  Button,
-  Fieldset,
-  Loader,
-  NativeSelect,
-  SimpleGrid,
-  Stack,
-  Text,
-  Textarea,
-  TextInput,
-  Title,
-} from "@mantine/core";
-import { useForm } from "@mantine/form";
-import { Link, useNavigate, useParams } from "react-router";
+import { Box, Stack } from "@mantine/core";
+import { useEffect, useState } from "react";
+import type { FieldPath } from "react-hook-form";
+import { useNavigate, useParams } from "react-router";
 
-import { api } from "../api/client";
-import type {
-  Assessment,
-  Hazard,
-  HazardDetail,
-  HazardOptions,
-  SafetyFile,
-  SafetyFileDetail,
-} from "../api/types";
-import { useApiResource } from "../api/useApiResource";
-import { useSubmission } from "../api/useSubmission";
+import { ApiError } from "../api/client";
 import { useSession } from "../auth/useSession";
-import { RiskLevel } from "../components/RiskLevel";
-import { SaveFailure } from "../components/SaveFailure";
+import type { Hazard, HazardOptions, SafetyFile } from "../api/types";
+import { FormStatus } from "../components/form/Form";
+import { IconAlertCircle, IconAlertTriangle } from "../components/icons/appIcons";
+import { PageSpinner } from "../components/loading-spinner";
+import { StateMessage } from "../components/message-cards";
+import HazardForm from "../components/safety/HazardForm";
+import { BodyText, ExternalTextLink, PageHeader, TextLink } from "../components/typography";
+import { apiFailure } from "../lib/forms";
+import {
+  addHazard,
+  blankHazard,
+  getFile,
+  getHazard,
+  hazardOptions,
+  updateHazard,
+  type HazardInput,
+} from "../lib/safety";
+
+/** The fields the server may name in a refused save. */
+const FIELDS: readonly FieldPath<HazardInput>[] = [
+  "title",
+  "owner",
+  "status",
+  "cause",
+  "effect",
+  "harm",
+  "justification",
+  "body",
+  "initial.severity",
+  "initial.likelihood",
+  "residual.severity",
+  "residual.likelihood",
+];
+
+/** What the form opens on: the file, the hazard if editing, and the version read. */
+interface Opened {
+  file: SafetyFile;
+  hazard: Hazard | null;
+  head: string | null;
+  canEdit: boolean;
+  repositoryMissing: boolean;
+}
 
 export function HazardFormPage({ editing = false }: { editing?: boolean }) {
-  const { slug, hazardId } = useParams();
-  const path = editing
-    ? `/safety-files/${slug}/hazards/${hazardId}/`
-    : `/safety-files/${slug}/`;
-  const { data, error } = useApiResource<SafetyFileDetail | HazardDetail>(path);
-  const options = useApiResource<HazardOptions>("/hazard-options/");
-  if (error || options.error)
+  const { slug = "", hazardId = "" } = useParams();
+  const [opened, setOpened] = useState<Opened | null>(null);
+  const [options, setOptions] = useState<HazardOptions | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const fail = (reason: unknown) => {
+      if (controller.signal.aborted) return;
+      setError(reason instanceof ApiError ? reason.message : "Something went wrong.");
+    };
+
+    const read = editing
+      ? getHazard(slug, hazardId, controller.signal).then((detail) => ({
+          file: detail.safety_file,
+          hazard: detail.hazard,
+          head: detail.head_sha,
+          canEdit: detail.can_edit,
+          repositoryMissing: false,
+        }))
+      : getFile(slug, controller.signal).then((detail) => ({
+          file: detail.safety_file,
+          hazard: null,
+          head: detail.head_sha ?? null,
+          canEdit: detail.can_edit,
+          repositoryMissing: detail.repository_missing,
+        }));
+    read.then(setOpened).catch(fail);
+    hazardOptions(controller.signal).then(setOptions).catch(fail);
+
+    return () => controller.abort();
+  }, [editing, slug, hazardId]);
+
+  if (error) {
+    return <Notice title="Could not open the hazard form" description={error} colour="alert" />;
+  }
+  if (!opened || !options) return <PageSpinner label="Loading the hazard form" />;
+  if (!opened.canEdit) {
     return (
-      <Alert color="red" role="alert" title="Could not open the hazard form">
-        {error || options.error}
-      </Alert>
+      <Notice
+        title="Read-only safety file"
+        description="Only a verified legacy owner or a currently appointed, named file CSO may edit hazards."
+        colour="warning"
+      />
     );
-  if (!data || !options.data) return <Loader aria-label="Loading the hazard form" />;
-  if (!data.can_edit)
+  }
+  if (opened.repositoryMissing) {
     return (
-      <Alert color="yellow" title="Read-only safety file">
-        Only a verified legacy owner or a currently appointed, named file CSO may edit hazards.
-      </Alert>
+      <Notice
+        title="The repository is missing"
+        description="Ask an administrator to restore it before editing."
+        colour="alert"
+      />
     );
-  if ("repository_missing" in data && data.repository_missing)
+  }
+  if (!opened.head) {
     return (
-      <Alert color="red" role="alert">
-        The repository is missing. Ask an administrator to restore it before editing.
-      </Alert>
+      <Notice
+        title="The repository version could not be read"
+        description="No save is available."
+        colour="alert"
+      />
     );
-  if (!data.head_sha)
-    return (
-      <Alert color="red" role="alert">
-        The repository version could not be read. No save is available.
-      </Alert>
-    );
+  }
+
   return (
-    <HazardForm
-      key={`${slug}:${hazardId ?? "new"}`}
-      file={data.safety_file}
-      source={"hazard" in data ? data.hazard : null}
-      head={data.head_sha}
-      options={options.data}
+    <HazardEditor
+      key={`${slug}:${hazardId || "new"}`}
+      file={opened.file}
+      source={opened.hazard}
+      head={opened.head}
+      options={options}
     />
   );
 }
 
-function AssessmentPreview({
-  severity,
-  likelihood,
-  label,
+/** A page-level notice, read out as the page opens when it is an alert. */
+function Notice({
+  title,
+  description,
+  colour,
 }: {
-  severity: number;
-  likelihood: number;
-  label: string;
+  title: string;
+  description: string;
+  colour: "alert" | "warning";
 }) {
-  const { data, error } = useApiResource<Assessment>(
-    `/assessment-preview/?severity=${severity}&likelihood=${likelihood}`,
+  const card = (
+    <StateMessage
+      icon={colour === "alert" ? <IconAlertCircle /> : <IconAlertTriangle />}
+      colour={colour}
+      title={title}
+      description={description}
+    />
   );
-  if (error)
-    return (
-      <Alert color="red" role="alert" title="Risk preview unavailable">
-        {error} Saving will still be validated by the storage layer.
-      </Alert>
-    );
-  if (!data)
-    return (
-      <Text role="status" size="sm">
-        Calculating the risk preview…
-      </Text>
-    );
+
   return (
-    <Box>
-      <Text size="sm" c="dimmed">
-        Derived risk preview - not saved
-      </Text>
-      <RiskLevel assessment={data} label={label} />
-    </Box>
+    <Stack maw={800}>
+      <PageHeader title="Hazard" />
+      {colour === "alert" ? <Box role="alert">{card}</Box> : card}
+    </Stack>
   );
 }
 
-function HazardForm({
+function HazardEditor({
   file,
   source,
   head,
@@ -119,190 +163,95 @@ function HazardForm({
   head: string;
   options: HazardOptions;
 }) {
-  const { user } = useSession();
   const navigate = useNavigate();
-  const { run, submitting, failure } = useSubmission();
-  const form = useForm({
-    initialValues: {
-      title: source?.title ?? "",
-      owner: source?.owner ?? user?.email ?? "",
-      status: source?.status ?? "open",
-      cause: source?.cause ?? "",
-      effect: source?.effect ?? "",
-      harm: source?.harm ?? "",
-      justification: source?.justification ?? "",
-      body: source?.body ?? "",
-      initial: {
-        severity: source?.initial.severity ?? 0,
-        likelihood: source?.initial.likelihood ?? 0,
-      },
-      residual: {
-        severity: source?.residual.severity ?? 0,
-        likelihood: source?.residual.likelihood ?? 0,
-      },
-    },
-  });
+  const { user } = useSession();
+  // A new hazard names the person recording it as responsible, until they
+  // change it, as this page always has.
+  const [blank] = useState(() => ({ ...blankHazard(), owner: user?.email ?? "" }));
+  const [saving, setSaving] = useState(false);
+  const [failure, setFailure] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<string, string>>>({});
   const latest = source
     ? `/safety-files/${file.slug}/hazards/${source.id}`
     : `/safety-files/${file.slug}`;
+
+  async function save(input: HazardInput) {
+    // The version this form opened goes with every save, retries included.
+    // A newer version is never fetched to make a stale judgement save.
+    setSaving(true);
+    setFailure(null);
+    setFieldErrors({});
+    try {
+      const saved = source
+        ? await updateHazard(file.slug, source.id, input, head)
+        : await addHazard(file.slug, input, head);
+      void navigate(`/safety-files/${file.slug}/hazards/${saved.hazard.id}`);
+    } catch (error) {
+      if (!(error instanceof ApiError)) {
+        setFailure("Something went wrong. Nothing was saved; try again.");
+        return;
+      }
+      const result = apiFailure<HazardInput>(error, "Could not save the hazard", FIELDS);
+      setFailure(
+        typeof result.message.description === "string" && result.message.description
+          ? result.message.description
+          : "Nothing was saved.",
+      );
+      setFieldErrors(result.fieldErrors ?? {});
+    } finally {
+      setSaving(false);
+    }
+  }
+
   return (
     <Box maw={800}>
-      <Anchor component={Link} to={latest}>
-        Back to {source?.id ?? file.name}
-      </Anchor>
-      <Title order={1} size="h2" mt="md" mb="sm">
-        {source ? `Edit ${source.id}` : "Record a hazard"}
-      </Title>
-      <Text mb="md">
-        {file.name}. Save the whole form to record one attributable version and update the
-        hazard log. Do not enter patient data.
-      </Text>
-      <SaveFailure message={failure} />
-      {failure && (
-        <Anchor href={latest} target="_blank" rel="noopener noreferrer" display="block" mb="md">
-          Open the latest recorded version in another tab without losing this draft
-        </Anchor>
-      )}
-      <form
-        noValidate
-        onSubmit={form.onSubmit((values) =>
-          run(async () => {
-            const path = `/safety-files/${file.slug}/hazards/${source ? `${source.id}/` : ""}`;
-            const payload = { ...values, expected_head: head };
-            const saved = source
-              ? await api.patch<{ hazard: Hazard }>(path, payload)
-              : await api.post<{ hazard: Hazard }>(path, payload);
-            void navigate(`/safety-files/${file.slug}/hazards/${saved.hazard.id}`);
-          }, form.setErrors),
+      <Stack gap="lg">
+        <TextLink to={latest} standalone>
+          Back to {source?.id ?? file.name}
+        </TextLink>
+        <PageHeader title={source ? `Edit ${source.id}` : "Record a hazard"} />
+        <BodyText>
+          {file.name}. Save the whole form to record one attributable version and update the
+          hazard log. Do not enter patient data.
+        </BodyText>
+
+        {failure && (
+          <Stack gap="xs">
+            <FormStatus
+              variant="error"
+              title="Could not save the hazard"
+              description={failure}
+              retainsDraft
+            />
+            <ExternalTextLink href={latest}>
+              Open the latest recorded version in another tab without losing this draft
+            </ExternalTextLink>
+          </Stack>
         )}
-      >
-        <Stack gap="lg">
-          <TextInput
-            label="Hazard title"
-            required
-            maxLength={200}
-            {...form.getInputProps("title")}
-          />
-          <TextInput
-            label="Responsible email address"
-            type="email"
-            required
-            description="This records responsibility. It does not invite anyone or grant access."
-            {...form.getInputProps("owner")}
-          />
-          <NativeSelect
-            label="Hazard status"
-            data={options.statuses.map((value) => ({
-              value,
-              label: value.charAt(0).toUpperCase() + value.slice(1),
-            }))}
-            {...form.getInputProps("status")}
-          />
-          {form.values.status !== "open" && (
-            <Alert color="yellow" title="Closing or transferring does not reduce risk">
-              The assessment and history remain. Closing needs a reason; transferring does not
-              record acceptance by another organisation.
-            </Alert>
-          )}
-          <Textarea
-            label="Cause"
-            required
-            minRows={3}
-            autosize
-            description="What could cause this hazard?"
-            {...form.getInputProps("cause")}
-          />
-          <Textarea
-            label="Effect on the care pathway"
-            required
-            minRows={3}
-            autosize
-            description="What happens to the care process?"
-            {...form.getInputProps("effect")}
-          />
-          <Textarea
-            label="Potential harm"
-            required
-            minRows={3}
-            autosize
-            description="What harm could follow for a patient or other person?"
-            {...form.getInputProps("harm")}
-          />
-          <SimpleGrid cols={{ base: 1, sm: 2 }}>
-            {(["initial", "residual"] as const).map((stage) => (
-              <Fieldset
-                key={stage}
-                legend={stage === "initial" ? "Initial assessment" : "Residual assessment"}
-              >
-                <Stack>
-                  {(["severity", "likelihood"] as const).map((score) => (
-                    <NativeSelect
-                      key={score}
-                      label={`${score === "severity" ? "Severity" : "Likelihood"} - ${stage}`}
-                      required
-                      value={String(form.values[stage][score])}
-                      onChange={(event) =>
-                        form.setFieldValue(
-                          `${stage}.${score}`,
-                          Number(event.currentTarget.value),
-                        )
-                      }
-                      error={form.errors[`${stage}.${score}`]}
-                      data={[{ value: "0", label: "Select a score" }, ...options[score]]}
-                    />
-                  ))}
-                  {form.values[stage].severity > 0 && form.values[stage].likelihood > 0 ? (
-                    <AssessmentPreview
-                      severity={form.values[stage].severity}
-                      likelihood={form.values[stage].likelihood}
-                      label={stage}
-                    />
-                  ) : (
-                    <Text size="sm" c="dimmed">
-                      Select both scores to see the derived risk. No low-risk value is assumed.
-                    </Text>
-                  )}
-                </Stack>
-              </Fieldset>
-            ))}
-          </SimpleGrid>
-          <Text size="sm" c="dimmed">
-            Residual severity and likelihood cannot exceed the initial scores. Risk level is
-            calculated on the server and cannot be entered.
-          </Text>
-          <Textarea
-            label="Risk justification or closure reason"
-            required={form.values.status === "closed"}
-            minRows={3}
-            autosize
-            {...form.getInputProps("justification")}
-          />
-          <Textarea
-            label="Additional narrative (Markdown)"
-            minRows={5}
-            autosize
-            {...form.getInputProps("body")}
-          />
-          {source && (
-            <Text size="sm">
-              Linked mitigations are unchanged by this form:{" "}
-              {source.mitigations.join(", ") || "none"}. Use the mitigation form to change
-              links; this hazard form preserves them.
-            </Text>
-          )}
-          <Text size="sm">
-            Opening version <code>{head.slice(0, 8)}</code>. If this file changes before you
-            save, Turva rejects the stale form rather than overwriting newer evidence. Saving is
-            not approval to deploy.
-          </Text>
-          <Button type="submit" loading={submitting} style={{ alignSelf: "flex-start" }}>
-            Save hazard
-          </Button>
-          <Anchor component={Link} to={latest}>
-            Discard this unsaved draft and return to the recorded version
-          </Anchor>
-        </Stack>
-      </form>
+
+        {source && (
+          <BodyText>
+            Linked mitigations are unchanged by this form:{" "}
+            {source.mitigations.join(", ") || "none"}. Use the mitigation form to change links;
+            this hazard form preserves them.
+          </BodyText>
+        )}
+        <BodyText>
+          Opening version <code>{head.slice(0, 8)}</code>. If this file changes before you save,
+          Turva rejects the stale form rather than overwriting newer evidence. Saving is not
+          approval to deploy.
+        </BodyText>
+
+        <HazardForm
+          initial={source ?? blank}
+          options={options}
+          onSubmit={(input) => void save(input)}
+          onCancel={() => void navigate(latest)}
+          cancelLabel="Discard draft"
+          saving={saving}
+          fieldErrors={fieldErrors}
+        />
+      </Stack>
     </Box>
   );
 }

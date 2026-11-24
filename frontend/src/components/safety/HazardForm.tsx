@@ -3,8 +3,10 @@
  *
  * Add or change one hazard: its title, owner and status; its cause,
  * effect and harm; a severity and likelihood before and after
- * mitigation; the justification for its residual risk; and its notes, in
- * the Markdown editor.
+ * mitigation; the justification for its residual risk; and its narrative,
+ * as Markdown source in a plain text area. The rich Markdown editor is not
+ * used here: `SAFETY.md` records that it is not yet used by the
+ * application's pages, since it can rewrite what it is given (TH-001).
  *
  * Each pair of scores shows the level the server derives from it, asked
  * of `previewAssessment` as soon as a score is picked. The browser never
@@ -28,8 +30,9 @@ import BaseCard from "@/components/base-card/BaseCard";
 import ButtonPair from "@/components/button/ButtonPair";
 import { SelectField, TextAreaField, TextField } from "@/components/form";
 import { BrandSpinner } from "@/components/loading-spinner";
-import MarkdownEditor from "@/components/markdown-editor";
 import { BodyText, BodyTextInline, ErrorMessage } from "@/components/typography";
+import { IconAlertTriangle } from "@/components/icons/appIcons";
+import { StateMessage } from "@/components/message-cards";
 import {
   blankHazard,
   hazardInputFrom,
@@ -54,22 +57,26 @@ function statusLabel(status: string): string {
 }
 
 function AssessmentFields({
-  title,
+  stage,
   value,
   options,
   preview,
   onChange,
   tried,
   readOnly,
+  errors,
 }: {
-  title: string;
+  stage: "initial" | "residual";
   value: AssessmentDraft;
   options: HazardOptions;
   preview: PreviewAssessment;
   onChange: (value: AssessmentDraft) => void;
   tried: boolean;
   readOnly: boolean;
+  /** The server's messages for this assessment's scores */
+  errors: { severity?: string; likelihood?: string };
 }) {
+  const title = stage === "initial" ? "Initial assessment" : "Residual assessment";
   const level = useAssessmentPreview(value.severity, value.likelihood, preview);
 
   function score(next: string | null): RiskScore | null {
@@ -83,14 +90,17 @@ function AssessmentFields({
       <Fieldset legend={<BodyTextInline bold>{title}</BodyTextInline>} variant="unstyled">
         <Stack gap="sm">
           <SelectField
-            label="Severity"
+            label={`Severity - ${stage}`}
             required
             readOnly={readOnly}
             aria-readonly={readOnly}
             data={options.severity}
             value={value.severity === null ? null : String(value.severity)}
-            placeholder="Choose severity"
-            error={tried && value.severity === null ? "Choose a severity score." : undefined}
+            placeholder="Select a score"
+            error={
+              errors.severity ??
+              (tried && value.severity === null ? "Choose a severity score." : undefined)
+            }
             allowDeselect={false}
             onChange={(next) => {
               const severity = score(next);
@@ -98,15 +108,16 @@ function AssessmentFields({
             }}
           />
           <SelectField
-            label="Likelihood"
+            label={`Likelihood - ${stage}`}
             required
             readOnly={readOnly}
             aria-readonly={readOnly}
             data={options.likelihood}
             value={value.likelihood === null ? null : String(value.likelihood)}
-            placeholder="Choose likelihood"
+            placeholder="Select a score"
             error={
-              tried && value.likelihood === null ? "Choose a likelihood score." : undefined
+              errors.likelihood ??
+              (tried && value.likelihood === null ? "Choose a likelihood score." : undefined)
             }
             allowDeselect={false}
             onChange={(next) => {
@@ -114,12 +125,19 @@ function AssessmentFields({
               if (likelihood) onChange({ ...value, likelihood });
             }}
           />
-          {level.state === "ready" && <RiskScoreBadge assessment={level.assessment} />}
+          {level.state === "ready" && (
+            <Stack gap={4}>
+              <BodyText c="dimmed">Derived risk preview - not saved</BodyText>
+              <RiskScoreBadge assessment={level.assessment} withScores />
+            </Stack>
+          )}
           {level.state === "none" && (
-            <BodyText>Choose both scores to request the derived risk preview.</BodyText>
+            <BodyText c="dimmed">
+              Select both scores to see the derived risk. No low-risk value is assumed.
+            </BodyText>
           )}
           {level.state === "working" && (
-            <BrandSpinner label={`Working out the ${title.toLowerCase()} level`} size="2rem" />
+            <BrandSpinner label={`Working out the ${stage} risk level`} size="2rem" />
           )}
           {level.state === "failed" && (
             <ErrorMessage>
@@ -152,6 +170,14 @@ export interface HazardFormProps {
   error?: string | null;
   /** Revokes editing without replacing the mounted draft. The server remains the authority. */
   readOnly?: boolean;
+  /**
+   * The server's messages for particular fields, by the name it gives
+   * them: `title`, `owner`, `cause`, `initial.severity` and so on. Each
+   * shows under its field.
+   */
+  fieldErrors?: Partial<Record<string, string>>;
+  /** The cancel button's words. Defaults to "Cancel". */
+  cancelLabel?: string;
 }
 
 type OpenedHazard =
@@ -241,12 +267,17 @@ function ReadOnlyHazard({
           />
         ))}
       <TextAreaField
-        label="Justification of residual risk"
+        label="Risk justification or closure reason"
         value={record.justification}
         readOnly
         autosize
       />
-      <MarkdownEditor label="Notes" value={record.body} readOnly onChange={() => {}} />
+      <TextAreaField
+        label="Additional narrative (Markdown)"
+        value={record.body}
+        readOnly
+        autosize
+      />
       <Button variant="outline" onClick={onCancel} disabled={saving}>
         Cancel
       </Button>
@@ -263,6 +294,8 @@ function EditableHazardForm({
   saving = false,
   error = null,
   readOnly = false,
+  fieldErrors = {},
+  cancelLabel,
 }: Omit<HazardFormProps, "initial"> & { initial: HazardDraft }) {
   const [value, setValue] = useState<HazardDraft>(initial);
   const [tried, setTried] = useState(false);
@@ -312,23 +345,26 @@ function EditableHazardForm({
         <Fieldset variant="unstyled" legend="Hazard details">
           <Stack gap="lg">
             <TextField
-              label="Hazard"
+              label="Hazard title"
               required
+              maxLength={200}
               readOnly={readOnly}
               value={value.title}
               onChange={(event) => set("title", event.currentTarget.value)}
+              error={fieldErrors["title"]}
             />
             <TextField
-              label="Owner's email"
+              label="Responsible email address"
               type="email"
               required
               readOnly={readOnly}
-              description="Records responsibility only. It does not invite anyone or grant access."
+              description="This records responsibility. It does not invite anyone or grant access."
               value={value.owner}
               onChange={(event) => set("owner", event.currentTarget.value)}
+              error={fieldErrors["owner"]}
             />
             <SelectField
-              label="Status"
+              label="Hazard status"
               readOnly={readOnly}
               aria-readonly={readOnly}
               data={statuses}
@@ -337,64 +373,99 @@ function EditableHazardForm({
               onChange={(next) => {
                 if (next && isHazardStatus(next)) set("status", next);
               }}
+              error={fieldErrors["status"]}
             />
+            {value.status !== "open" && (
+              <StateMessage
+                icon={<IconAlertTriangle />}
+                colour="warning"
+                title="Closing or transferring does not reduce risk"
+                description="The assessment and history remain. Closing needs a reason; transferring does not record acceptance by another organisation."
+              />
+            )}
             <TextAreaField
               label="Cause"
+              required
+              description="What could cause this hazard?"
               readOnly={readOnly}
               autosize
-              minRows={2}
+              minRows={3}
               value={value.cause}
               onChange={(event) => set("cause", event.currentTarget.value)}
+              error={fieldErrors["cause"]}
             />
             <TextAreaField
-              label="Effect"
+              label="Effect on the care pathway"
+              required
+              description="What happens to the care process?"
               readOnly={readOnly}
               autosize
-              minRows={2}
+              minRows={3}
               value={value.effect}
               onChange={(event) => set("effect", event.currentTarget.value)}
+              error={fieldErrors["effect"]}
             />
             <TextAreaField
               label="Potential harm"
+              required
+              description="What harm could follow for a patient or other person?"
               readOnly={readOnly}
               autosize
-              minRows={2}
+              minRows={3}
               value={value.harm}
               onChange={(event) => set("harm", event.currentTarget.value)}
+              error={fieldErrors["harm"]}
             />
             <SimpleGrid cols={{ base: 1, sm: 2 }}>
               <AssessmentFields
-                title="Initial risk"
+                stage="initial"
                 value={value.initial}
                 options={options}
                 preview={previewAssessment}
                 onChange={(next) => set("initial", next)}
                 tried={tried}
                 readOnly={readOnly}
+                errors={{
+                  severity: fieldErrors["initial.severity"],
+                  likelihood: fieldErrors["initial.likelihood"],
+                }}
               />
               <AssessmentFields
-                title="Residual risk"
+                stage="residual"
                 value={value.residual}
                 options={options}
                 preview={previewAssessment}
                 onChange={(next) => set("residual", next)}
                 tried={tried}
                 readOnly={readOnly}
+                errors={{
+                  severity: fieldErrors["residual.severity"],
+                  likelihood: fieldErrors["residual.likelihood"],
+                }}
               />
             </SimpleGrid>
+            <BodyText c="dimmed">
+              Residual severity and likelihood cannot exceed the initial scores. Risk level is
+              calculated on the server and cannot be entered.
+            </BodyText>
             <TextAreaField
-              label="Justification of residual risk"
+              label="Risk justification or closure reason"
+              required={value.status === "closed"}
               readOnly={readOnly}
               autosize
-              minRows={2}
+              minRows={3}
               value={value.justification}
               onChange={(event) => set("justification", event.currentTarget.value)}
+              error={fieldErrors["justification"]}
             />
-            <MarkdownEditor
-              label="Notes"
-              value={value.body}
+            <TextAreaField
+              label="Additional narrative (Markdown)"
               readOnly={readOnly}
-              onChange={(next) => set("body", next)}
+              autosize
+              minRows={5}
+              value={value.body}
+              onChange={(event) => set("body", event.currentTarget.value)}
+              error={fieldErrors["body"]}
             />
           </Stack>
         </Fieldset>
@@ -415,6 +486,7 @@ function EditableHazardForm({
           acceptType="submit"
           acceptDisabled={readOnly}
           onCancel={onCancel}
+          cancelLabel={cancelLabel}
           acceptLoading={saving}
           cancelDisabled={saving}
         />
