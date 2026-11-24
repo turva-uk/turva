@@ -56,4 +56,19 @@ describe("SecondaryButton", () => {
     expect(button).toHaveAttribute("aria-disabled", "true");
     expect(onClick).not.toHaveBeenCalled();
   });
+
+  it("ignores presses while what it started is under way", async () => {
+    const onClick = vi.fn();
+    renderWithMantine(
+      <SecondaryButton onClick={onClick} loading>
+        Download
+      </SecondaryButton>,
+    );
+
+    const button = screen.getByRole("button", { name: "Download" });
+    await userEvent.setup().click(button);
+
+    expect(button).toHaveAttribute("data-loading");
+    expect(onClick).not.toHaveBeenCalled();
+  });
 });
