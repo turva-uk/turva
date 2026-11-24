@@ -6,7 +6,7 @@ import { describe, expect, it, vi } from "vitest";
 import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { renderWithRouter } from "@/test/test-utils";
-import { SAMPLE_HAZARDS } from "@/test/safetyFile";
+import { MITIGATED_HAZARD, SAMPLE_HAZARDS } from "@/test/safetyFile";
 import HazardTable from "./HazardTable";
 
 describe("HazardTable", () => {
@@ -20,11 +20,11 @@ describe("HazardTable", () => {
     expect(firstRow).toHaveTextContent("HAZ-001");
     const first = within(firstRow);
     expect(first.getByLabelText(/^Risk level 4, Mandatory elimination/)).toHaveTextContent(
-      /^4$/,
+      /^S\d L\d\s*4\s*Mandatory elimination$/,
     );
     expect(
       first.getByLabelText(/^Risk level 2, Acceptable if cost of reduction exceeds benefit/),
-    ).toHaveTextContent(/^2$/);
+    ).toHaveTextContent(/^S\d L\d\s*2\s*Acceptable if cost of reduction exceeds benefit$/);
   });
 
   it("shows where each hazard stands, a closed one included", () => {
@@ -43,14 +43,41 @@ describe("HazardTable", () => {
     expect(screen.queryByText("Open")).not.toBeInTheDocument();
   });
 
-  it("shows each level as its number alone, so the other columns keep their room", () => {
-    // A level's words run to "Acceptable if cost of reduction exceeds
-    // benefit", and two of those in a row squeezed Ref, Hazard and Cause.
-    renderWithRouter(<HazardTable hazards={SAMPLE_HAZARDS} />);
-    const rows = screen.getAllByRole("row").slice(1);
+  it("shows each level with the scores it came from and its words", () => {
+    // As the safety file page's hazard log always has: a reader sees
+    // what each level was derived from without opening the hazard.
+    renderWithRouter(<HazardTable hazards={[MITIGATED_HAZARD]} />);
+    const row = screen.getAllByRole("row")[1];
+    const { initial, residual } = MITIGATED_HAZARD;
 
-    expect(rows[0]).not.toHaveTextContent("Mandatory elimination");
-    expect(rows[0]).not.toHaveTextContent("Acceptable if cost");
+    expect(row).toHaveTextContent(`S${initial.severity} L${initial.likelihood}`);
+    expect(row).toHaveTextContent(initial.risk_label);
+    expect(row).toHaveTextContent(`S${residual.severity} L${residual.likelihood}`);
+    expect(row).toHaveTextContent(residual.risk_label);
+  });
+
+  it("searches the harm as well as the reference, title and cause", async () => {
+    renderWithRouter(<HazardTable hazards={SAMPLE_HAZARDS} />);
+    const [first, ...others] = SAMPLE_HAZARDS;
+    if (!first) throw new Error("No sample hazards");
+
+    await userEvent.click(screen.getByRole("button", { name: /search/i }));
+    await userEvent.type(screen.getByRole("textbox", { name: /search/i }), first.harm);
+
+    expect(screen.getByText(first.title)).toBeInTheDocument();
+    for (const other of others.filter((hazard) => hazard.harm !== first.harm)) {
+      expect(screen.queryByText(other.title)).not.toBeInTheDocument();
+    }
+  });
+
+  it("names the table by its caption, when given one", () => {
+    renderWithRouter(
+      <HazardTable hazards={SAMPLE_HAZARDS} caption="Hazards recorded in this safety file" />,
+    );
+
+    expect(
+      screen.getByRole("table", { name: "Hazards recorded in this safety file" }),
+    ).toBeInTheDocument();
   });
 
   it("says an empty log is not evidence of safety", () => {

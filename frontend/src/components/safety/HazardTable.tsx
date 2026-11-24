@@ -62,12 +62,12 @@ const columns: Column<Hazard>[] = [
   },
   {
     header: "Initial risk",
-    render: (hazard) => <RiskScoreBadge assessment={hazard.initial} compact />,
+    render: (hazard) => <RiskScoreBadge assessment={hazard.initial} withScores />,
     accessor: (hazard) => hazard.initial.risk_level,
   },
   {
     header: "Residual risk",
-    render: (hazard) => <RiskScoreBadge assessment={hazard.residual} compact />,
+    render: (hazard) => <RiskScoreBadge assessment={hazard.residual} withScores />,
     accessor: (hazard) => hazard.residual.risk_level,
   },
   {
@@ -89,6 +89,18 @@ export interface HazardTableProps {
   loading?: boolean;
   /** Called when a hazard is chosen */
   onSelect?: (hazard: Hazard) => void;
+  /** The table's caption, shown under it and read out as its name */
+  caption?: string;
+  /** What to say when the log is empty */
+  emptyMessage?: string;
+}
+
+/** The status words the filter offers, in the order they are offered. */
+const STATUS_FILTERS = Object.values(STATUS).map((status) => status.label);
+
+/** The words a hazard's status shows as, a status Turva does not know included. */
+function statusLabel(hazard: Hazard): string {
+  return isHazardStatus(hazard.status) ? STATUS[hazard.status].label : hazard.status;
 }
 
 export default function HazardTable({
@@ -97,18 +109,27 @@ export default function HazardTable({
   onSelect,
   error,
   loading,
+  caption,
+  emptyMessage = "No hazards in the log. An empty hazard log is not evidence of a safe system.",
 }: HazardTableProps) {
   return (
     <DataTableControlled
       action={action}
-      searchFields={(hazard) => [hazard.id, hazard.title, hazard.cause]}
+      searchFields={(hazard) => [hazard.id, hazard.title, hazard.cause, hazard.harm]}
+      filterData={STATUS_FILTERS}
+      filterLabel="Hazard status"
+      filterAriaLabel="Filter by hazard status"
+      filterPredicate={(filters) => (hazard) =>
+        filters.length === 0 || filters.includes(statusLabel(hazard))
+      }
       data={hazards}
       error={error}
       loading={loading}
       columns={columns}
       getRowKey={(hazard) => hazard.id}
       onRowClick={onSelect}
-      emptyMessage="No hazards in the log. An empty hazard log is not evidence of a safe system."
+      caption={caption}
+      emptyMessage={emptyMessage}
     />
   );
 }
