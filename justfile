@@ -8,6 +8,14 @@ set shell := ["bash", "-c"]
 #
 # Use `just` for the short aliases, or call ./s/<script> directly. Both work.
 
+# Mark's own recipes for his tmux sessions, the finished-response banners and
+# the dev box's remote desktop, from his mark-house-style repository, so they
+# run here as `just cc`, `just rfb` or `just rdp windows`. Optional: skipped
+# wherever that repository is not cloned, so nobody else needs it.
+import? '~/github/mark-house-style/just/session.just'
+import? '~/github/mark-house-style/just/banners.just'
+import? '~/github/mark-house-style/just/remote-desktop.just'
+
 default:
     @just --list
 
