@@ -75,6 +75,12 @@ const mitigation: Mitigation = {
 };
 const head = "a".repeat(40);
 
+/** Choose an option in one of the catalogue's selects: open it, then pick. */
+async function choose(actor: ReturnType<typeof userEvent.setup>, name: string, option: string) {
+  await actor.click(screen.getByRole("combobox", { name }));
+  await actor.click(await screen.findByRole("option", { name: option }));
+}
+
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -130,7 +136,7 @@ function start({
   });
   vi.stubGlobal("fetch", fetcher);
   render(
-    <MantineProvider>
+    <MantineProvider env="test">
       <MemoryRouter
         initialEntries={[
           editing
@@ -151,12 +157,9 @@ it("records a control and explicit hazard links only on a deliberate whole-form 
   const { actor, writes } = start();
   const title = await screen.findByRole("textbox", { name: "Mitigation title" });
   expect(screen.getByRole("combobox", { name: "Control type" })).toHaveValue("");
-  expect(screen.getByRole("combobox", { name: "Mitigation status" })).toHaveValue("proposed");
+  expect(screen.getByRole("combobox", { name: "Mitigation status" })).toHaveValue("Proposed");
   await actor.type(title, "A fictional control");
-  await actor.selectOptions(
-    screen.getByRole("combobox", { name: "Control type" }),
-    "technical",
-  );
+  await choose(actor, "Control type", "Technical");
   expect(writes).toHaveLength(0);
   await actor.click(screen.getByRole("button", { name: "Save mitigation" }));
   await screen.findByRole("heading", { name: "MIT-001: A fictional control" });
@@ -215,18 +218,17 @@ it("shows field validation without clearing evidence and asks for evidence on ve
     write: () => json({ evidence: ["Record verification evidence."] }, 400),
   });
   await screen.findByRole("textbox", { name: "Mitigation title" });
-  await actor.selectOptions(
-    screen.getByRole("combobox", { name: "Mitigation status" }),
-    "verified",
-  );
+  await choose(actor, "Mitigation status", "Verified");
   const evidence = screen.getByRole("textbox", {
     name: "Implementation and verification evidence",
   });
   expect(evidence).toBeRequired();
   await actor.click(screen.getByRole("button", { name: "Save mitigation" }));
-  expect(
-    await screen.findByText("Record verification evidence.", { selector: "p" }),
-  ).toBeInTheDocument();
+  // The server's message shows under the field it names, as that field's
+  // description, not only in the summary above the form.
+  await waitFor(() =>
+    expect(evidence).toHaveAccessibleDescription(/Record verification evidence\./),
+  );
   expect(evidence).toHaveValue(mitigation.evidence);
   expect(evidence).toHaveAttribute("aria-invalid", "true");
 });

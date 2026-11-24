@@ -1,114 +1,120 @@
-import { Alert, Anchor, Box, Button, Loader, Stack, Text, Title } from "@mantine/core";
-import { Link, useParams } from "react-router";
+import { Box, Stack } from "@mantine/core";
+import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router";
 
-import type { MitigationDetail } from "../api/types";
-import { useApiResource } from "../api/useApiResource";
-import { HistoryTable } from "../components/HistoryTable";
+import { ApiError } from "../api/client";
+import type { MitigationDetail as MitigationDetailData } from "../api/types";
+import IconTextButton from "../components/button/IconTextButton";
+import { IconAlertCircle } from "../components/icons/appIcons";
+import { PageSpinner } from "../components/loading-spinner";
+import { StateMessage } from "../components/message-cards";
+import AuditTrailTable from "../components/safety/AuditTrailTable";
+import MitigationDetail from "../components/safety/MitigationDetail";
+import { BodyText, Heading, PageHeader, TextLink } from "../components/typography";
+import { getMitigation, isNotFound } from "../lib/safety";
+
+const NOT_FOUND = "That mitigation does not exist, or you do not have access to it.";
 
 export function MitigationDetailPage() {
-  const { slug, mitigationId } = useParams();
-  const { data, error } = useApiResource<MitigationDetail>(
-    `/safety-files/${slug}/mitigations/${mitigationId}/`,
-    "That mitigation does not exist, or you do not have access to it.",
-  );
-  if (error)
+  const { slug = "", mitigationId = "" } = useParams();
+  const [data, setData] = useState<MitigationDetailData | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    getMitigation(slug, mitigationId, controller.signal)
+      .then(setData)
+      .catch((reason: unknown) => {
+        if (controller.signal.aborted) return;
+        if (isNotFound(reason)) setError(NOT_FOUND);
+        else setError(reason instanceof ApiError ? reason.message : "Something went wrong.");
+      });
+
+    return () => controller.abort();
+  }, [slug, mitigationId]);
+
+  if (error) {
     return (
-      <Alert color="red" role="alert" title="Could not load that mitigation">
-        {error}
-      </Alert>
+      <Stack maw={960}>
+        <PageHeader title="Mitigation" />
+        <Box role="alert">
+          <StateMessage
+            icon={<IconAlertCircle />}
+            colour="alert"
+            title="Could not load that mitigation"
+            description={error}
+          />
+        </Box>
+      </Stack>
     );
-  if (!data) return <Loader aria-label="Loading the mitigation" />;
+  }
+  if (!data) return <PageSpinner label="Loading the mitigation" />;
+
+  return <Mitigation data={data} slug={slug} />;
+}
+
+function Mitigation({ data, slug }: { data: MitigationDetailData; slug: string }) {
+  const navigate = useNavigate();
   const { mitigation, safety_file: file } = data;
+
   return (
     <Box maw={960}>
-      <Anchor component={Link} to={`/safety-files/${slug}`}>
-        Back to {file.name}
-      </Anchor>
-      <Title order={1} size="h2" mt="md">
-        {mitigation.id}: {mitigation.title}
-      </Title>
-      {data.can_edit && (
-        <Button
-          component={Link}
-          to={`/safety-files/${slug}/mitigations/${mitigation.id}/edit`}
-          mt="sm"
-        >
-          Edit mitigation
-        </Button>
-      )}
-      <Text mt="xs">
-        Status: {mitigation.status} · {mitigation.control_type} control · Responsible person:{" "}
-        {mitigation.owner || "Not recorded"}
-      </Text>
-      <Text size="sm" c="dimmed">
-        Created {mitigation.created} · Updated {mitigation.updated}
-      </Text>
-      {data.problems.length > 0 && (
-        <Alert color="red" role="alert" mt="md" title="This safety file does not validate">
-          <ul>
-            {data.problems.map((problem) => (
-              <li key={problem}>{problem}</li>
-            ))}
-          </ul>
-        </Alert>
-      )}
-      <Stack mt="lg" gap="lg">
-        <Box>
-          <Title order={2} size="h3" mb="xs">
-            Implementation and verification evidence
-          </Title>
-          <Text style={{ whiteSpace: "pre-wrap" }}>
-            {mitigation.evidence ||
-              "No implementation evidence recorded. A proposed control is not evidence of risk reduction."}
-          </Text>
-        </Box>
-        {mitigation.body && (
-          <Box>
-            <Title order={2} size="h3" mb="xs">
-              Recorded narrative (Markdown)
-            </Title>
-            <Text component="pre" className="evidence-text">
-              {mitigation.body}
-            </Text>
+      <Stack gap="lg">
+        <TextLink to={`/safety-files/${slug}`} standalone>
+          Back to {file.name}
+        </TextLink>
+        <PageHeader
+          title={`${mitigation.id}: ${mitigation.title}`}
+          action={
+            data.can_edit ? (
+              <IconTextButton
+                icon="pencil"
+                label="Edit mitigation"
+                onClick={() =>
+                  void navigate(`/safety-files/${slug}/mitigations/${mitigation.id}/edit`)
+                }
+              />
+            ) : undefined
+          }
+        />
+
+        {data.problems.length > 0 && (
+          <Box role="alert">
+            <StateMessage
+              icon={<IconAlertCircle />}
+              colour="alert"
+              title="This safety file does not validate"
+              description={
+                <ul>
+                  {data.problems.map((problem) => (
+                    <li key={problem}>{problem}</li>
+                  ))}
+                </ul>
+              }
+            />
           </Box>
         )}
-        <Box>
-          <Title order={2} size="h3" mb="xs">
-            Linked hazards
-          </Title>
-          {mitigation.hazards.length === 0 ? (
-            <Text>No linked hazards recorded.</Text>
-          ) : (
-            <ul>
-              {data.hazards
-                .filter((hazard) => mitigation.hazards.includes(hazard.id))
-                .map((hazard) => (
-                  <li key={hazard.id}>
-                    <Anchor component={Link} to={`/safety-files/${slug}/hazards/${hazard.id}`}>
-                      {hazard.id}: {hazard.title}
-                    </Anchor>
-                  </li>
-                ))}
-            </ul>
-          )}
-          <Text size="sm" c="dimmed">
-            Mitigation status and links never change a risk assessment automatically.
-            Verification is recorded judgement, not certification by Turva.
-          </Text>
-        </Box>
-        <Box>
-          <Title order={2} size="h3" mb="sm">
-            Mitigation history
-          </Title>
-          <HistoryTable
+
+        <MitigationDetail
+          mitigation={mitigation}
+          hazards={data.hazards}
+          showTitle={false}
+          hazardHref={(id) => `/safety-files/${slug}/hazards/${id}`}
+        />
+
+        <Stack gap="xs">
+          <Heading>Mitigation history</Heading>
+          <AuditTrailTable
             history={data.history}
             caption="Up to 50 most recent changes to this mitigation, including renames and links"
           />
-        </Box>
-        <Text size="xs" c="dimmed">
+        </Stack>
+
+        <BodyText c="dimmed">
           Repository version: <code>{data.head_sha}</code>. This is recorded evidence, not
           approval to deploy.
-        </Text>
+        </BodyText>
       </Stack>
     </Box>
   );
