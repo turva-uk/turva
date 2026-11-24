@@ -160,8 +160,15 @@ As built:
 
 ## Phase 8: The safety files list and the new safety file form
 
-- [ ] Move `SafetyFilesPage` onto `SafetyCaseTable` and `PageHeader`, fetching through `listFiles` in `lib/safety/api.ts`. Move `SafetyFileCreatePage` onto the form fields, sending through `createFile`.
-- [ ] Check: `./s/frontend` and `./s/lint` pass. Put screenshots of each view this phase moves, in light and dark mode, in the pull request description under a `## Screenshots` heading, uploaded with `gh pr edit --attach`.
+- [x] Move `SafetyFilesPage` onto `SafetyCaseTable` and `PageHeader`, fetching through `listFiles` in `lib/safety/api.ts`. Move `SafetyFileCreatePage` onto the form fields, sending through `createFile`.
+- [x] Check: `./s/frontend` and `./s/lint` pass. Put screenshots of each view this phase moves, in light and dark mode, in the pull request description under a `## Screenshots` heading, uploaded with `gh pr edit --attach`.
+
+As built:
+
+- **The list is `SafetyCaseTable`**, fed by `listFiles`, with search, sorting and an Open action per row. Following the page's wording, its first column is now "System", and it takes the page's caption and empty message: `DataTableControlled` and `SafetyCaseTable` gained `caption`, and `SafetyCaseTable` gained `emptyMessage`. "Create safety file" is an `AddButton` in the `PageHeader`.
+- **The create form sends through `createFile`**, with the standard as a `SelectField` and the DCB0129 warning as a `StateMessage` in an `alert` region. Required fields are now checked in the browser before sending, so a test that only filled the system name now fills the intended use too.
+- **A new `SafetyFilesPage.test.tsx`** checks the table and its caption, the empty explanation and the create button, on the shared `SAMPLE_FILE`.
+- **As run on 24 November 2026**: `./s/frontend` passed (1,452 tests, the build and the Storybook build) on its second run, `./s/lint` passed, and `./s/test` passed (611 Django tests, and the host suites). The first run failed `SafetyDocumentPage.test.tsx`'s fragment test, a timing race this phase did not touch; Phase 14 fixes it.
 
 ## Phase 9: The safety file page
 
@@ -200,6 +207,7 @@ The catalogue has no mitigation components, and pages may use only components fr
 - [ ] Move the node renderer out of `components/SafetyDocument.tsx` into the catalogue, as `components/safety/DocumentNodes.tsx`, with a story and a test. Its `document-*` and `safety-document` rules move out of `app.css` into a CSS module beside it, so `app.css` can go in Phase 15. Keep its allowlist check of every node, its link rules, and its refusal ever to insert HTML: `app/safetyfiles/documents.py` sends a tree of typed nodes so that nothing in a document can run, load a resource or style the page. Keep the visible placeholders for images and active content, and the escaped source shown when the server refused a formatted view.
 - [ ] Change `SafetyDocumentSheet` to take its body as `children` instead of `text`, so the page fills it with `DocumentNodes`, and make `status` optional, since `SafetyFile` has no status yet. Keep the header naming the system and the full commit the reader is seeing, from the response's `head_sha`, as `SAFETY.md` says the sheet shows it. Update its stories and tests to pass children. Take the "Not yet in Turva's API" line off the sheet's stories, since a route now backs it, but keep it on any story that still shows a status.
 - [ ] Move `SafetyDocumentPage` onto `SafetyDocumentSheet` and `DocumentNodes`, keeping `documentPath` and its refusal of a bad path, the "does not exist or you do not have access" message, and the list of the file's other documents. Delete `components/SafetyDocument.tsx`.
+- [ ] Fix the timing race in `SafetyDocumentPage.test.tsx`'s "encodes document fragments once and scrolls to the literal heading id". It checks `scrollIntoView` was called as soon as the heading appears, but the page scrolls a moment later, in an effect, so under a full parallel run the check sometimes comes first. Wait for the call with `waitFor` instead. It failed twice during Phases 3 and 8 and passed on every re-run.
 - [ ] Check: `./s/frontend` and `./s/lint` pass, with `SafetyDocumentPage.test.tsx` rewritten where the new components need it, still testing that a bad path is refused, that raw HTML shows only as text, and that the commit is shown. The pull request says whether `SAFETY.md` needs a change for TH-001 and TH-005, since the document view now renders through the catalogue. Put screenshots of each view this phase moves, in light and dark mode, in the pull request description under a `## Screenshots` heading, uploaded with `gh pr edit --attach`.
 
 ## Phase 15: Clean-up

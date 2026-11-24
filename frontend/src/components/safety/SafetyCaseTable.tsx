@@ -19,7 +19,7 @@ import type { SafetyFile } from "@/lib/safety";
 
 const columns: Column<SafetyFile>[] = [
   {
-    header: "Safety file",
+    header: "System",
     render: (file) => file.name,
     accessor: (file) => file.name,
   },
@@ -67,6 +67,10 @@ export interface SafetyCaseTableProps {
   loading?: boolean;
   /** Called when a file is chosen */
   onSelect?: (file: SafetyFile) => void;
+  /** The table's caption, shown under it and read out as its name */
+  caption?: string;
+  /** What to say when there are no files */
+  emptyMessage?: string;
 }
 
 export default function SafetyCaseTable({
@@ -75,6 +79,8 @@ export default function SafetyCaseTable({
   onSelect,
   error,
   loading,
+  caption,
+  emptyMessage = "No safety files yet",
 }: SafetyCaseTableProps) {
   return (
     <DataTableControlled
@@ -86,7 +92,8 @@ export default function SafetyCaseTable({
       columns={columns}
       getRowKey={(file) => file.slug}
       onRowClick={onSelect}
-      emptyMessage="No safety files yet"
+      caption={caption}
+      emptyMessage={emptyMessage}
     />
   );
 }

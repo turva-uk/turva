@@ -1,75 +1,62 @@
-import { Alert, Anchor, Box, Button, Group, Loader, Table, Text, Title } from "@mantine/core";
-import { Link } from "react-router";
+import { Stack } from "@mantine/core";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router";
 
+import { ApiError } from "../api/client";
 import type { SafetyFile } from "../api/types";
-import { useApiResource } from "../api/useApiResource";
+import AddButton from "../components/button/AddButton";
+import SafetyCaseTable from "../components/safety/SafetyCaseTable";
+import { BodyText, PageHeader } from "../components/typography";
+import { listFiles } from "../lib/safety";
 
 export function SafetyFilesPage() {
-  const { data: safetyFiles, error, loading } = useApiResource<SafetyFile[]>("/safety-files/");
+  const navigate = useNavigate();
+  const [files, setFiles] = useState<SafetyFile[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  if (error) {
-    return (
-      <Alert color="red" role="alert" title="Could not load your safety files">
-        {error}
-      </Alert>
-    );
-  }
+  useEffect(() => {
+    const controller = new AbortController();
 
-  if (loading || safetyFiles === null) {
-    return <Loader aria-label="Loading your safety files" />;
-  }
+    listFiles(controller.signal)
+      .then(setFiles)
+      .catch((reason: unknown) => {
+        if (controller.signal.aborted) return;
+        setError(
+          reason instanceof ApiError ? reason.message : "Something went wrong. Try again.",
+        );
+      });
+
+    return () => controller.abort();
+  }, []);
 
   return (
-    <Box>
-      <Group justify="space-between" mb="md">
-        <Title order={1} size="h2">
-          Your safety files
-        </Title>
-        <Button component={Link} to="/safety-files/new">
-          Create safety file
-        </Button>
-      </Group>
+    <Stack>
+      <PageHeader
+        title="Your safety files"
+        action={
+          <AddButton
+            label="Create safety file"
+            onClick={() => void navigate("/safety-files/new")}
+          />
+        }
+      />
 
-      {safetyFiles.length === 0 ? (
-        <Box>
-          <Text mb="xs">You have no safety files yet.</Text>
-          <Text c="dimmed" size="sm">
-            A safety file is a Git repository holding the hazards, risk assessments, mitigations
-            and safety case for one system. Turva creates and commits to it for you; you never
-            need to use Git.
-          </Text>
-        </Box>
-      ) : (
-        <Table striped highlightOnHover className="responsive-table">
-          <Table.Caption>
-            Safety files you own, are named on, or may read as public files
-          </Table.Caption>
-          <Table.Thead>
-            <Table.Tr>
-              <Table.Th>System</Table.Th>
-              <Table.Th>Standard</Table.Th>
-              <Table.Th>Organisation</Table.Th>
-              <Table.Th>Visibility</Table.Th>
-            </Table.Tr>
-          </Table.Thead>
-          <Table.Tbody>
-            {safetyFiles.map((file) => (
-              <Table.Tr key={file.id}>
-                <Table.Td data-label="System">
-                  <Anchor component={Link} to={`/safety-files/${file.slug}`}>
-                    {file.name}
-                  </Anchor>
-                </Table.Td>
-                <Table.Td data-label="Standard">{file.standard}</Table.Td>
-                <Table.Td data-label="Organisation">{file.organisation}</Table.Td>
-                <Table.Td data-label="Visibility">
-                  {file.visibility === "public" ? "Public" : "Private"}
-                </Table.Td>
-              </Table.Tr>
-            ))}
-          </Table.Tbody>
-        </Table>
+      <SafetyCaseTable
+        cases={files ?? []}
+        loading={files === null && error === null}
+        error={error ? `Could not load your safety files. ${error}` : null}
+        caption="Safety files you own, are named on, or may read as public files"
+        emptyMessage="You have no safety files yet."
+        onSelect={(file) => void navigate(`/safety-files/${file.slug}`)}
+      />
+
+      {files?.length === 0 && (
+        <BodyText c="dimmed">
+          A safety file is a Git repository holding the hazards, risk assessments, mitigations
+          and safety case for one system. Turva creates and commits to it for you; you never
+          need to use Git.
+        </BodyText>
       )}
-    </Box>
+    </Stack>
   );
 }

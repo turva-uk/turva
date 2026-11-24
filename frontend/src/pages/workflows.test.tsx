@@ -74,7 +74,7 @@ function start(path: string, mutate: (url: string, init: RequestInit) => Promise
     { initialEntries: [path] },
   );
   render(
-    <MantineProvider theme={theme} cssVariablesResolver={cssVariablesResolver}>
+    <MantineProvider theme={theme} cssVariablesResolver={cssVariablesResolver} env="test">
       <RouterProvider router={router} />
     </MantineProvider>,
   );
@@ -189,6 +189,11 @@ describe("safety file creation", () => {
     });
     const name = await screen.findByRole("textbox", { name: "System name" });
     await actor.type(name, "My draft");
+    // Every required field, so the form sends and the server refuses it.
+    await actor.type(
+      screen.getByRole("textbox", { name: "Intended use" }),
+      "Fictional remote monitoring.",
+    );
     await actor.click(screen.getByRole("button", { name: "Create safety file" }));
     await screen.findByRole("alert");
     expect(name).toHaveValue("My draft");
@@ -198,9 +203,12 @@ describe("safety file creation", () => {
 
   it("warns that the manufacture template is not implemented", async () => {
     const { actor } = start("/safety-files/new", async () => json({}));
-    await actor.selectOptions(
-      await screen.findByRole("combobox", { name: "Standard" }),
-      "DCB0129",
+    // The catalogue's select is a combobox: open it, then choose.
+    await actor.click(await screen.findByRole("combobox", { name: "Standard" }));
+    await actor.click(
+      await screen.findByRole("option", {
+        name: "DCB0129 - manufacturing a system (template not yet available)",
+      }),
     );
     expect(screen.getByRole("alert")).toHaveTextContent("This is not a DCB0129 document set");
   });
