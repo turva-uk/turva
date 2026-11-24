@@ -1,49 +1,69 @@
 /**
- * A page's own sublink in the side bar, such as an organisation's name
+ * A page's own sublinks in the side bar, such as an organisation's name
  * under "Organisations" while that organisation's page is open.
  *
- * The side bar's fixed sublinks live in `navItems.ts`. This is for one
- * only the page knows, because its label comes from what the page loaded.
- * The page names it with `usePageSublink`, `NavSublinkProvider` holds it,
- * and `SideNav` shows it beneath its parent while the page is open.
+ * The side bar's fixed sublinks live in `navItems.ts`. These are for the
+ * ones only the page knows, because their labels come from what the page
+ * loaded. The page names them with `usePageSublink`, `NavSublinkProvider`
+ * holds them, and `SideNav` shows each beneath its parent while the page
+ * is open.
+ *
+ * A page deeper in can name a trail, each sublink beneath the one before:
+ * a file team page names its safety file under "Safety files", then
+ * "File team" under the file.
  */
 
 import { createContext, useContext, useEffect } from "react";
 
 /** A link the open page asks the side bar to show beneath one of its links. */
 export interface PageSublink {
-  /** The side bar link it sits under, such as "/organisations" */
+  /** The link it sits under, such as "/organisations", or another page sublink's `to` */
   parent: string;
   to: string;
   label: string;
 }
 
 export interface PageSublinkState {
-  sublink: PageSublink | null;
-  setSublink: (sublink: PageSublink | null) => void;
+  sublinks: readonly PageSublink[];
+  setSublinks: (sublinks: readonly PageSublink[]) => void;
 }
+
+// Separators no address or label holds, to compare a trail by its contents.
+const FIELD = "\u0000";
+const LINK = "\u0001";
+
+const NONE: readonly PageSublink[] = [];
 
 export const PageSublinkContext = createContext<PageSublinkState | null>(null);
 
 /**
  * Show `sublink` in the side bar while the calling page is open, and take
- * it away when the page closes. Pass `null` while the page is still loading.
+ * it away when the page closes. Pass a trail, outermost first, for a page
+ * beneath another page's sublink, and `null` while the page is still
+ * loading.
  */
-export function usePageSublink(sublink: PageSublink | null): void {
-  const setSublink = useContext(PageSublinkContext)?.setSublink;
-  const parent = sublink?.parent;
-  const to = sublink?.to;
-  const label = sublink?.label;
+export function usePageSublink(sublink: PageSublink | readonly PageSublink[] | null): void {
+  const setSublinks = useContext(PageSublinkContext)?.setSublinks;
+  const trail = sublink === null ? [] : "parent" in sublink ? [sublink] : sublink;
+  // The trail is compared by its contents, so a page that builds a new
+  // array on every render does not set it again each time.
+  const key = trail.map(({ parent, to, label }) => [parent, to, label].join(FIELD)).join(LINK);
 
   useEffect(() => {
-    if (!setSublink || !parent || !to || !label) return;
-    setSublink({ parent, to, label });
+    if (!setSublinks || key === "") return;
+    setSublinks(
+      key.split(LINK).map((link) => {
+        const [parent = "", to = "", label = ""] = link.split(FIELD);
 
-    return () => setSublink(null);
-  }, [setSublink, parent, to, label]);
+        return { parent, to, label };
+      }),
+    );
+
+    return () => setSublinks([]);
+  }, [setSublinks, key]);
 }
 
-/** The open page's sublink, or `null` when it has none. */
-export function useCurrentPageSublink(): PageSublink | null {
-  return useContext(PageSublinkContext)?.sublink ?? null;
+/** The open page's sublinks, empty when it has none. */
+export function useCurrentPageSublinks(): readonly PageSublink[] {
+  return useContext(PageSublinkContext)?.sublinks ?? NONE;
 }

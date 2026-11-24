@@ -20,6 +20,16 @@ function OrganisationPageStandIn() {
   return null;
 }
 
+/** A page two deep, as the file team page is: the file, then its team. */
+function FileTeamPageStandIn() {
+  usePageSublink([
+    { parent: "/safety-files", to: "/safety-files/demo", label: "BP@Home" },
+    { parent: "/safety-files/demo", to: "/safety-files/demo/team", label: "File team" },
+  ]);
+
+  return null;
+}
+
 describe("SideNav", () => {
   it("names the main navigation and lists its three links in order", () => {
     renderWithRouter(<SideNav onSignOut={() => undefined} />);
@@ -58,6 +68,35 @@ describe("SideNav", () => {
     expect(screen.getByRole("link", { name: "Organisations" })).not.toHaveAttribute(
       "aria-current",
     );
+  });
+
+  it("shows a page's trail two deep, marking only the deepest as current", async () => {
+    renderWithRouter(
+      <NavSublinkProvider>
+        <SideNav onSignOut={() => undefined} />
+        <FileTeamPageStandIn />
+      </NavSublinkProvider>,
+      { initialRoute: "/safety-files/demo/team" },
+    );
+
+    const team = await screen.findByRole("link", { name: "File team" });
+    const file = screen.getByRole("link", { name: "BP@Home" });
+    const navigation = screen.getByRole("navigation", { name: "Main navigation" });
+
+    expect(
+      within(navigation)
+        .getAllByRole("link")
+        .map((link) => link.textContent),
+    ).toEqual(["Safety files", "BP@Home", "File team", "Settings", "Organisations"]);
+    expect(team).toHaveAttribute("aria-current", "page");
+    expect(file).not.toHaveAttribute("aria-current");
+    expect(screen.getByRole("link", { name: "Safety files" })).not.toHaveAttribute(
+      "aria-current",
+    );
+    // Each level is indented further than the one above it.
+    expect(file.className).toMatch(/nested/);
+    expect(file.className).not.toMatch(/nestedTwice/);
+    expect(team.className).toMatch(/nestedTwice/);
   });
 
   it("shows no page sublink outside a provider", () => {

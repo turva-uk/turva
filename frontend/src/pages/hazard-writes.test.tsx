@@ -1,5 +1,5 @@
 import { MantineProvider } from "@mantine/core";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
 import { expect, it, vi } from "vitest";
@@ -74,10 +74,13 @@ function start({
   editing = false,
   canEdit = true,
   write,
+  route,
 }: {
   editing?: boolean;
   canEdit?: boolean;
   write?: (body: Record<string, unknown>) => Response;
+  /** Open this page instead of the hazard form */
+  route?: string;
 } = {}) {
   let recorded = hazard;
   const detail = (): HazardDetail => ({
@@ -133,9 +136,10 @@ function start({
     <MantineProvider>
       <MemoryRouter
         initialEntries={[
-          editing
-            ? "/safety-files/demo/hazards/HAZ-001/edit"
-            : "/safety-files/demo/hazards/new",
+          route ??
+            (editing
+              ? "/safety-files/demo/hazards/HAZ-001/edit"
+              : "/safety-files/demo/hazards/new"),
         ]}
       >
         <SessionProvider>
@@ -262,4 +266,18 @@ it("does not expose a save form for another owner's file", async () => {
   expect(await screen.findByText("Read-only safety file")).toBeInTheDocument();
   expect(screen.queryByRole("button", { name: "Save hazard" })).not.toBeInTheDocument();
   expect(writes).toHaveLength(0);
+});
+
+it("names the open safety file beneath Safety files in the side bar, with no link back", async () => {
+  start({ route: "/safety-files/demo" });
+
+  const navigation = await screen.findByRole("navigation", { name: "Main navigation" });
+  const sublink = await within(navigation).findByRole("link", { name: file.name });
+
+  expect(sublink).toHaveAttribute("href", "/safety-files/demo");
+  expect(sublink).toHaveAttribute("aria-current", "page");
+  expect(within(navigation).getByRole("link", { name: "Safety files" })).not.toHaveAttribute(
+    "aria-current",
+  );
+  expect(screen.queryByRole("link", { name: "All safety files" })).not.toBeInTheDocument();
 });

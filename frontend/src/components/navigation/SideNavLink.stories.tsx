@@ -33,8 +33,19 @@ export const Current: Story = {
 
 /** Beneath another link, such as "Your profile" under "Settings": indented, with no icon. */
 export const Nested: Story = {
-  args: { to: "/settings/profile", label: "Your profile", icon: undefined, nested: true },
+  args: { to: "/settings/profile", label: "Your profile", icon: undefined, level: 1 },
   parameters: { routerPath: "/settings/profile" },
+};
+
+/** Beneath a sublink, such as "File team" under a safety file: indented once more. */
+export const NestedTwice: Story = {
+  args: {
+    to: "/safety-files/demo-bp-at-home/team",
+    label: "File team",
+    icon: undefined,
+    level: 2,
+  },
+  parameters: { routerPath: "/safety-files/demo-bp-at-home/team" },
 };
 
 export const DarkMode: Story = {
