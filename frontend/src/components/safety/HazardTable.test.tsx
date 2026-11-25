@@ -93,4 +93,27 @@ describe("HazardTable", () => {
     await userEvent.click(screen.getByText("Reading attributed to the wrong patient"));
     expect(onSelect).toHaveBeenCalledWith(SAMPLE_HAZARDS[1]);
   });
+  it("sorts by the risk level the server sent, never one worked out from the scores (TH-008)", async () => {
+    // Deliberately at odds with the scores: if sorting worked a level out
+    // from severity and likelihood, the order below would be reversed.
+    const servedLow = {
+      ...MITIGATED_HAZARD,
+      id: "HAZ-101",
+      title: "Served as low, scored high",
+      initial: { severity: 5, likelihood: 5, risk_level: 1, risk_label: "Served low" },
+    };
+    const servedHigh = {
+      ...MITIGATED_HAZARD,
+      id: "HAZ-102",
+      title: "Served as high, scored low",
+      initial: { severity: 1, likelihood: 1, risk_level: 5, risk_label: "Served high" },
+    };
+    renderWithRouter(<HazardTable hazards={[servedHigh, servedLow]} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Sort by Initial risk" }));
+
+    const rows = screen.getAllByRole("row").slice(1);
+    expect(rows[0]).toHaveTextContent("HAZ-101");
+    expect(rows[1]).toHaveTextContent("HAZ-102");
+  });
 });

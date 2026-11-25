@@ -1,8 +1,9 @@
 import { screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { SafetyFileDetail } from "../api/types";
-import { SAMPLE_FILE_DETAIL } from "../test/safetyFile";
+import { SAMPLE_FILE_DETAIL, SAMPLE_MITIGATIONS } from "../test/safetyFile";
 import { renderWithRouter } from "../test/test-utils";
 import { SafetyFileDetailPage } from "./SafetyFileDetailPage";
 
@@ -87,5 +88,34 @@ describe("SafetyFileDetailPage", () => {
 
     expect(await screen.findByRole("button", { name: "Record hazard" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Record mitigation" })).toBeInTheDocument();
+  });
+  it("puts the record mitigation button in the mitigations table's bar", async () => {
+    show(SAMPLE_FILE_DETAIL);
+
+    const record = await screen.findByRole("button", { name: "Record mitigation" });
+    const bar = record.closest(".mantine-Group-root");
+
+    expect(bar).toContainElement(screen.getByRole("button", { name: "Filter mitigations" }));
+  });
+
+  it("filters the mitigations by control type", async () => {
+    const [first] = SAMPLE_MITIGATIONS;
+    if (!first) throw new Error("No sample mitigation");
+    const procedural = {
+      ...first,
+      id: "MIT-002",
+      title: "Weekly review of unflagged readings",
+      control_type: "procedural",
+      status: "planned",
+    };
+    show({ ...SAMPLE_FILE_DETAIL, mitigations: [first, procedural] });
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByRole("button", { name: "Filter mitigations" }));
+    await user.click(screen.getByLabelText("Filter mitigations", { selector: "input" }));
+    await user.click(await screen.findByRole("option", { name: "procedural" }));
+
+    expect(screen.getByRole("link", { name: procedural.title })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: first.title })).not.toBeInTheDocument();
   });
 });
