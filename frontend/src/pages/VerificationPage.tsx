@@ -10,6 +10,7 @@ import { IconAlertTriangle, IconCheck } from "../components/icons/appIcons";
 import { StateMessage } from "../components/message-cards";
 import type { FormSubmitResult } from "../components/form/Form";
 import { BodyText, PageHeader, TextLink } from "../components/typography";
+import { WelcomeLayout } from "../components/layouts";
 import { apiFailure } from "../lib/forms";
 
 /** These forms send no fields, only the request itself. */
@@ -35,7 +36,7 @@ export function VerificationNoticePage() {
   }
 
   return (
-    <Box maw={560} mx="auto">
+    <WelcomeLayout>
       <Stack>
         <PageHeader title="Confirm your email address" />
         <BodyText>
@@ -92,7 +93,7 @@ export function VerificationNoticePage() {
           Edit your profile
         </TextLink>
       </Stack>
-    </Box>
+    </WelcomeLayout>
   );
 }
 
@@ -114,7 +115,7 @@ export function VerificationConfirmPage() {
   }
 
   return (
-    <Box maw={560} mx="auto">
+    <WelcomeLayout>
       <Stack>
         <PageHeader title="Confirm the email address in this link" />
 
@@ -147,6 +148,6 @@ export function VerificationConfirmPage() {
           </Form>
         )}
       </Stack>
-    </Box>
+    </WelcomeLayout>
   );
 }

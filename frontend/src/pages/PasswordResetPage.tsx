@@ -1,4 +1,4 @@
-import { Box, Stack } from "@mantine/core";
+import { Stack } from "@mantine/core";
 import { useState } from "react";
 import { useParams } from "react-router";
 
@@ -14,6 +14,7 @@ import {
 } from "../components/form/Form";
 import type { FormSubmitResult } from "../components/form/Form";
 import { BodyText, PageHeader, TextLink } from "../components/typography";
+import { WelcomeLayout } from "../components/layouts";
 import { apiFailure } from "../lib/forms";
 
 type ResetRequestValues = { email: string };
@@ -58,7 +59,7 @@ export function PasswordResetRequestPage() {
   }
 
   return (
-    <Box maw={560} mx="auto">
+    <WelcomeLayout>
       <Stack>
         <PageHeader title="Reset your password" />
 
@@ -86,7 +87,7 @@ export function PasswordResetRequestPage() {
           Back to sign in
         </TextLink>
       </Stack>
-    </Box>
+    </WelcomeLayout>
   );
 }
 
@@ -144,7 +145,7 @@ export function PasswordResetConfirmPage() {
   }
 
   return (
-    <Box maw={560} mx="auto">
+    <WelcomeLayout>
       <Stack>
         <PageHeader title="Choose a new password" />
 
@@ -177,6 +178,6 @@ export function PasswordResetConfirmPage() {
           </Form>
         )}
       </Stack>
-    </Box>
+    </WelcomeLayout>
   );
 }

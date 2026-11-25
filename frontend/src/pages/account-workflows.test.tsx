@@ -184,6 +184,20 @@ it("does not pretend to sign out when the server logout fails", async () => {
 });
 
 describe("signing in", () => {
+  it("states Turva's intended use beside the form, outside the welcome panel", async () => {
+    start("/login");
+
+    const intendedUse = await screen.findByText(
+      "Turva manages clinical safety evidence. It does not make clinical decisions and does not replace a Clinical Safety Officer.",
+    );
+    const panel = screen.getByTestId("welcome-panel");
+
+    // The panel is hidden on a narrow screen, and this line must show at
+    // every width, so it must never be inside the panel.
+    expect(panel).not.toContainElement(intendedUse);
+    expect(panel).toHaveClass("mantine-visible-from-md");
+  });
+
   it("sends the email and password to the same endpoint, then opens the safety files", async () => {
     const bodies: unknown[] = [];
     const { actor } = start("/login", null, (url, init) => {
