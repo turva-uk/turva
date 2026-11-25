@@ -66,6 +66,43 @@ describe("SafetyCaseTable", () => {
     expect(screen.getByRole("button", { name: "Add safety file" })).toBeInTheDocument();
   });
 
+  it("narrows the rows to the visibility chosen in the filter", async () => {
+    const user = userEvent.setup();
+    renderWithRouter(<SafetyCaseTable cases={SAMPLE_FILES} />);
+
+    await user.click(screen.getByRole("button", { name: "Filter safety files" }));
+    await user.click(screen.getByLabelText("Filter safety files", { selector: "input" }));
+    await user.click(await screen.findByRole("option", { name: "Public" }));
+
+    expect(screen.getByText("Digital growth charts")).toBeInTheDocument();
+    expect(
+      screen.queryByText("BP@Home remote blood pressure monitoring"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("offers each standard the files hold as a filter", async () => {
+    const user = userEvent.setup();
+    renderWithRouter(<SafetyCaseTable cases={SAMPLE_FILES} />);
+
+    await user.click(screen.getByRole("button", { name: "Filter safety files" }));
+    await user.click(screen.getByLabelText("Filter safety files", { selector: "input" }));
+
+    expect(await screen.findByRole("option", { name: "DCB0160" })).toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: "DCB0129" })).not.toBeInTheDocument();
+  });
+
+  it("sorts the rows by a column heading", async () => {
+    const user = userEvent.setup();
+    renderWithRouter(<SafetyCaseTable cases={SAMPLE_FILES} />);
+
+    await user.click(screen.getByRole("button", { name: "Sort by System" }));
+    await user.click(screen.getByRole("button", { name: "Sort by System" }));
+
+    const rows = screen.getAllByRole("row").slice(1);
+    expect(rows[0]).toHaveTextContent("Digital growth charts");
+    expect(rows[1]).toHaveTextContent("BP@Home remote blood pressure monitoring");
+  });
+
   it("narrows the rows to a search", async () => {
     renderWithRouter(<SafetyCaseTable cases={SAMPLE_FILES} />);
     await userEvent.click(screen.getByLabelText("Open search"));

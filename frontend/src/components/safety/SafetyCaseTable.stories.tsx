@@ -5,6 +5,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, fn, within } from "storybook/test";
 import { Stack } from "@mantine/core";
+import AddButton from "@/components/button/AddButton";
 import SafetyCaseTable from "./SafetyCaseTable";
 import { SAMPLE_FILES } from "@/test/safetyFile";
 
@@ -19,6 +20,23 @@ type Story = StoryObj<typeof SafetyCaseTable>;
 
 export const Default: Story = {
   args: { cases: SAMPLE_FILES, onSelect: fn() },
+};
+
+/**
+ * The safety files page's table: "Create safety file" sits in the bar,
+ * before search and the filter by standard and visibility.
+ */
+export const WithAddButton: Story = {
+  args: {
+    ...Default.args,
+    action: <AddButton label="Create safety file" onClick={fn()} />,
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole("button", { name: "Create safety file" })).toBeVisible();
+    await expect(canvas.getByRole("button", { name: "Filter safety files" })).toBeVisible();
+    await expect(canvas.getByRole("button", { name: "Sort by System" })).toBeVisible();
+  },
 };
 
 export const Empty: Story = {

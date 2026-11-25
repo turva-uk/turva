@@ -31,17 +31,15 @@ export function SafetyFilesPage() {
 
   return (
     <Stack>
-      <PageHeader
-        title="Your safety files"
+      <PageHeader title="Your safety files" />
+
+      <SafetyCaseTable
         action={
           <AddButton
             label="Create safety file"
             onClick={() => void navigate("/safety-files/new")}
           />
         }
-      />
-
-      <SafetyCaseTable
         cases={files ?? []}
         loading={files === null && error === null}
         error={error ? `Could not load your safety files. ${error}` : null}

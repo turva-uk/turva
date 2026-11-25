@@ -15,7 +15,23 @@ import type { ReactNode } from "react";
 
 import { type Column } from "@/components/tables/DataTable";
 import DataTableControlled from "@/components/tables/DataTableControlled";
+import { filterGroups, type FilterGroup } from "@/components/tables/filterGroups";
 import type { SafetyFile } from "@/lib/safety";
+
+function visibilityOf(file: SafetyFile): string {
+  return file.visibility === "public" ? "Public" : "Private";
+}
+
+/** Filter by the standard a file is written against, and by who may read it. */
+const FILTER_GROUPS: FilterGroup<SafetyFile>[] = [
+  { key: "standard", label: "Standard", valueOf: (file) => file.standard },
+  {
+    key: "visibility",
+    label: "Visibility",
+    valueOf: visibilityOf,
+    values: ["Public", "Private"],
+  },
+];
 
 const columns: Column<SafetyFile>[] = [
   {
@@ -35,8 +51,8 @@ const columns: Column<SafetyFile>[] = [
   },
   {
     header: "Visibility",
-    render: (file) => (file.visibility === "public" ? "Public" : "Private"),
-    accessor: (file) => file.visibility,
+    render: visibilityOf,
+    accessor: visibilityOf,
   },
   {
     header: "Created (UTC)",
@@ -82,11 +98,17 @@ export default function SafetyCaseTable({
   label,
   emptyMessage = "No safety files yet",
 }: SafetyCaseTableProps) {
+  const rows = [...cases];
+  const filters = filterGroups(rows, FILTER_GROUPS);
+
   return (
     <DataTableControlled
       action={action}
       searchFields={(file) => [file.name, file.organisation, file.standard]}
-      data={[...cases]}
+      {...filters}
+      filterLabel="Filter safety files"
+      filterAriaLabel="Filter safety files"
+      data={rows}
       error={error}
       loading={loading}
       columns={columns}

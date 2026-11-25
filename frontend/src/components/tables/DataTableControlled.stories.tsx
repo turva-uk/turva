@@ -125,6 +125,25 @@ export const WithActionNarrow: Story = {
 };
 
 /**
+ * While the rows load, the bar stays, so the table's own action can still
+ * be used.
+ */
+export const LoadingWithAction: Story = {
+  render: () => (
+    <Container size="lg" py="md">
+      <DataTableControlled
+        data={[]}
+        columns={columns}
+        getRowKey={(h) => h.id}
+        loading
+        searchFields={(h) => [h.id, h.title, h.owner, h.status]}
+        action={<AddButton label="Add hazard" />}
+      />
+    </Container>
+  ),
+};
+
+/**
  * Dark mode variant.
  */
 export const DarkMode: Story = {

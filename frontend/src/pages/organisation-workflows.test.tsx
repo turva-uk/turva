@@ -225,16 +225,88 @@ it("lists each organisation with its reference, your role and your CSO appointme
   expect(writes).toHaveLength(0);
 });
 
+it("filters the organisations list by your role in each", async () => {
+  const other: OrganisationDetail = {
+    ...organisation,
+    id: "hillside",
+    name: "Fictional Hillside Practice",
+    membership: { ...self, is_administrator: false },
+  };
+  const { actor } = start("/organisations", { orgList: [organisation, other] });
+  await screen.findByRole("link", { name: other.name });
+
+  await actor.click(screen.getByRole("button", { name: "Filter organisations" }));
+  await actor.click(screen.getByLabelText("Filter organisations", { selector: "input" }));
+  await actor.click(await screen.findByRole("option", { name: "Member" }));
+
+  expect(screen.getByRole("link", { name: other.name })).toBeInTheDocument();
+  expect(screen.queryByRole("link", { name: organisation.name })).not.toBeInTheDocument();
+});
+
+it("filters an organisation's members by administration and sorts them by name", async () => {
+  const { actor } = start("/organisations/riverbank", {
+    detail: { ...organisation, membership: { ...self, is_administrator: false } },
+  });
+  const table = await screen.findByRole("table", { name: "Members of this organisation" });
+
+  await actor.click(screen.getByRole("button", { name: "Sort by Person" }));
+  await actor.click(screen.getByRole("button", { name: "Sort by Person" }));
+  const rows = within(table).getAllByRole("row").slice(1);
+  expect(rows[0]).toHaveTextContent(colleague.name);
+  expect(rows[1]).toHaveTextContent(self.name);
+
+  await actor.click(screen.getByRole("button", { name: "Filter members" }));
+  await actor.click(screen.getByLabelText("Filter members", { selector: "input" }));
+  await actor.click(await screen.findByRole("option", { name: "Administrator" }));
+  expect(within(table).getAllByRole("row")).toHaveLength(2);
+  expect(table).toHaveTextContent(self.name);
+});
+
+it("filters invitations by where each stands", async () => {
+  const pending = {
+    id: "fictional-pending",
+    email: "fictional-pending@example.org",
+    created_at: "2026-11-13T10:00:00Z",
+    expires_at: "2099-11-20T10:00:00Z",
+    accepted_at: null,
+    revoked_at: null,
+  };
+  const accepted = {
+    ...pending,
+    id: "fictional-accepted",
+    email: "fictional-accepted@example.org",
+    accepted_at: "2026-11-14T10:00:00Z",
+  };
+  const { actor } = start("/organisations/riverbank", {
+    detail: { ...organisation, invitations: [pending, accepted] },
+  });
+  await screen.findByText(accepted.email);
+
+  await actor.click(screen.getByRole("button", { name: "Filter invitations" }));
+  await actor.click(screen.getByLabelText("Filter invitations", { selector: "input" }));
+  await actor.click(await screen.findByRole("option", { name: "Accepted" }));
+
+  expect(screen.getByText(accepted.email)).toBeInTheDocument();
+  expect(screen.queryByText(pending.email)).not.toBeInTheDocument();
+});
+
 it("sends membership invitations only on deliberate save and reports failed delivery", async () => {
   const { actor, writes } = start("/organisations/riverbank", {
     write: () => json({ email_sent: false }, 201),
   });
-  const email = await screen.findByRole("textbox", { name: "Invitee's email address" });
-  await actor.type(email, "fictional-invitee@example.org");
+  // Inviting starts from the add button in the bar of the Invitations table.
+  expect(await screen.findByRole("heading", { name: "Invitations" })).toBeInTheDocument();
+  await actor.click(screen.getByRole("button", { name: "Invite a member" }));
+  const dialog = await screen.findByRole("dialog", { name: "Invite a member" });
+  await actor.type(
+    within(dialog).getByRole("textbox", { name: "Invitee's email address" }),
+    "fictional-invitee@example.org",
+  );
   expect(writes).toHaveLength(0);
-  await actor.click(screen.getByRole("button", { name: "Send membership invitation" }));
-  await screen.findByText(/email could not be sent/);
-  expect(email).toHaveValue("fictional-invitee@example.org");
+  await actor.click(within(dialog).getByRole("button", { name: "Send membership invitation" }));
+  // A recorded invitation whose email failed is a warning, never a plain success.
+  await within(dialog).findByText("Invitation recorded, email not sent");
+  expect(within(dialog).getByText(/email could not be sent/)).toBeInTheDocument();
   expect(writes[0]!.payload).toEqual({ email: "fictional-invitee@example.org" });
 });
 
@@ -316,37 +388,27 @@ it("saves a role being added straight away, without asking", async () => {
 
 it("groups the invitations, the file teams and the history into a card each", async () => {
   start("/organisations/riverbank");
-  const cardOf = (name: string) =>
-    screen.getByRole("heading", { name }).closest(".mantine-Card-root");
-  await screen.findByRole("heading", { name: "Invite a member" });
+  await screen.findByRole("heading", { name: "Invitations" });
+  const cardOf = (name: string): HTMLElement => {
+    const card = screen.getByRole("heading", { name }).closest(".mantine-Card-root");
+    if (!(card instanceof HTMLElement)) throw new Error(`No card holds "${name}"`);
 
-  const invitations = cardOf("Invite a member");
-  const files = cardOf("This organisation's safety files");
-  const history = cardOf("Recent administration history");
+    return card;
+  };
 
-  expect(invitations).not.toBeNull();
-  expect(cardOf("Recent invitations")).toBe(invitations);
-  expect(files).not.toBeNull();
-  expect(history).not.toBeNull();
-  expect(new Set([invitations, files, history]).size).toBe(3);
-});
+  const invitations = cardOf("Invitations");
 
-it("shows the recent invitations before the form to invite a member", async () => {
-  start("/organisations/riverbank");
-  const form = await screen.findByRole("heading", { name: "Invite a member" });
-  const table = screen.getByRole("heading", { name: "Recent invitations" });
-
-  expect(table.compareDocumentPosition(form) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-});
-
-it("keeps the invitee's email address field to the width of the signed-out email forms", async () => {
-  start("/organisations/riverbank");
-  const field = await screen.findByLabelText(/Invitee's email address/);
-
-  let box: HTMLElement | null = field.parentElement;
-  while (box && !box.style.maxWidth) box = box.parentElement;
-
-  expect(box?.style.maxWidth).toContain("35rem");
+  // The add button sits in the invitations table's own bar, inside its card.
+  expect(
+    within(invitations).getByRole("button", { name: "Invite a member" }),
+  ).toBeInTheDocument();
+  expect(
+    new Set([
+      invitations,
+      cardOf("This organisation's safety files"),
+      cardOf("Recent administration history"),
+    ]).size,
+  ).toBe(3);
 });
 
 it("names each of the administrator's tables for a screen reader", async () => {
@@ -445,9 +507,7 @@ it("shows members but no administrative controls to an ordinary member", async (
   });
   await screen.findByRole("table", { name: "Members of this organisation" });
   expect(screen.queryByRole("button", { name: /Save roles/ })).not.toBeInTheDocument();
-  expect(
-    screen.queryByRole("button", { name: "Send membership invitation" }),
-  ).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Invite a member" })).not.toBeInTheDocument();
 });
 
 it("lists the adopted files in a table, each opening its file team", async () => {
@@ -669,6 +729,7 @@ it("cancels a team decision with a button beside the save, back to the file", as
 
 it("does not claim an already recorded change failed when its follow-up read is unavailable", async () => {
   const { actor, writes } = start("/organisations/riverbank", { failRefresh: true });
+  await actor.click(await screen.findByRole("button", { name: "Invite a member" }));
   await actor.type(
     await screen.findByRole("textbox", { name: "Invitee's email address" }),
     "fictional-new-member@example.org",
@@ -676,7 +737,7 @@ it("does not claim an already recorded change failed when its follow-up read is 
   await actor.click(screen.getByRole("button", { name: "Send membership invitation" }));
   await screen.findByText("Change recorded; view not refreshed");
   expect(
-    screen.getByText("Invitation email sent. It expires in seven days."),
+    screen.getByText("The invitation email has been sent. It expires in seven days."),
   ).toBeInTheDocument();
   expect(screen.queryByText("Could not invite this member")).not.toBeInTheDocument();
   expect(

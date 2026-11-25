@@ -4,3 +4,5 @@ export { default as DataTable } from "./DataTable";
 export { default as DataTableWithResults } from "./DataTableWithResults";
 export { default as SortHeader } from "./SortHeader";
 export { default as TablePagination } from "./TablePagination";
+export { default as DataTableControlled } from "./DataTableControlled";
+export { filterGroups, type FilterGroup } from "./filterGroups";
