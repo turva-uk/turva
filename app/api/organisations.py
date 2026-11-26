@@ -7,17 +7,19 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from django.http import Http404
 from django.shortcuts import get_object_or_404
 from rest_framework import serializers
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from app.api.permissions import IsVerified, PrivateAPIView
 from app.api.serializers import StrictWriteSerializer
-from app.api.views import RepositoryView
+from app.api.views import RepositoryView, csrf_protected
 from app.organisations.models import Invitation, Membership, Organisation
 from app.organisations.services import (
     OrganisationConflict,
     accept_invitation,
     administrator,
     invite_member,
+    preview_invitation,
     revoke_invitation,
     update_membership,
 )
@@ -216,6 +218,24 @@ class InvitationRevokeView(OrganisationView):
 
 class InvitationAcceptSerializer(StrictWriteSerializer):
     token = serializers.CharField(max_length=200, trim_whitespace=False)
+
+
+@csrf_protected
+class InvitationPreviewView(OrganisationView):
+    """Name the organisation an invitation is for, before anyone accepts it.
+
+    Open to a signed-out visitor, since the page asks them to sign in only
+    after saying what they were invited to. A POST, so the token travels in
+    the body as it does for acceptance, never in a URL or a server log.
+    """
+
+    permission_classes = [AllowAny]
+
+    def post(self, request, invitation_id):
+        serializer = InvitationAcceptSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        return Response(preview_invitation(invitation_id, **serializer.validated_data))
 
 
 class InvitationAcceptView(OrganisationView):

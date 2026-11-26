@@ -37,6 +37,11 @@ urlpatterns = [
         name="organisation-invitation-revoke",
     ),
     path(
+        "invitations/<uuid:invitation_id>/preview/",
+        organisations.InvitationPreviewView.as_view(),
+        name="invitation-preview",
+    ),
+    path(
         "invitations/<uuid:invitation_id>/accept/",
         organisations.InvitationAcceptView.as_view(),
         name="invitation-accept",

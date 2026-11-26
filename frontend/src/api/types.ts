@@ -157,6 +157,15 @@ export interface OrganisationInvitation {
   revoked_at: string | null;
 }
 
+/** What an invitation is for, read before anyone accepts it. */
+export interface InvitationPreview {
+  organisation_name: string;
+  inviter_name: string;
+  /** The address invited, in lower case. */
+  email: string;
+  expires_at: string;
+}
+
 export interface OrganisationDetail extends OrganisationSummary {
   members: OrganisationMember[];
   invitations?: OrganisationInvitation[];
