@@ -2,10 +2,11 @@ import { MantineProvider } from "@mantine/core";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createMemoryRouter, RouterProvider } from "react-router";
-import { expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { App } from "../App";
 import type {
+  InvitationPreview,
   FileTeam,
   FileTeamDetail,
   OrganisationDetail,
@@ -87,6 +88,13 @@ const team: FileTeam = {
 };
 const choices = [{ id: organisation.id, name: organisation.name, csos: [self, colleague] }];
 
+const invitationPreview: InvitationPreview = {
+  organisation_name: "Fictional Riverbank Federation",
+  inviter_name: "Grace Okafor",
+  email: person.email,
+  expires_at: "2026-12-03T10:00:00Z",
+};
+
 function json(value: unknown, status = 200) {
   return new Response(JSON.stringify(value), {
     status,
@@ -102,28 +110,41 @@ function start(
     write,
     orgList = [organisation],
     failRefresh = false,
+    preview = () => json(invitationPreview),
+    signedOut = false,
   }: {
     detail?: OrganisationDetail;
     teamDetail?: Partial<FileTeamDetail>;
     orgList?: OrganisationDetail[];
     write?: (path: string, payload: Record<string, unknown>) => Response;
     failRefresh?: boolean;
+    preview?: () => Response;
+    signedOut?: boolean;
   } = {},
 ) {
   const writes: { path: string; method: string; payload: Record<string, unknown> }[] = [];
+  const previews: Record<string, unknown>[] = [];
   let organisationReads = 0;
   const fetcher = vi.fn(async (path: string, init: RequestInit) => {
     if (init.method !== "GET") {
       const payload = init.body
         ? (JSON.parse(String(init.body)) as Record<string, unknown>)
         : {};
+      // Reading what an invitation is for changes nothing, so it is not a write.
+      if (path.endsWith("/preview/")) {
+        previews.push(payload);
+        return preview();
+      }
       writes.push({ path, method: String(init.method), payload });
       if (write) return write(path, payload);
       if (path.endsWith("/accept/")) return json({ organisation_id: organisation.id });
       if (path.endsWith("/invitations/")) return json({ email_sent: true }, 201);
       return json({ team, head_sha: "b".repeat(40) });
     }
-    if (path.endsWith("/auth/session/")) return json({ user: person, authenticated: true });
+    if (path.endsWith("/auth/session/"))
+      return signedOut
+        ? json({ user: null, authenticated: false })
+        : json({ user: person, authenticated: true });
     if (path.endsWith("/organisations/")) return json(orgList);
     if (path.endsWith("/organisations/riverbank/")) {
       organisationReads += 1;
@@ -165,7 +186,7 @@ function start(
       <RouterProvider router={router} />
     </MantineProvider>,
   );
-  return { actor: userEvent.setup(), writes, fetcher };
+  return { actor: userEvent.setup(), writes, previews, fetcher };
 }
 
 it("names the organisation under Organisations in the side bar, with no link back", async () => {
@@ -675,17 +696,86 @@ it("does not preselect a renewed appointment as though an old grant was still cu
 });
 
 it("accepts an invitation only on click and never sends the fragment token in a URL", async () => {
-  const { actor, writes, fetcher } = start(
+  const { actor, writes, previews, fetcher } = start(
     "/organisations/invitations/fictional-invitation#fictional-secret-token",
   );
   const accept = await screen.findByRole("button", { name: "Accept invitation" });
   expect(writes).toHaveLength(0);
+  expect(previews).toEqual([{ token: "fictional-secret-token" }]);
   await actor.click(accept);
   await screen.findByText("Membership accepted");
   expect(writes[0]!.payload).toEqual({ token: "fictional-secret-token" });
+  expect(
+    screen.getByText("You are now a member of Fictional Riverbank Federation."),
+  ).toBeInTheDocument();
   expect(fetcher.mock.calls.every(([url]) => !url.includes("fictional-secret-token"))).toBe(
     true,
   );
+});
+
+describe("the invitation page names the organisation", () => {
+  it("before the accept button", async () => {
+    start("/organisations/invitations/fictional-invitation#fictional-secret-token");
+
+    const accept = await screen.findByRole("button", { name: "Accept invitation" });
+    const details = screen.getByText(
+      "Grace Okafor has invited you to join Fictional Riverbank Federation. The invitation expires on 3 December 2026.",
+    );
+
+    expect(
+      details.compareDocumentPosition(accept) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    // The card says "you"; the address is given once, below it.
+    expect(details).not.toHaveTextContent(person.email);
+    expect(screen.getByText(`You are signed in as ${person.email}.`)).toBeInTheDocument();
+  });
+
+  it("to a signed-out visitor, beside the welcome panel, with no accept button", async () => {
+    start("/organisations/invitations/fictional-invitation#fictional-secret-token", {
+      signedOut: true,
+    });
+
+    expect(
+      await screen.findByText(
+        "Grace Okafor has invited you to join Fictional Riverbank Federation. The invitation expires on 3 December 2026.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("welcome-panel")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Sign in" })).toHaveAttribute("href", "/login");
+    expect(
+      screen.getByText(new RegExp(`Sign in or register as ${person.email}`)),
+    ).toBeVisible();
+    expect(screen.queryByRole("button", { name: "Accept invitation" })).not.toBeInTheDocument();
+  });
+
+  it("or says the invitation cannot be used, and offers nothing to accept", async () => {
+    start("/organisations/invitations/fictional-invitation#wrong-token", {
+      preview: () =>
+        json(
+          { non_field_errors: ["This invitation is invalid, expired or no longer available."] },
+          400,
+        ),
+    });
+
+    const alert = await screen.findByRole("alert");
+
+    expect(within(alert).getByText("This invitation cannot be used")).toBeInTheDocument();
+    expect(screen.queryByText(/Fictional Riverbank Federation/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Accept invitation" })).not.toBeInTheDocument();
+  });
+
+  it("and will not accept one sent to another address", async () => {
+    const { writes } = start(
+      "/organisations/invitations/fictional-invitation#fictional-secret-token",
+      { preview: () => json({ ...invitationPreview, email: "someone.else@example.org" }) },
+    );
+
+    expect(
+      await screen.findByText("This invitation is for another address"),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Accept invitation" })).not.toBeInTheDocument();
+    expect(writes).toHaveLength(0);
+  });
 });
 
 it("does not invent an eligible organisation or silently change an owner-controlled file", async () => {

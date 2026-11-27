@@ -273,6 +273,72 @@ def test_invitation_cannot_be_used_by_wrong_or_revoked_identity(client, team_con
     assert invitation.accepted_at is None
 
 
+def preview(client, invitation_id, token):
+    return client.post(
+        reverse("v1:invitation-preview", kwargs={"invitation_id": invitation_id}),
+        {"token": token},
+        content_type="application/json",
+    )
+
+
+def test_invitation_preview_names_the_organisation_to_a_signed_out_visitor(team_context):
+    invitation, token = invite(Client(), team_context)
+    admin = team_context["admin"]
+
+    response = preview(Client(), invitation.pk, token)
+
+    assert response.status_code == 200, response.content
+    assert response.json()["organisation_name"] == "Fictional Riverbank Federation"
+    assert response.json()["inviter_name"] == (admin.get_full_name() or admin.email)
+    assert response.json()["email"] == invitation.email
+    assert "expires_at" in response.json()
+    assert response["Cache-Control"] == "private, no-store"
+    invitation.refresh_from_db()
+    assert invitation.accepted_at is None
+    assert not Membership.objects.filter(user__email=invitation.email).exists()
+
+
+@pytest.mark.parametrize(
+    "failure", ["bad-token", "unknown", "expired", "revoked", "accepted", "issuer-revoked"]
+)
+def test_invitation_preview_names_nothing_for_an_unusable_invitation(team_context, failure):
+    invitation, token = invite(Client(), team_context)
+    invitation_id = invitation.pk
+    if failure == "bad-token":
+        token = "wrong"
+    elif failure == "unknown":
+        invitation_id = uuid4()
+    elif failure == "expired":
+        invitation.expires_at = timezone.now() - timedelta(seconds=1)
+        invitation.save()
+    elif failure == "revoked":
+        invitation.revoked_at = timezone.now()
+        invitation.save()
+    elif failure == "accepted":
+        invitation.accepted_at = timezone.now()
+        invitation.save()
+    elif failure == "issuer-revoked":
+        Membership.objects.filter(pk=invitation.issuer_id).update(active=False)
+
+    response = preview(Client(), invitation_id, token)
+
+    # The same answer whatever the reason, so an id alone reveals nothing.
+    assert response.status_code == 400
+    assert response.json() == {
+        "non_field_errors": ["This invitation is invalid, expired or no longer available."]
+    }
+    assert "Riverbank" not in response.content.decode()
+
+
+def test_invitation_preview_refuses_a_signed_out_post_without_its_csrf_token(team_context):
+    invitation, token = invite(Client(), team_context)
+
+    response = preview(Client(enforce_csrf_checks=True), invitation.pk, token)
+
+    assert response.status_code == 403
+    assert "Riverbank" not in response.content.decode()
+
+
 def test_only_admins_invite_and_failed_delivery_keeps_cooldown(client, team_context, monkeypatch):
     from app.organisations import services
 

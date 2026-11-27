@@ -196,33 +196,73 @@ def invite_member(organisation, actor, email: str):
     return invitation, True
 
 
+INVALID_INVITATION = "This invitation is invalid, expired or no longer available."
+
+
+def _invitation_usable(invitation: Invitation, token: object) -> bool:
+    """Whether an invitation's link still works.
+
+    It must be unaccepted, unrevoked and unexpired, the token must match, and
+    whoever sent it must still be an active, verified administrator. Shared by the preview and by acceptance, so a page never names the
+    organisation of an invitation that could not be accepted.
+    """
+    issuer = invitation.issuer
+
+    return not (
+        invitation.accepted_at
+        or invitation.revoked_at
+        or invitation.expires_at <= timezone.now()
+        or not isinstance(token, str)
+        or not secrets.compare_digest(
+            invitation.token_hash, hashlib.sha256(token.encode()).hexdigest()
+        )
+        or not (
+            issuer.active
+            and issuer.is_administrator
+            and issuer.user.is_active
+            and issuer.user.is_verified
+        )
+    )
+
+
+def preview_invitation(invitation_id: uuid.UUID, token: str) -> dict[str, object]:
+    """Say what an invitation is for, so it is never accepted blind.
+
+    Read only, and open to a signed-out visitor: whoever holds the token
+    already has the email that names the organisation, so this tells them
+    nothing new. Without the right token, or once the invitation is spent,
+    the answer is the same as acceptance gives, so an invitation's id alone
+    reveals no organisation.
+    """
+    invitation = (
+        Invitation.objects.select_related("organisation", "issuer__user")
+        .filter(pk=invitation_id)
+        .first()
+    )
+    if invitation is None or not _invitation_usable(invitation, token):
+        raise ValidationError(INVALID_INVITATION)
+
+    inviter = invitation.issuer.user
+
+    return {
+        "organisation_name": invitation.organisation.name,
+        "inviter_name": inviter.get_full_name() or inviter.email,
+        "email": invitation.email,
+        "expires_at": invitation.expires_at,
+    }
+
+
 def accept_invitation(invitation_id, actor, token: str):
     verified_actor(actor)
     # Discover only the row to lock, then re-read everything under that lock.
     invitation = Invitation.objects.filter(pk=invitation_id).first()
     if invitation is None:
-        raise ValidationError("This invitation is invalid, expired or no longer available.")
+        raise ValidationError(INVALID_INVITATION)
     with transaction.atomic():
         organisation = Organisation.objects.select_for_update().get(pk=invitation.organisation_id)
         current = verified_actor(actor, lock=True)
         invitation.refresh_from_db()
-        issuer = invitation.issuer
-        if (
-            invitation.accepted_at
-            or invitation.revoked_at
-            or invitation.expires_at <= timezone.now()
-            or invitation.email != current.email.lower()
-            or not isinstance(token, str)
-            or not secrets.compare_digest(
-                invitation.token_hash, hashlib.sha256(token.encode()).hexdigest()
-            )
-            or not (
-                issuer.active
-                and issuer.is_administrator
-                and issuer.user.is_active
-                and issuer.user.is_verified
-            )
-        ):
+        if invitation.email != current.email.lower() or not _invitation_usable(invitation, token):
             raise ValidationError(
                 "This invitation is invalid, expired or no longer available for this verified account."
             )
