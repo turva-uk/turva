@@ -35,11 +35,11 @@ describe.each(variants)("%s row actions", (_name, table) => {
       media.isMobile = mobile;
     });
 
-    it("offers a native, labelled keyboard action without changing table semantics", async () => {
+    it("makes the first cell a native keyboard way into the row, without changing table semantics", async () => {
       const user = userEvent.setup();
       const open = vi.fn();
       renderWithMantine(table({ data, columns, getRowKey, onRowClick: open }));
-      const action = screen.getByRole("button", { name: "Open record HAZ-001" });
+      const action = screen.getByRole("button", { name: "Incorrect record opened" });
       action.focus();
       await user.keyboard("{Enter}");
       await user.keyboard(" ");
@@ -196,6 +196,10 @@ describe("unavailable and numeric results", () => {
         getSubRow={() => 0}
       />,
     );
-    expect(screen.getByRole("cell", { name: "0" })).toHaveAttribute("colspan", "2");
+    // Full width is every column: there is no separate column for opening a row.
+    expect(screen.getByRole("cell", { name: "0" })).toHaveAttribute(
+      "colspan",
+      String(columns.length),
+    );
   });
 });

@@ -40,6 +40,7 @@ export const Unavailable: Story = {
     const canvas = within(canvasElement);
     await expect(canvas.getByText("Recorded documents could not be read.")).toBeVisible();
     await expect(canvas.queryByText("No documents in this safety file")).toBeNull();
-    await expect(canvas.queryByRole("button", { name: /^Open record/ })).toBeNull();
+    // No row is shown, so none can be opened.
+    await expect(canvas.queryByText(SAMPLE_DOCUMENTS[0]!.title)).toBeNull();
   },
 };

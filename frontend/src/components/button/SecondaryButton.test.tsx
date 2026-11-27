@@ -16,6 +16,23 @@ describe("SecondaryButton", () => {
     expect(button).toHaveAttribute("type", "button");
   });
 
+  it("takes a fuller name for a screen reader, and still shows its words", () => {
+    renderWithMantine(
+      <SecondaryButton
+        onClick={() => undefined}
+        aria-label="Revoke invitation to a.patel@example.org"
+      >
+        Revoke
+      </SecondaryButton>,
+    );
+
+    const button = screen.getByRole("button", {
+      name: "Revoke invitation to a.patel@example.org",
+    });
+
+    expect(button).toHaveTextContent(/^Revoke$/);
+  });
+
   it("calls onClick when pressed", async () => {
     const onClick = vi.fn();
     renderWithMantine(<SecondaryButton onClick={onClick}>Check again</SecondaryButton>);

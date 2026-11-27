@@ -1,5 +1,7 @@
 """Organisation administration has its own surface, never an evidence back door."""
 
+from datetime import datetime
+
 from django.core.exceptions import PermissionDenied
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.http import Http404
@@ -22,7 +24,7 @@ from app.organisations.services import (
 from app.safetyfiles.access import can_manage_team, can_read
 from app.safetyfiles.models import SafetyFile
 from app.safetyfiles.teams import save_file_team
-from safety_file.errors import ValidationError
+from safety_file.errors import SafetyFileError, ValidationError
 
 
 def member_data(member):
@@ -81,6 +83,68 @@ class OrganisationListView(OrganisationView):
         )
 
 
+def last_updated(safety_file) -> datetime | None:
+    """When the file's Git history last changed, or `None` if it cannot be read.
+
+    Only the time of the latest commit leaves here, never its subject or
+    content: an administrator sees a file-title inventory, not its evidence
+    (ADR 0006). The index row's own `updated_at` is not used, because saving
+    evidence commits to Git without saving the row.
+    """
+    if not safety_file.exists_on_disk:
+        return None
+
+    try:
+        latest = safety_file.repository().history(limit=1)
+    except SafetyFileError:
+        return None
+
+    return latest[0].committed_at if latest else None
+
+
+def file_data(organisation) -> list[dict[str, object]]:
+    """The organisation's adopted files, the most recently updated first."""
+    files = [
+        {"slug": value.slug, "name": value.name, "last_updated": last_updated(value)}
+        for value in organisation.safety_files.all()
+    ]
+
+    # Newest first; a file whose history cannot be read goes last, by name.
+    return sorted(
+        files,
+        key=lambda value: (
+            value["last_updated"] is None,
+            -value["last_updated"].timestamp() if value["last_updated"] else 0,
+            value["name"],
+        ),
+    )
+
+
+def event_data(organisation, members) -> list[dict[str, object]]:
+    """The organisation's latest administration events, with names to show.
+
+    Each event's subject is stored as an email address. `subject_name` is the
+    name of this organisation's member with that address, and `None` for
+    anybody else, such as an invitation to someone who has not joined: an
+    administrator learns no account holder's name by inviting them.
+    """
+    member_names = {value.user.email.lower(): value.user.get_full_name() for value in members}
+    events = organisation.events.select_related("actor")[:100]
+
+    return [
+        {
+            "action": event.action,
+            "subject": event.subject,
+            "subject_name": member_names.get(event.subject.lower()) or None,
+            "detail": event.detail,
+            "created_at": event.created_at,
+            "actor__email": event.actor.email,
+            "actor_name": event.actor.get_full_name() or None,
+        }
+        for event in events
+    ]
+
+
 class OrganisationDetailView(OrganisationView):
     def get(self, request, organisation_id):
         member = get_object_or_404(
@@ -103,12 +167,8 @@ class OrganisationDetailView(OrganisationView):
             payload["invitations"] = [
                 invitation_data(value) for value in organisation.invitations.all()[:100]
             ]
-            payload["files"] = list(organisation.safety_files.values("slug", "name"))
-            payload["events"] = list(
-                organisation.events.values(
-                    "action", "subject", "detail", "created_at", "actor__email"
-                )[:100]
-            )
+            payload["files"] = file_data(organisation)
+            payload["events"] = event_data(organisation, members)
         return Response(payload)
 
 

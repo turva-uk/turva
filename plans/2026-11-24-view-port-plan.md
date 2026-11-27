@@ -27,6 +27,9 @@ This plan moves the pages across. The theme switches first, in one pull request,
 - [x] **Where does the main navigation go?** Phase 2 put Safety files, Your profile, Organisations and Sign out in the top band, in `AppHeader`. - In a side bar on the left, as the shared components were designed around, with the same four links and Sign out at the bottom. The top band keeps only the Turva name on a wide screen, and the Turva name with a burger button on a narrow one. Below the theme's `md` breakpoint the side bar folds away, and the burger opens it as a navigation drawer from the left; on a wide screen the side bar is always shown. Answered by Mark, 24 November 2026.
 - [x] **Does Phase 1's pull request keep its screenshots?** - No. They showed the old pages in the new theme, before any page had moved, which is not what the finished pages will look like. They were taken out of #158's description, and Phase 1 takes no more. Answered by Mark, 24 November 2026.
 
+- [x] **What else does the app shell need, after #159's first screenshots?** - Icons beside the side bar's links, as the catalogue's navigation was designed with. The Turva name hidden whenever the burger shows, 40% bigger, and set in Finlandica. An envelope on the right of the ribbon that opens an Inbox page, which says nothing is waiting until Turva has something to put there. A footer, bottom right, showing who is signed in. Screenshots at double resolution. Answered by Mark, 24 November 2026.
+- [x] **What colour is the dark-mode background?** - The darker primary surfaces of the original port: the body `#1e1b34`, cards `#2f2b4c`, inputs `#46416b` and input borders `#0f0d1d`, with the ribbon taking the body's colour in dark mode. Answered by Mark, 24 November 2026.
+
 ## Before running /f
 
 - [x] **Delete the lines that are no longer true from `projects/turva/rules/components.md` and `projects/turva/rules/pages.md` in mark-house-style**: the "Two themes, for now" section, and the bullet saying unmoved pages use `legacyTheme`, plus the old `.claude-personal/...` path in `pages.md`. Claude does it when Mark types `i`, and `/m` pushes it. Done 24 November 2026.
@@ -39,6 +42,7 @@ This plan moves the pages across. The theme switches first, in one pull request,
 - [x] Fix what the switch breaks in the existing pages, and nothing more: rules in `frontend/src/app.css` that fight the shared stylesheets, and colours that fall below contrast on the new dark-mode palette. Do not move any page onto the shared components here.
 - [x] Delete `frontend/src/legacyTheme.ts` and `legacyTheme.test.tsx`, since nothing uses them. Move the check that the app uses the right theme into a new `theme.test.tsx` case, or beside it, reading `main.tsx` as the old test did: it passes `theme` and its resolver, and imports the shared stylesheets. Point `pages/workflows.test.tsx` at `theme` as well.
 - [x] Amend this phase's branch, `feature/views-switch-to-the-components-theme`, with `just stu` on it: remove `Card`'s `radius: 0` from `theme.ts`, so cards take Mantine's default `md` as buttons and fields do, and add `Card` to the corner test in `theme.test.tsx`. No screenshots: Phase 1 takes none.
+- [x] Amend this phase's branch again, `feature/views-switch-to-the-components-theme`, with code only: in `theme.ts`'s dark resolver, set the body to `#1e1b34`, cards to `#2f2b4c`, inputs to `#46416b` and input borders to `#0f0d1d`, and the ribbon to the body's colour. Name them as constants beside the purple scale, which `test_palette.py` pins and which stays as it is. Extend `theme.test.tsx`'s dark-mode contrast cases to the new body, card and input colours, for dimmed text, error text and links. Rewrite #158's description to say so. No screenshots, as Phase 1 takes none.
 - [x] Check: `./s/frontend` passes, with the Storybook build, and `./s/lint` passes. Start the stack with `./s/up -d`, build the demo safety file and its account with `./s/seed-demo`, and take screenshots with Playwright, from `frontend/node_modules`, of the sign-in page, the safety files list, a safety file, a hazard and the hazard form, in light and dark mode, after the switch. Put them in the pull request description under a `## Screenshots` heading with `gh pr edit --attach`, as the screenshots decision below sets out, so the change of look is reviewed on purpose. `SAFETY.md` needs no change: the pages show the same content, and nothing derives or sends a risk level.
 
 As built:
@@ -50,6 +54,7 @@ As built:
 - **The frontend container needed rebuilding** with `./s/up -d --build --renew-anon-volumes frontend`. Its `node_modules` volume predated the Storybook port and had no font packages, so Vite could not load `main.tsx`. Another worktree's stack held the default ports, so this one ran with the `TURVA_*_PORT` variables `./s/up` documents.
 - **As run on 24 November 2026**: `./s/frontend` passed (1,378 tests, the build and the Storybook build), `./s/lint` passed, and `./s/test` passed (611 Django tests, and the host suites).
 - **Amended on 24 November 2026**: `Card` lost its `radius: 0`, so cards are rounded at `md` like buttons and fields, and the corner test covers `Card`. #158's screenshots were taken out at Mark's request.
+- **Amended again on 24 November 2026: the dark-mode surfaces.** `DARK_SURFACES` in `theme.ts` holds the body, card, input and input-border colours, and `--ribbon-bg` gives the ribbon the brand purple in light mode and the body's colour in dark. On the lighter dark surfaces some text fell below 4.5:1, so the dark error colour moved from `#ff8a65` to `#ff9979`, and four dark status words one step lighter: outstanding `#fbacc8`, info `#8acafc`, accent `#cbb9fd` and alert `#ffafaf`. `EllipsisMenu` no longer tints a coloured item's hover, which left a red item at 3.4:1 on its own hover. `theme.test.tsx` checks every dark status word, dimmed text, error text and links on the body, cards and inputs, and all 938 Storybook checks passed in light and dark.
 
 ## Phase 2: The app shell
 
@@ -65,6 +70,12 @@ As built:
   - **`MainLayout`** in `components/layouts/`: the ribbon, the side bar or drawer, and the main content with the skip link's target, for somebody signed in. Somebody signed out, on sign-in, registration or password reset, sees the ribbon alone.
   - In `App.tsx`, use `MainLayout`, and delete `AppHeader` with its story, test and CSS module. `App.test.tsx` checks the side bar's links, Sign out, and the skip link.
   - Rewrite #159's title and description to match, with screenshots of the shell signed in and signed out, on a wide and a narrow screen with the drawer open, in light and dark mode, and of each new component's stories. Say what changed under `## Decisions to check`.
+- [x] Amend this phase's branch again, `feature/views-app-header-and-session-spinner`, with code only, and rewrite #159's description and screenshots to match.
+  - **Icons beside the side bar's links**, through the catalogue's `Icon`, registered in `components/icons/appIcons.ts`: a folder or file icon for Safety files, a person for Your profile, a building for Organisations, and a door or log-out icon for Sign out.
+  - **The Turva name hides whenever the burger shows**, so the narrow ribbon carries the burger alone. On a wide screen the name is 40% bigger than now and set in Finlandica, from `@fontsource-variable/finlandica` (OFL-1.1), loaded in `main.tsx` and `.storybook/preview.tsx` alike so the entry point test still holds.
+  - **An envelope on the right of the ribbon**, an `InboxButton` in `components/inbox/`, which opens a new Inbox page at `/inbox`. The page has a `PageHeader` and an `EmptyState` saying nothing is waiting. The envelope shows no count while there is nothing to count.
+  - **A footer, bottom right**, a `Footer` in `components/footer/`, sticky at the foot of every signed-in page, saying "Signed in as" and the person's full name.
+  - **Screenshots at double resolution**, as every screenshot from now on is.
 
 As built:
 
@@ -74,6 +85,7 @@ As built:
 - **The Storybook accessibility check did not run locally.** It needs Playwright's Chromium build 1248, and the host has only 1254, so CI runs it.
 - **As run on 24 November 2026**: `./s/frontend` passed (1,386 tests, the build and the Storybook build), `./s/lint` passed, and `./s/test` passed (611 Django tests, and the host suites).
 - **Amended on 24 November 2026: a left side bar replaced `AppHeader`.** `MainLayout` frames every page with `TopRibbon`, `SideNav` and, below `md`, `NavigationDrawer`, each with stories and a test. The plan's `NestedNavLink` was built as `SideNavLink`, since Turva's links do not nest. `NAVIGATION` and `isWithin` sit in `navItems.ts`, so the component files export components alone. Mantine's `NavLink` does not block a press while `disabled`, so `LogoutNavLink` uses `aria-disabled` and ignores the press while signing out. The ribbon's "drawer open" story draws the drawer too, because axe refuses an `aria-controls` that names nothing on the page. In the drawer, Sign out sits under the links rather than at its foot, since the drawer's body does not fill its height. The Storybook accessibility check ran locally on the new stories and passed.
+- **Amended again on 24 November 2026**: `SideNavLink` and `LogoutNavLink` carry `NavIcon`s (`safety`, `user`, `building-community`, `logout`). `TopRibbon` shows the wordmark or the burger, never both, sets the wordmark in Finlandica at 1.4 times the body size, takes an `end` slot for the envelope, and uses `--ribbon-bg`. `InboxButton` in `components/inbox/` opens the new `InboxPage` at `/inbox`, an `EmptyState` for now. `Footer` in `components/footer/` sits in `AppShell`'s footer slot, rendered as a `div` so the page has one footer landmark, saying "Signed in as" and the person's full name. Finlandica came in with `npm install`, since the repository has no recipe for adding a frontend dependency; its type is declared in `src/types/fonts.d.ts` beside the other two fonts.
 
 ## Phase 3: Sign-in, registration, verification and password reset
 
@@ -81,6 +93,7 @@ As built:
 - [x] Extend `FormStatus` in `components/form/Form/` so its error variants move focus to the alert when it appears, as `SaveFailure` does, and take a prop that adds "Your entries have not been cleared." to the description. ADR 0004 needs a stale save to say the draft was kept. Add a story for each and tests for the focus and the line. Every later phase uses it in place of `SaveFailure`.
 - [x] Amend this phase's branch, `feature/views-account-pages-on-the-shared-form`, with `just stu` on it. Take `blockNavigation={false}` off the registration and both password reset forms, so they warn before somebody leaves with something typed; sign-in keeps it off. Add `SecondaryButton` to `components/button/`, with a story and a test: Mantine's `Button` with `variant="outline"` at `size="md"`. Use it for the verification page's "check again" button and for `ButtonPair`'s cancel button. Test that registration warns when dirty and sign-in does not. Screenshot the `SecondaryButton` stories into #161's description, and say what changed under `## Decisions to check`.
 - [x] Check: `./s/frontend` and `./s/lint` pass, with `account-workflows.test.tsx` rewritten where the new components need it, still testing what this check names. No change to who can sign in or register: the pages call the same endpoints with the same bodies. Put screenshots of each view this phase moves, in light and dark mode, in the pull request description under a `## Screenshots` heading, uploaded with `gh pr edit --attach`.
+- [x] Amend this phase's branch, `feature/views-account-pages-on-the-shared-form`, with code only: show the email confirmation page's notices that the confirmation email was or was not sent with `StateMessage` from `components/message-cards/`, not `FormStatus`. `FormStatus` scrolls itself into view and is for the outcome of a submission; a notice that is there when the page opens should not move the page. Wrap a notice that appears after something happens in a `status` or `alert` region, so it is still read out.
 
 As built:
 
@@ -91,11 +104,13 @@ As built:
 - **The registration notice that email delivery failed is a polite status card**, not an alert, since nothing failed for the person to fix.
 - **As run on 24 November 2026**: `./s/frontend` passed (1,400 tests, the build and the Storybook build), `./s/lint` passed, and `./s/test` passed (611 Django tests, and the host suites). The Storybook accessibility check did not run locally, for want of Playwright's Chromium build 1248.
 - **Amended on 24 November 2026**: the registration and password reset forms warn before somebody leaves with something typed; sign-in and the field-less verification forms do not. `SecondaryButton` in `components/button/` is Mantine's outline `Button` at `md`, and `ButtonPair`'s cancel and the "check again" button use it. `account-workflows.test.tsx` now renders the app in a data router, as `main.tsx` does, because a guarded `Form` refuses to render outside one. A new `leave-warnings.test.tsx` checks that registration and password reset ask first and sign-in does not.
+- **Amended again on 24 November 2026**: the email confirmation page's two notices from registration are `StateMessage`s in a `status` region.
 
 ## Phase 4: Invitation and profile
 
 - [x] Move `InvitationPage` and `ProfilePage` onto the form fields, `PageHeader` and the buttons, as Phase 3 did. The profile keeps the professional registration fields and the Clinical Safety Officer declaration exactly as they are sent today; `declare_cso()` stays the only way to become a CSO.
 - [x] Check: `./s/frontend` and `./s/lint` pass. Put screenshots of each view this phase moves, in light and dark mode, in the pull request description under a `## Screenshots` heading, uploaded with `gh pr edit --attach`.
+- [x] Amend this phase's branch, `feature/views-invitation-and-profile-on-the-shared-form`, with code only: show the invitation page's notices for an unconfirmed email and a missing token, and the profile page's load error with `StateMessage` from `components/message-cards/`, not `FormStatus`. `FormStatus` scrolls itself into view and is for the outcome of a submission; a notice that is there when the page opens should not move the page. Wrap a notice that appears after something happens in a `status` or `alert` region, so it is still read out.
 
 As built:
 
@@ -104,6 +119,7 @@ As built:
 - **Accepting an invitation is a `Form` with no fields**, like the verification pages, and its notices are status cards. The token still travels only in the request body, never a URL.
 - **`workflows.test.tsx` and `App.test.tsx` render the app in a data router**, as `main.tsx` does, since the profile form now guards leaving it and a guarded `Form` refuses to render outside one.
 - **As run on 24 November 2026**: `./s/frontend` passed (1,424 tests, the build and the Storybook build), `./s/lint` passed, and `./s/test` passed (611 Django tests, and the host suites).
+- **Amended on 24 November 2026**: the invitation page's unconfirmed-email and missing-token notices, and the profile page's load error, are `StateMessage`s; the error ones sit in an `alert` region.
 
 ## Phase 5: The organisations list
 
@@ -118,8 +134,16 @@ As built:
 
 ## Phase 6: The organisation page
 
-- [ ] Move `OrganisationPage` onto `DataTable`, the form fields and `ConfirmModal` for anything that removes a member or an appointment. Keep every request and its body as it is: organisation administration is not evidence authority (ADR 0006), and this phase changes only how the page looks.
-- [ ] Check: `./s/frontend` and `./s/lint` pass, with `organisation-workflows.test.tsx` rewritten where the new components need it, still testing what this check names. Put screenshots of each view this phase moves, in light and dark mode, in the pull request description under a `## Screenshots` heading, uploaded with `gh pr edit --attach`.
+- [x] Move `OrganisationPage` onto `DataTable`, the form fields and `ConfirmModal` for anything that removes a member or an appointment. Keep every request and its body as it is: organisation administration is not evidence authority (ADR 0006), and this phase changes only how the page looks.
+- [x] Check: `./s/frontend` and `./s/lint` pass, with `organisation-workflows.test.tsx` rewritten where the new components need it, still testing what this check names. Put screenshots of each view this phase moves, in light and dark mode, in the pull request description under a `## Screenshots` heading, uploaded with `gh pr edit --attach`.
+
+As built:
+
+- **The members, invitations and history are `DataTable`s.** `DataTable` gained an optional `caption`, shown under the table and read out as its name, so "Active members of this organisation" and "Up to 100 recent organisation administration events" keep their names. It has a story and a test.
+- **Each member's roles are a `Form` inside a `Fieldset` named for the person**, sending `expected_revision` as before. Departed from the plan: removing a membership or appointment still needs the page's own confirmation checkbox, which names the person and what they lose, rather than a `ConfirmModal`. The checkbox says more than a modal would, and the page keeps what it has. Revoking an invitation uses `ConfirmModal`.
+- **Notices that are there when the page opens use `StateMessage`, not `FormStatus`**, which scrolled the page down to the first one. The same mistake on the email confirmation, invitation and profile pages is fixed by the amendments to Phases 3 and 4.
+- **`organisation-workflows.test.tsx` renders the app in a data router**, and its role test checks the save button's `aria-disabled` and that a press sends nothing, since the shared submit button stays focusable while unavailable.
+- **As run on 24 November 2026**: `./s/frontend` passed (1,426 tests, the build and the Storybook build), `./s/lint` passed, and `./s/test` passed (611 Django tests, and the host suites).
 
 ## Phase 7: The file team
 
@@ -179,6 +203,7 @@ The catalogue has no mitigation components, and pages may use only components fr
 
 ## Decisions
 
+- **Screenshots at double resolution** - every screenshot is taken with a device scale factor of 2, so a reviewer can zoom in on a pull request's pictures and still read them.
 - **Plan edits only ever go into the top branch** - the plan file first arrived in Phase 1's commit, and every phase above changes it, so a plan edit folded into a lower branch would clash when the branches above it are rebased. So the amendments to Phases 1 to 3 run in this order. First, on the top branch, fold the uncommitted plan edits into it with `just stu`, so the working tree is clean and `git switch` can move down the stack. Then amend Phase 1's branch, then Phase 2's, each with code only, leaving the plan untouched. Last, amend Phase 3's branch, which is the top, and tick all three amendment steps there, with their as-built notes. New phases from Phase 4 on tick their own boxes as usual, since each is the top when it is built.
 - **The page keeps what it has, and its words** - where a catalogue component lacks a warning, link or piece of guidance the page shows today, the phase adds it to the component, with a story and a test. Where the wording differs, the page's wins and the component changes. Every new or changed component story gets a screenshot in the pull request. A clinician should not lose guidance because a page moved.
 - **The dev stack runs on other ports** - another project holds ports 80 and 5173 on the dev box, so each phase starts the stack with `TURVA_WEB_PORT=8010 TURVA_FRONTEND_PORT=5183 TURVA_POSTGRES_PORT=5443 TURVA_HTTP_PORT=8088 TURVA_HTTPS_PORT=8448 ./s/up -d`, as `./s/up` documents, and passes the same variables to `./s/test` and `./s/seed-demo`.

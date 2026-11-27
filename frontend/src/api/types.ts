@@ -160,8 +160,30 @@ export interface OrganisationInvitation {
 export interface OrganisationDetail extends OrganisationSummary {
   members: OrganisationMember[];
   invitations?: OrganisationInvitation[];
-  files?: { slug: string; name: string }[];
-  events?: { action: string; subject: string; created_at: string; actor__email: string }[];
+  /** The adopted files, the most recently updated first */
+  files?: AdoptedSafetyFile[];
+  events?: OrganisationEvent[];
+}
+
+/** A safety file adopted into an organisation, as its administrators see it */
+export interface AdoptedSafetyFile {
+  slug: string;
+  name: string;
+  /** When the file's Git history last changed; null when it cannot be read */
+  last_updated: string | null;
+}
+
+/** One entry in an organisation's administration history */
+export interface OrganisationEvent {
+  action: string;
+  /** Who or what the event was about, as stored: an email address */
+  subject: string;
+  /** The subject's name, when they are a member of this organisation */
+  subject_name: string | null;
+  created_at: string;
+  actor__email: string;
+  /** The name of the person who acted */
+  actor_name: string | null;
 }
 
 export interface TeamPerson {

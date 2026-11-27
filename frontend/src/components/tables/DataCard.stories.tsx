@@ -180,7 +180,6 @@ export const NarrowLongLabels: Story = {
       },
     ],
     onClick: fn(),
-    actionLabel: "Open record HAZ-001",
   },
   render: (args) => (
     <div data-testid="narrow-record" style={{ width: 320, maxWidth: "100%" }}>

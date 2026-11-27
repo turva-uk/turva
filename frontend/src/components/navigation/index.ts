@@ -1,4 +1,8 @@
 export { default as LogoutNavLink } from "./LogoutNavLink";
+export { default as NavSublinkProvider } from "./NavSublinkProvider";
+export type { NavSublinkProviderProps } from "./NavSublinkProvider";
+export { usePageSublink } from "./pageSublink";
+export type { PageSublink } from "./pageSublink";
 export type { LogoutNavLinkProps } from "./LogoutNavLink";
 export { default as SideNav } from "./SideNav";
 export type { SideNavProps } from "./SideNav";

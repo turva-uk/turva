@@ -1,7 +1,7 @@
 import { MantineProvider } from "@mantine/core";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter } from "react-router";
+import { createMemoryRouter, RouterProvider } from "react-router";
 import { expect, it, vi } from "vitest";
 
 import { App } from "../App";
@@ -145,17 +145,41 @@ function start(
     throw new Error(`Unexpected request ${path}`);
   });
   vi.stubGlobal("fetch", fetcher);
+  // A data router, as `main.tsx` uses: the shared `Form` guards leaving a
+  // dirty form only inside one, and refuses to render outside it.
+  const router = createMemoryRouter(
+    [
+      {
+        path: "*",
+        element: (
+          <SessionProvider>
+            <App />
+          </SessionProvider>
+        ),
+      },
+    ],
+    { initialEntries: [route] },
+  );
   render(
     <MantineProvider>
-      <MemoryRouter initialEntries={[route]}>
-        <SessionProvider>
-          <App />
-        </SessionProvider>
-      </MemoryRouter>
+      <RouterProvider router={router} />
     </MantineProvider>,
   );
   return { actor: userEvent.setup(), writes, fetcher };
 }
+
+it("names the organisation under Organisations in the side bar, with no link back", async () => {
+  start("/organisations/riverbank");
+
+  const navigation = await screen.findByRole("navigation", { name: "Main navigation" });
+  const sublink = await within(navigation).findByRole("link", { name: organisation.name });
+
+  expect(sublink).toHaveAttribute("href", `/organisations/${organisation.id}`);
+  expect(sublink).toHaveAttribute("aria-current", "page");
+  expect(
+    screen.queryByRole("link", { name: "Back to your organisations" }),
+  ).not.toBeInTheDocument();
+});
 
 it("shows an honest empty organisation state without an invitation or file grant", async () => {
   const { writes } = start("/organisations", { orgList: [] });
@@ -189,7 +213,7 @@ it("sends membership invitations only on deliberate save and reports failed deli
   expect(writes[0]!.payload).toEqual({ email: "fictional-invitee@example.org" });
 });
 
-it("requires confirmation to remove a role and keeps stale membership decisions", async () => {
+it("asks before taking a role away and keeps stale membership decisions", async () => {
   const { actor, writes } = start("/organisations/riverbank", {
     write: () =>
       json(
@@ -200,16 +224,35 @@ it("requires confirmation to remove a role and keeps stale membership decisions"
         409,
       ),
   });
-  const member = await screen.findByRole("group", {
-    name: `${colleague.name} (${colleague.email})`,
-  });
+  const member = await screen.findByRole("group", { name: colleague.name });
+  // The email is the group's description, on its own line under the name.
+  expect(member).toHaveAccessibleDescription(colleague.email);
   await actor.click(
     within(member).getByRole("checkbox", { name: "Appointed Clinical Safety Officer" }),
   );
   const save = within(member).getByRole("button", { name: `Save roles for ${colleague.name}` });
-  expect(save).toBeDisabled();
-  await actor.click(within(member).getByRole("checkbox", { name: /I understand/ }));
+
+  // Taking a role away asks first, naming what is lost, and sends nothing
+  // until the change is confirmed.
   await actor.click(save);
+  const ask = await screen.findByRole("dialog", {
+    name: `Change roles for ${colleague.name}?`,
+  });
+  expect(ask).toHaveTextContent(
+    `${colleague.name} will lose their CSO appointment. Removing a CSO appointment removes private file access.`,
+  );
+  await actor.click(within(ask).getByRole("button", { name: "Keep current roles" }));
+  expect(writes).toHaveLength(0);
+  expect(
+    within(member).getByRole("checkbox", { name: "Appointed Clinical Safety Officer" }),
+  ).not.toBeChecked();
+
+  await actor.click(save);
+  await actor.click(
+    within(
+      await screen.findByRole("dialog", { name: `Change roles for ${colleague.name}?` }),
+    ).getByRole("button", { name: "Save role changes" }),
+  );
   await screen.findByText(/This membership changed after you opened it/);
   expect(
     within(member).getByRole("checkbox", { name: "Appointed Clinical Safety Officer" }),
@@ -221,19 +264,217 @@ it("requires confirmation to remove a role and keeps stale membership decisions"
     is_cso: false,
   });
   await actor.click(save);
+  await actor.click(
+    within(
+      await screen.findByRole("dialog", { name: `Change roles for ${colleague.name}?` }),
+    ).getByRole("button", { name: "Save role changes" }),
+  );
   await waitFor(() => expect(writes).toHaveLength(2));
   expect(writes[1]!.payload.expected_revision).toBe(colleague.revision);
+});
+
+it("saves a role being added straight away, without asking", async () => {
+  const { actor, writes } = start("/organisations/riverbank");
+  const member = await screen.findByRole("group", { name: colleague.name });
+
+  await actor.click(
+    within(member).getByRole("checkbox", { name: "Organisation administrator" }),
+  );
+  await actor.click(
+    within(member).getByRole("button", { name: `Save roles for ${colleague.name}` }),
+  );
+
+  await waitFor(() => expect(writes).toHaveLength(1));
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  expect(writes[0]!.payload).toMatchObject({ is_administrator: true, is_cso: true });
+});
+
+it("groups the invitations, the file teams and the history into a card each", async () => {
+  start("/organisations/riverbank");
+  const cardOf = (name: string) =>
+    screen.getByRole("heading", { name }).closest(".mantine-Card-root");
+  await screen.findByRole("heading", { name: "Invite a member" });
+
+  const invitations = cardOf("Invite a member");
+  const files = cardOf("This organisation's safety files");
+  const history = cardOf("Recent administration history");
+
+  expect(invitations).not.toBeNull();
+  expect(cardOf("Recent invitations")).toBe(invitations);
+  expect(files).not.toBeNull();
+  expect(history).not.toBeNull();
+  expect(new Set([invitations, files, history]).size).toBe(3);
+});
+
+it("shows the recent invitations before the form to invite a member", async () => {
+  start("/organisations/riverbank");
+  const form = await screen.findByRole("heading", { name: "Invite a member" });
+  const table = screen.getByRole("heading", { name: "Recent invitations" });
+
+  expect(table.compareDocumentPosition(form) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+});
+
+it("keeps the invitee's email address field to the width of the signed-out email forms", async () => {
+  start("/organisations/riverbank");
+  const field = await screen.findByLabelText(/Invitee's email address/);
+
+  let box: HTMLElement | null = field.parentElement;
+  while (box && !box.style.maxWidth) box = box.parentElement;
+
+  expect(box?.style.maxWidth).toContain("35rem");
+});
+
+it("names each of the administrator's tables for a screen reader", async () => {
+  start("/organisations/riverbank", {
+    detail: {
+      ...organisation,
+      invitations: [
+        {
+          id: "fictional-invitation",
+          email: "fictional-invitee@example.org",
+          created_at: "2026-11-13T10:00:00Z",
+          expires_at: "2099-11-20T10:00:00Z",
+          accepted_at: null,
+          revoked_at: null,
+        },
+      ],
+      events: [
+        {
+          created_at: "2026-11-13T10:00:00Z",
+          action: "invitation sent",
+          subject: "fictional-invitee@example.org",
+          actor__email: self.email,
+          subject_name: null,
+          actor_name: self.name,
+        },
+      ],
+    },
+  });
+
+  expect(await screen.findByRole("table", { name: "Invitations" })).toBeInTheDocument();
+  expect(screen.getByRole("table", { name: "Administration history" })).toBeInTheDocument();
+  expect(screen.queryByText(/Up to 100/)).not.toBeInTheDocument();
+});
+
+it("names people in the administration history, and keeps the address for somebody only invited", async () => {
+  start("/organisations/riverbank", {
+    detail: {
+      ...organisation,
+      events: [
+        {
+          created_at: "2026-11-13T10:00:00Z",
+          action: "membership.changed",
+          subject: colleague.email,
+          subject_name: colleague.name,
+          actor__email: self.email,
+          actor_name: self.name,
+        },
+        {
+          created_at: "2026-11-12T10:00:00Z",
+          action: "invitation.issued",
+          subject: "fictional-invitee@example.org",
+          subject_name: null,
+          actor__email: self.email,
+          actor_name: self.name,
+        },
+      ],
+    },
+  });
+
+  const table = await screen.findByRole("table", { name: "Administration history" });
+  const [changed, issued] = within(table).getAllByRole("row").slice(1);
+
+  expect(changed).toHaveTextContent(colleague.name);
+  expect(changed).not.toHaveTextContent(colleague.email);
+  expect(changed).toHaveTextContent(self.name);
+  expect(changed).not.toHaveTextContent(self.email);
+  expect(issued).toHaveTextContent("fictional-invitee@example.org");
+});
+
+it("shows when each administration event happened to the minute, without seconds", async () => {
+  start("/organisations/riverbank", {
+    detail: {
+      ...organisation,
+      events: [
+        {
+          created_at: "2026-11-13T10:00:00Z",
+          action: "invitation sent",
+          subject: "fictional-invitee@example.org",
+          actor__email: self.email,
+          subject_name: null,
+          actor_name: self.name,
+        },
+      ],
+    },
+  });
+
+  const table = await screen.findByRole("table", { name: "Administration history" });
+  const when = within(table).getAllByRole("cell")[0];
+
+  expect(when?.textContent).toMatch(/^\d{2}\/\d{2}\/\d{4}, \d{2}:\d{2}$/);
 });
 
 it("shows members but no administrative controls to an ordinary member", async () => {
   start("/organisations/riverbank", {
     detail: { ...organisation, membership: { ...self, is_administrator: false } },
   });
-  await screen.findByRole("table", { name: "Active members of this organisation" });
+  await screen.findByRole("table", { name: "Members of this organisation" });
   expect(screen.queryByRole("button", { name: /Save roles/ })).not.toBeInTheDocument();
   expect(
     screen.queryByRole("button", { name: "Send membership invitation" }),
   ).not.toBeInTheDocument();
+});
+
+it("lists the adopted files in a table, each opening its file team", async () => {
+  const { actor, fetcher } = start("/organisations/riverbank", {
+    detail: {
+      ...organisation,
+      files: [
+        { slug: "demo", name: "Fictional deployment", last_updated: "2026-11-21T09:15:00Z" },
+      ],
+    },
+  });
+
+  const table = await screen.findByRole("table", { name: "Adopted safety files" });
+  expect(table).toHaveTextContent("Fictional deployment");
+  await actor.click(
+    within(table).getByRole("button", {
+      name: "Fictional deployment",
+    }),
+  );
+
+  await waitFor(() =>
+    expect(
+      fetcher.mock.calls.some(([url]) => String(url).endsWith("/safety-files/demo/team/")),
+    ).toBe(true),
+  );
+});
+
+it("says when each adopted file last changed, keeping the server's newest-first order", async () => {
+  start("/organisations/riverbank", {
+    detail: {
+      ...organisation,
+      files: [
+        { slug: "newer", name: "Fictional newer", last_updated: "2026-11-21T09:15:00Z" },
+        { slug: "older", name: "Fictional older", last_updated: "2026-11-01T09:15:00Z" },
+        { slug: "unknown", name: "Fictional unknown", last_updated: null },
+      ],
+    },
+  });
+
+  const table = await screen.findByRole("table", { name: "Adopted safety files" });
+  const rows = within(table).getAllByRole("row").slice(1);
+
+  expect(within(table).getByRole("columnheader", { name: /Last updated/ })).toBeInTheDocument();
+  expect(rows.map((row) => within(row).getAllByRole("cell")[0]?.textContent)).toEqual([
+    "Fictional newer",
+    "Fictional older",
+    "Fictional unknown",
+  ]);
+  expect(within(rows[0]!).getAllByRole("cell")[1]?.textContent).toMatch(
+    /^\d{2}\/\d{2}\/2026, \d{2}:\d{2}$/,
+  );
+  expect(rows[2]).toHaveTextContent("Not known");
 });
 
 it("requires explicit adoption and sends only opened CSO appointments on whole-team save", async () => {
@@ -372,16 +613,21 @@ it("requires a separate confirmation before revoking an invitation", async () =>
   const { actor, writes } = start("/organisations/riverbank", {
     detail: { ...organisation, invitations: [invitation] },
   });
-  await actor.click(
-    await screen.findByRole("button", { name: `Revoke invitation to ${invitation.email}` }),
-  );
+  const revokeButton = await screen.findByRole("button", {
+    name: `Revoke invitation to ${invitation.email}`,
+  });
+  expect(revokeButton).toHaveTextContent(/^Revoke$/);
+  // Starts at the cell's left edge, under the "Action" heading, rather than
+  // pushed to the right by a group.
+  expect(revokeButton.closest("td")?.querySelector(".mantine-Group-root")).toBeNull();
+  await actor.click(revokeButton);
   expect(writes).toHaveLength(0);
-  await actor.click(screen.getByRole("button", { name: "Keep invitation" }));
+  await actor.click(await screen.findByRole("button", { name: "Keep invitation" }));
   expect(writes).toHaveLength(0);
   await actor.click(
     screen.getByRole("button", { name: `Revoke invitation to ${invitation.email}` }),
   );
-  await actor.click(screen.getByRole("button", { name: "Confirm invitation revocation" }));
+  await actor.click(await screen.findByRole("button", { name: "Revoke invitation" }));
   await waitFor(() => expect(writes).toHaveLength(1));
   expect(writes[0]!.path).toBe(
     "/api/v1/organisations/riverbank/invitations/fictional-invitation/revoke/",

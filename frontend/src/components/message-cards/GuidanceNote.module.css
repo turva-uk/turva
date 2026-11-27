@@ -1,0 +1,24 @@
+/*
+ * A thin stripe in the note's status colour down its left edge, on the
+ * card's ordinary surface. It is drawn inside the card rather than as a
+ * border, so `BaseCard`'s own border colour cannot cover it.
+ */
+.note {
+  position: relative;
+}
+
+.note::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  width: 0.25rem;
+  border-start-start-radius: var(--mantine-radius-md);
+  border-end-start-radius: var(--mantine-radius-md);
+  background-color: var(--guidance-note-stripe);
+}
+
+/* The icon keeps its size beside a long description. */
+.icon {
+  flex-shrink: 0;
+}
