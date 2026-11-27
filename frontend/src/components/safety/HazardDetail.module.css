@@ -1,0 +1,13 @@
+/* The recorded Markdown, shown exactly as saved: its line breaks kept, in
+   the body's own font, wrapping rather than scrolling sideways. */
+.source {
+  margin: 0;
+  padding: var(--mantine-spacing-sm);
+  font-family: inherit;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.6;
+  background-color: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: var(--mantine-radius-md);
+}
