@@ -286,6 +286,7 @@ function EditableMitigationForm({
               value={value.hazards}
               searchable
               nothingFoundMessage="No hazards match"
+              removeLabel={(option) => `Remove ${option.value} from linked hazards`}
               placeholder={value.hazards.length === 0 ? "Optional: choose hazards" : undefined}
               onChange={(next) => set("hazards", next)}
               error={fieldErrors["hazards"]}

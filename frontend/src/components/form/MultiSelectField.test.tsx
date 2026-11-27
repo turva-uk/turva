@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { renderWithMantine, expectInlineStyle } from "@/test/test-utils";
@@ -28,7 +28,7 @@ describe("MultiSelectField", () => {
     renderWithMantine(<MultiSelectField label="Participants" data={options} />);
 
     await user.click(screen.getByRole("combobox"));
-    expect(screen.getByText("Dr Fenwick")).toBeInTheDocument();
+    expect(screen.getAllByText("Dr Fenwick").length).toBeGreaterThan(0);
     expect(screen.getByText("Nurse Adams")).toBeInTheDocument();
   });
 
@@ -80,5 +80,58 @@ describe("MultiSelectField", () => {
     const heading = await screen.findByText("Oncology");
     expect(heading).toHaveClass(dropdownClasses.groupLabel ?? "missing-css-module-class");
     expect(screen.queryByRole("option", { name: "Oncology" })).not.toBeInTheDocument();
+  });
+
+  it("names each pill's remove button and lets the keyboard reach it", async () => {
+    const onChange = vi.fn();
+    renderWithMantine(
+      <MultiSelectField
+        label="Clinicians"
+        data={options}
+        value={["1", "2"]}
+        onChange={onChange}
+      />,
+    );
+
+    const remove = screen.getByRole("button", { name: "Remove Dr Fenwick" });
+    expect(remove).not.toHaveAttribute("aria-hidden", "true");
+    expect(remove).toHaveAttribute("tabindex", "0");
+    remove.focus();
+    await userEvent.keyboard("{Enter}");
+
+    expect(onChange).toHaveBeenCalledWith(["2"]);
+  });
+
+  it("names the remove button as removeLabel says", () => {
+    renderWithMantine(
+      <MultiSelectField
+        label="Clinicians"
+        data={options}
+        value={["1"]}
+        removeLabel={(option) => `Remove ${option.value} from clinicians`}
+      />,
+    );
+
+    expect(
+      screen.getByRole("button", { name: "Remove 1 from clinicians" }),
+    ).toBeInTheDocument();
+  });
+
+  it("shows a value no longer among the choices, rather than dropping it", () => {
+    renderWithMantine(<MultiSelectField label="Clinicians" data={options} value={["9"]} />);
+
+    expect(screen.getByRole("button", { name: "Remove 9" })).toBeInTheDocument();
+  });
+
+  it.each([
+    ["read only", { readOnly: true }],
+    ["disabled", { disabled: true }],
+  ])("offers no remove button when %s", (_, state) => {
+    renderWithMantine(
+      <MultiSelectField label="Clinicians" data={options} value={["1"]} {...state} />,
+    );
+
+    expect(screen.getAllByText("Dr Fenwick").length).toBeGreaterThan(0);
+    expect(screen.queryByRole("button", { name: "Remove Dr Fenwick" })).not.toBeInTheDocument();
   });
 });
