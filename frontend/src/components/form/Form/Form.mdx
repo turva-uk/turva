@@ -34,12 +34,9 @@ function ProfileFields() {
 }
 
 export function JobRoleForm({ jobRole }: { jobRole: string }) {
-  async function save(
-    data: Values,
-    { signal }: { signal: AbortSignal },
-  ): Promise<FormSubmitResult> {
+  async function save(data: Values): Promise<FormSubmitResult> {
     try {
-      await request<User>("/profile/", { method: "PATCH", body: data, signal });
+      await request<User>("/profile/", { method: "PATCH", body: data });
       return { state: "success", message: { title: "Job role saved" } };
     } catch (error) {
       if (!(error instanceof ApiError)) throw error;
@@ -92,7 +89,9 @@ const navigate = useNavigate();
 
 ### Timeouts are uncertain outcomes
 
-After `timeoutMs` (30 seconds by default), the wrapper signals the optional transport cancellation and shows uncertainty. An abort signal cannot prove that the server did not commit. The duplicate guard stays held until the original handler's promise settles, even if it ignores the signal. A late result cannot reset the draft or navigate. Once settled, a deliberate retry uses the original version precondition; inspect the recorded version first.
+After `timeoutMs` (30 seconds by default), the form says the outcome is unknown. It does not cancel the save, and a save must never cancel itself on a timeout: cancelling only stops the browser waiting, and the server may still write. That is why `onSubmit` is given no abort signal. The save button stays held until the handler's promise settles, so a second press cannot write twice. A late result cannot reset the draft or navigate. Once settled, a deliberate retry uses the original version precondition; inspect the recorded version first.
+
+Abort signals belong on reads, such as loading a page's data, where cancelling is safe.
 
 For evidence writes, capture `expected_head` when the form opens and keep it through failures and retries. Never fetch a newer HEAD to make a stale judgement save. Retain the draft on conflict and offer comparison separately. The backend's service, repository lock and attributed Git commit remain authoritative. The wrapper provides neither request idempotency nor clinical sign-off.
 
