@@ -1,0 +1,42 @@
+.stepIcon {
+  font-size: var(--mantine-font-size-md);
+  color: var(--mantine-color-text);
+}
+
+/*
+ * The step being worked on: a white circle inside its darker border, so
+ * it stands apart from the grey circles of the steps still to come. The
+ * root class outranks Mantine's own rule for the same attribute,
+ * whichever stylesheet loads first.
+ */
+.root .stepIcon[data-progress] {
+  background-color: var(--mantine-color-white);
+
+  /* The number is light in dark mode, and would vanish on white. */
+  @mixin dark {
+    color: var(--mantine-color-black);
+  }
+}
+
+.stepLabel {
+  font-size: var(--mantine-font-size-md);
+}
+
+/* No line between one step and the next. */
+.separator {
+  display: none;
+}
+
+/*
+ * On a wide screen, at most four steps to a row: each takes a quarter of
+ * the width, and the rest wrap beneath in the same columns.
+ */
+.stepWide {
+  flex: 0 0 25%;
+  padding-inline-end: var(--mantine-spacing-md);
+}
+
+/* On a phone the labels are left out, so the circles sit in one row. */
+.stepNarrow {
+  padding-inline-end: var(--mantine-spacing-xs);
+}

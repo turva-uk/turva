@@ -31,5 +31,11 @@ export const LAYOUT_PADDING_X: MantineSpacing = "md";
 /** Width in pixels for sidebars and navigation drawers. */
 export const LAYOUT_SIDEBAR_WIDTH = 260;
 
+/**
+ * The ribbon's height in pixels, yellow rule included. The app shell's
+ * header takes it, and the ribbon's stories draw it at the same height.
+ */
+export const LAYOUT_RIBBON_HEIGHT = 70;
+
 /** Z-index for the sticky header ribbon. */
 export const LAYOUT_RIBBON_Z_INDEX = 100;

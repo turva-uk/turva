@@ -25,6 +25,7 @@ import {
   type DefaultValues,
   type FieldValues,
   type FieldErrors,
+  type FieldPath,
   type Control,
 } from "react-hook-form";
 import { useBlocker, useInRouterContext, UNSAFE_DataRouterContext } from "react-router";
@@ -36,11 +37,25 @@ import FormContext, {
 import ConfirmModal from "@/components/confirm-modal/ConfirmModal";
 import DirtyFormNavigation from "@/components/warnings";
 
-export interface FormSubmitResult {
+export interface FormSubmitResult<T extends FieldValues = FieldValues> {
   /** Resulting state after submission */
   state: "success" | "partial_success" | "error" | "validation_error";
   /** Status message to display */
   message: FormStatusMessage;
+  /**
+   * Messages the server gave for particular fields, by field name. Each is
+   * shown under its field, as a validation message would be, and the draft
+   * is kept. See `apiFailure` in `@/lib/forms`.
+   */
+  fieldErrors?: Partial<Record<FieldPath<T>, string>>;
+}
+
+/** Whether a key of a result's `fieldErrors` names one of the form's fields. */
+function isFieldPath<T extends FieldValues>(
+  fieldErrors: Partial<Record<FieldPath<T>, string>>,
+  key: string,
+): key is FieldPath<T> {
+  return Object.hasOwn(fieldErrors, key);
 }
 
 export interface FormConfirmConfig {
@@ -65,7 +80,7 @@ export interface FormProps<T extends FieldValues> {
   onSubmit: (
     data: T,
     context: { signal: AbortSignal },
-  ) => FormSubmitResult | Promise<FormSubmitResult>;
+  ) => FormSubmitResult<T> | Promise<FormSubmitResult<T>>;
   /** Synchronous navigation after full success, only when no newer edits exist. */
   onSuccess?: (data: T) => void;
   /** Label for the submit button (defaults to "Save") */
@@ -268,6 +283,15 @@ export default function Form<T extends FieldValues>({
         const newerEdits = revisionRef.current !== submittedRevisionRef.current;
         setFormState(result.state);
         setStatusMessage(result.message);
+
+        const fieldErrors: Partial<Record<FieldPath<T>, string>> = result.fieldErrors ?? {};
+        for (const name of Object.keys(fieldErrors)) {
+          if (!isFieldPath<T>(fieldErrors, name)) continue;
+
+          const message = fieldErrors[name];
+          if (message) methods.setError(name, { type: "server", message });
+        }
+
         if (result.state === "success" || result.state === "partial_success") {
           const currentValues = methods.getValues();
           methods.reset(data, { keepValues: true });

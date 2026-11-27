@@ -22,9 +22,10 @@
  */
 
 import type { ReactNode } from "react";
-import { Button, Group } from "@mantine/core";
+import { Button, Group, type MantineSpacing } from "@mantine/core";
 import { LAYOUT_STICKY_BOTTOM } from "@/components/layouts/layoutConstants";
 import classes from "./ButtonPair.module.css";
+import SecondaryButton from "./SecondaryButton";
 
 interface ButtonPairProps {
   /** Label for the accept/confirm button (defaults to "OK") */
@@ -56,6 +57,11 @@ interface ButtonPairProps {
    * it is longer than the screen, as on a long document being edited
    */
   sticky?: boolean;
+  /**
+   * Space above the pair (defaults to "xs"). A form's submit button asks for
+   * more, so it sits clearly apart from the last field.
+   */
+  mt?: MantineSpacing;
 }
 
 export default function ButtonPair({
@@ -72,6 +78,7 @@ export default function ButtonPair({
   justify = "flex-end",
   fullWidth = false,
   sticky = false,
+  mt = "xs",
 }: ButtonPairProps) {
   const className = [
     classes.group,
@@ -82,7 +89,7 @@ export default function ButtonPair({
   return (
     <Group
       justify={justify}
-      mt="xs"
+      mt={mt}
       className={className}
       // Down through the padding below the page's content, to the very
       // foot of the scrolling area, so no text shows beneath the pair.
@@ -103,16 +110,9 @@ export default function ButtonPair({
         {acceptChildren ?? acceptLabel}
       </Button>
       {onCancel && (
-        <Button
-          type="button"
-          variant="outline"
-          onClick={cancelDisabled ? (event) => event.preventDefault() : onCancel}
-          aria-disabled={cancelDisabled || undefined}
-          styles={{ root: cancelDisabled ? { opacity: 0.6, cursor: "default" } : undefined }}
-          size="md"
-        >
+        <SecondaryButton onClick={onCancel} disabled={cancelDisabled}>
           {cancelLabel}
-        </Button>
+        </SecondaryButton>
       )}
     </Group>
   );

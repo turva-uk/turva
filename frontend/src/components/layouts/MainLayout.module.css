@@ -1,0 +1,20 @@
+/* The footer sits beside the side bar, not beneath it, so the side bar
+   runs from the ribbon to the bottom of the screen. Mantine's default
+   layout runs the footer the full width and stops the side bar above it.
+   Its other layout, "alt", would cut the ribbon short at the side bar too,
+   so only these two are changed. Each rule is scoped to the shell so it
+   outranks Mantine's own, whatever order the style sheets load in. */
+
+.shell .footer {
+  /* Zero when the side bar is folded away, so the footer is full width
+     under the burger. */
+  inset-inline-start: var(--app-shell-navbar-offset, 0rem);
+}
+
+.shell .navbar {
+  height: calc(100dvh - var(--app-shell-header-offset, 0rem));
+  /* The side bar is fixed in place, so the page scrolling cannot reach
+     anything below the screen's edge. With more links than fit, it scrolls
+     on its own, and "Sign out" follows the last link. */
+  overflow-y: auto;
+}

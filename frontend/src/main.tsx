@@ -1,8 +1,16 @@
+// The same fonts and stylesheets as Storybook's preview, so every page looks
+// as the shared components do in the catalogue.
+import "@fontsource-variable/atkinson-hyperlegible-next";
+import "@fontsource-variable/cormorant-garamond";
+import "@fontsource-variable/cormorant-garamond/wght-italic.css";
+import "@fontsource-variable/finlandica";
 import "@mantine/core/styles.css";
-
-// No fonts and no shared stylesheets here. They restyle every page, and
-// Turva's existing pages keep their own look until each moves across to the
-// shared components. Storybook's preview imports them, with `theme.ts`.
+import "@mantine/dates/styles.css";
+import "@mantine/tiptap/styles.css";
+import "./styles/typography.css";
+import "./styles/dark-overrides.css";
+import "./styles/touch-targets.css";
+import "./styles/disabled-controls.css";
 
 import { MantineProvider } from "@mantine/core";
 import { StrictMode } from "react";
@@ -11,7 +19,7 @@ import { createBrowserRouter, RouterProvider } from "react-router";
 
 import { App } from "./App";
 import { SessionProvider } from "./auth/SessionProvider";
-import { legacyCssVariablesResolver, legacyTheme } from "./legacyTheme";
+import { cssVariablesResolver, theme } from "./theme";
 
 const root = document.getElementById("root");
 // Shared dirty-form protection needs a data router, not BrowserRouter.
@@ -32,8 +40,8 @@ if (!root) {
 createRoot(root).render(
   <StrictMode>
     <MantineProvider
-      theme={legacyTheme}
-      cssVariablesResolver={legacyCssVariablesResolver}
+      theme={theme}
+      cssVariablesResolver={cssVariablesResolver}
       defaultColorScheme="light"
     >
       <RouterProvider router={router} />

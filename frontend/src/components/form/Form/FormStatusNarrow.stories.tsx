@@ -54,6 +54,15 @@ export const AllExamples: Story = {
   ),
 };
 
+/** A refused sign-in on the page: the title, then the server's reason. */
+export const RefusedSignIn: Story = {
+  render: () => (
+    <Paper maw={380} mx="auto" p="lg" radius="md" withBorder>
+      <FormStatusNarrow message="Could not sign you in. Email address or password is incorrect." />
+    </Paper>
+  ),
+};
+
 export const DarkMode: Story = {
   ...Default,
   globals: { colorScheme: "dark" },

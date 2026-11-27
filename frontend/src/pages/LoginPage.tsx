@@ -1,99 +1,96 @@
-import {
-  Alert,
-  Anchor,
-  Box,
-  Button,
-  PasswordInput,
-  Stack,
-  Text,
-  TextInput,
-  Title,
-} from "@mantine/core";
-import { useForm } from "@mantine/form";
-import { useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { Box, Stack } from "@mantine/core";
+import { useNavigate } from "react-router";
 
-import { ApiError } from "../api/client";
 import { useSession } from "../auth/useSession";
+import { EMAIL_PATTERN, EmailField, PasswordField } from "../components/form";
+import { Form, FormStatusNarrow, SubmitButton, useFormContext } from "../components/form/Form";
+import type { FormSubmitResult } from "../components/form/Form";
+import { BodyText, PageHeader, TextLink } from "../components/typography";
+import { apiFailure } from "../lib/forms";
+
+type SignInValues = { email: string; password: string };
+
+const FIELDS = ["email", "password"] as const;
+
+function SignInFields() {
+  const { methods } = useFormContext<SignInValues>();
+  const { errors } = methods.formState;
+
+  return (
+    <>
+      <EmailField
+        label="Email address"
+        autoComplete="username"
+        autoFocus
+        {...methods.register("email", {
+          required: "Enter a valid email address",
+          pattern: { value: EMAIL_PATTERN.value, message: "Enter a valid email address" },
+        })}
+        error={errors.email?.message}
+      />
+      <PasswordField
+        label="Password"
+        autoComplete="current-password"
+        {...methods.register("password", { required: "Enter your password" })}
+        error={errors.password?.message}
+      />
+    </>
+  );
+}
 
 export function LoginPage() {
   const { signIn } = useSession();
   const navigate = useNavigate();
-  const [failure, setFailure] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
 
-  const form = useForm({
-    initialValues: { email: "", password: "" },
-    validate: {
-      email: (value) => (/^\S+@\S+$/.test(value) ? null : "Enter a valid email address"),
-      password: (value) => (value.length > 0 ? null : "Enter your password"),
-    },
-  });
-
-  const submit = form.onSubmit(async ({ email, password }) => {
-    setFailure(null);
-    setSubmitting(true);
+  async function submit({
+    email,
+    password,
+  }: SignInValues): Promise<FormSubmitResult<SignInValues>> {
     try {
       await signIn(email, password);
-      void navigate("/safety-files");
+
+      return { state: "success", message: { title: "Signed in" } };
     } catch (error) {
       // Shown rather than swallowed. A sign-in that fails silently leaves
       // someone retyping a correct password.
-      setFailure(
-        error instanceof ApiError
-          ? error.message
-          : "Something went wrong signing you in. Please try again.",
-      );
-    } finally {
-      setSubmitting(false);
+      return apiFailure<SignInValues>(error, "Could not sign you in", FIELDS);
     }
-  });
+  }
 
   return (
     <Box maw={420} mx="auto" mt="xl">
-      <Title order={1} size="h2" mb="md">
-        Sign in
-      </Title>
+      <Stack>
+        <PageHeader title="Sign in" />
 
-      {failure && (
-        <Alert color="red" mb="md" role="alert" title="Could not sign you in">
-          {failure}
-        </Alert>
-      )}
+        <Form<SignInValues>
+          defaultValues={{ email: "", password: "" }}
+          onSubmit={submit}
+          onSuccess={() => void navigate("/safety-files")}
+          submitLabel="Sign in"
+          submittingLabel="Signing in…"
+          blockNavigation={false}
+        >
+          <Stack>
+            <FormStatusNarrow />
+            <SignInFields />
+            <SubmitButton />
+          </Stack>
+        </Form>
 
-      <form onSubmit={submit} noValidate>
-        <Stack>
-          <TextInput
-            label="Email address"
-            type="email"
-            autoComplete="username"
-            autoFocus
-            {...form.getInputProps("email")}
-          />
-          <PasswordInput
-            label="Password"
-            autoComplete="current-password"
-            {...form.getInputProps("password")}
-          />
-          <Button type="submit" loading={submitting} fullWidth>
-            Sign in
-          </Button>
+        <Stack gap="xs">
+          <TextLink to="/register" standalone>
+            Create an account
+          </TextLink>
+          <TextLink to="/password-reset" standalone>
+            Forgot your password?
+          </TextLink>
         </Stack>
-      </form>
 
-      <Stack gap="xs" mt="md">
-        <Anchor component={Link} to="/register">
-          Create an account
-        </Anchor>
-        <Anchor component={Link} to="/password-reset">
-          Forgot your password?
-        </Anchor>
+        <BodyText c="dimmed">
+          Turva manages clinical safety evidence. It does not make clinical decisions and does
+          not replace a Clinical Safety Officer.
+        </BodyText>
       </Stack>
-
-      <Text size="sm" c="dimmed" mt="lg">
-        Turva manages clinical safety evidence. It does not make clinical decisions and does not
-        replace a Clinical Safety Officer.
-      </Text>
     </Box>
   );
 }
