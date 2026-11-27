@@ -94,17 +94,17 @@ class TestTheTwoInterfacesAgree:
     def test_the_brand_purple_is_shade_six_of_the_react_scale(self, tokens):
         """Shade 6 is not arbitrary: it is Mantine's default `primaryShade`,
         so it is the shade a filled button actually renders."""
-        assert tokens["--brand"] == theme_scale("TURVA_PURPLE")[6]
+        assert tokens["--brand"] == theme_scale("primaryScale")[6]
 
     def test_the_brand_text_colour_is_shade_eight(self, tokens):
-        assert tokens["--brand-text"] == theme_scale("TURVA_PURPLE")[8]
+        assert tokens["--brand-text"] == theme_scale("primaryScale")[8]
 
     def test_the_accent_is_shade_six_of_the_yellow_scale(self, tokens):
-        assert tokens["--accent"] == theme_scale("TURVA_YELLOW")[6]
+        assert tokens["--accent"] == theme_scale("secondaryScale")[6]
 
     def test_both_scales_have_the_ten_shades_mantine_expects(self):
-        assert len(theme_scale("TURVA_PURPLE")) == 10
-        assert len(theme_scale("TURVA_YELLOW")) == 10
+        assert len(theme_scale("primaryScale")) == 10
+        assert len(theme_scale("secondaryScale")) == 10
 
 
 class TestTheColoursAreTheBrand:
@@ -250,5 +250,5 @@ class TestTheYellowIsADarkTextColour:
 
     @pytest.mark.parametrize("shade", range(9))
     def test_shades_zero_to_eight_take_dark_text(self, shade, tokens):
-        yellow = theme_scale("TURVA_YELLOW")[shade]
+        yellow = theme_scale("secondaryScale")[shade]
         assert contrast(tokens["--accent-ink"], yellow) >= AA_NORMAL_TEXT

@@ -17,17 +17,15 @@ import { describe, expect, it } from "vitest";
 import breakpoints from "./breakpoints.json";
 import {
   BODY_FONT,
-  BRAND,
-  BRAND_TEXT,
+  brandColours,
   DARK_SURFACES,
   cssVariablesResolver,
   linkColourVariables,
   primaryScale,
+  secondaryScale,
   statusColourValues,
   statusTextColourValues,
   theme,
-  TURVA_PURPLE,
-  TURVA_YELLOW,
   typographyTokens,
 } from "./theme";
 
@@ -66,10 +64,25 @@ it("uses normal text colour for small alert headings, not low-contrast semantic 
 });
 
 describe("shared component tokens", () => {
-  it("names Turva's own scales as primary and secondary, unchanged", () => {
-    expect(theme.colors?.["primary"]).toEqual([...TURVA_PURPLE]);
-    expect(theme.colors?.["secondary"]).toEqual([...TURVA_YELLOW]);
-    expect(theme.primaryColor).toBe("turva");
+  it("names Turva's own scales as primary and secondary, and nothing else", () => {
+    expect(theme.colors?.["primary"]).toEqual([...primaryScale]);
+    expect(theme.colors?.["secondary"]).toEqual([...secondaryScale]);
+    expect(Object.keys(theme.colors ?? {})).toEqual(["primary", "secondary"]);
+    expect(theme.primaryColor).toBe("primary");
+  });
+
+  it("takes each brand colour from the scales, so none is a new colour", () => {
+    expect(brandColours.primary).toBe(primaryScale[6]);
+    expect(brandColours.secondary).toBe(secondaryScale[6]);
+    expect(brandColours.mark).toBe(primaryScale[6]);
+  });
+
+  it("gives the ink on the yellow at least 7:1 on every shade it may sit on", () => {
+    for (const shade of [6, 7]) {
+      expect(
+        contrast(brandColours.accentInk, secondaryScale[shade] ?? ""),
+      ).toBeGreaterThanOrEqual(7);
+    }
   });
 
   it("gives white text at least 4.5:1 on every status fill that takes it", () => {
@@ -132,7 +145,7 @@ describe("shared component tokens", () => {
     const resolved = cssVariablesResolver(mergeMantineTheme(DEFAULT_THEME, theme));
 
     expect(resolved.variables["--success-color"]).toBe(statusColourValues.success);
-    expect(resolved.variables["--brand-primary"]).toBe(BRAND);
+    expect(resolved.variables["--brand-primary"]).toBe(primaryScale[6]);
     expect(resolved.light["--success-text-color"]).toBe(statusTextColourValues.light.success);
     expect(resolved.dark["--success-text-color"]).toBe(statusTextColourValues.dark.success);
   });
@@ -265,8 +278,8 @@ describe("links", () => {
     ).toBeGreaterThanOrEqual(4.5);
   });
 
-  it("darken on hover to BRAND_TEXT, short of the body text's own colour", () => {
-    expect(resolved.light["--link-hover-color"]).toBe(BRAND_TEXT);
+  it("darken on hover to primary shade 8, short of the body text's own colour", () => {
+    expect(resolved.light["--link-hover-color"]).toBe(primaryScale[8]);
     expect(resolved.light["--link-hover-color"]).not.toBe(primaryScale[9]);
     expect(resolved.light["--link-color"]).not.toBe(primaryScale[9]);
   });
@@ -319,7 +332,7 @@ describe("dark-mode surfaces", () => {
   });
 
   it("gives the ribbon the brand purple in light mode and the page's colour in dark", () => {
-    expect(resolved.light["--ribbon-bg"]).toBe(BRAND);
+    expect(resolved.light["--ribbon-bg"]).toBe(primaryScale[6]);
     expect(resolved.dark["--ribbon-bg"]).toBe(DARK_SURFACES.body);
   });
 

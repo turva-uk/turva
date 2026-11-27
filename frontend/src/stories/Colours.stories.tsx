@@ -17,7 +17,7 @@ import {
   textColours,
   type StatusColourName,
 } from "@/styles/semanticColours";
-import { TURVA_PURPLE, TURVA_YELLOW } from "@/theme";
+import { primaryScale, secondaryScale } from "@/theme";
 
 const meta: Meta = {
   title: "Foundations/Colours",
@@ -59,8 +59,8 @@ function Scale({ name, shades }: { name: string; shades: readonly string[] }) {
 export const Brand: Story = {
   render: () => (
     <Stack gap="xl">
-      <Scale name="Purple (primary)" shades={TURVA_PURPLE} />
-      <Scale name="Yellow (secondary)" shades={TURVA_YELLOW} />
+      <Scale name="Primary (purple)" shades={primaryScale} />
+      <Scale name="Secondary (yellow)" shades={secondaryScale} />
     </Stack>
   ),
 };

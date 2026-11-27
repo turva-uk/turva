@@ -10,8 +10,8 @@ import breakpoints from "./breakpoints.json";
  * yellow ground. The two hexes in that SVG are the only colours that are
  * genuinely "the brand", and everything here is a tint or shade of them.
  *
- *   purple  #716c9e   the stroke        -> TURVA_PURPLE[6]
- *   yellow  #dec55e   the ground        -> TURVA_YELLOW[6]
+ *   purple  #716c9e   the stroke        -> primaryScale[6]
+ *   yellow  #dec55e   the ground        -> secondaryScale[6]
  *
  * **Shade 6 is not a free choice.** It is Mantine's default `primaryShade`
  * for the light scheme, so index 6 is what a filled button actually renders.
@@ -25,14 +25,15 @@ import breakpoints from "./breakpoints.json";
  */
 
 /**
- * The purple scale. Shade 6 is the logo stroke.
+ * The primary scale, Turva's purple. Shade 6 is the logo stroke.
  *
  * White on shade 6 is 4.84:1 - AA for normal text, but with only a 0.34
  * margin, so shade 6 is for *fills* and not for text on a light background.
- * Brand-coloured text uses shade 8 (`BRAND_TEXT` below), because shade 6 as
- * link text on the sunk panel background measures 4.29:1 and fails.
+ * Primary-coloured text on a light background uses shade 8, which is 7.33:1
+ * on the page background - AAA for body text - and 6.61:1 on the sunk panel.
+ * Shade 6 as link text on the sunk panel measures 4.29:1 and fails.
  */
-export const TURVA_PURPLE = [
+export const primaryScale = [
   "#f3f2ff",
   "#e3e2f0",
   "#c5c3d9",
@@ -46,14 +47,15 @@ export const TURVA_PURPLE = [
 ] as const;
 
 /**
- * The yellow scale, generated from the logo's ground at shade 6.
+ * The secondary scale, Turva's yellow, generated from the logo's ground at
+ * shade 6.
  *
  * **This is a dark-text colour.** Shades 0-8 all fail against white and all
  * pass comfortably against near-black; only shade 9 flips. turva.org gets
  * this right on its own call-to-action button, which sets black text on the
  * yellow explicitly - worth copying rather than rediscovering.
  */
-export const TURVA_YELLOW = [
+export const secondaryScale = [
   "#faf9f5",
   "#f2eedf",
   "#ebe4c8",
@@ -66,38 +68,23 @@ export const TURVA_YELLOW = [
   "#6e5d17",
 ] as const;
 
-/** The two brand scales and Mantine's grey, by the names the shared components use. */
-export const primaryScale = TURVA_PURPLE;
-export const secondaryScale = TURVA_YELLOW;
+/** Mantine's grey, by the name the shared components use. */
 export const greyScale = DEFAULT_THEME.colors.gray;
-
-/** The logo purple. Fills that carry white text. */
-export const BRAND = TURVA_PURPLE[6];
-
-/**
- * Brand-coloured *text* on a light background: links, secondary buttons.
- *
- * Two steps darker than the logo purple, which buys 7.33:1 on the page
- * background - AAA for body text - and 6.61:1 on the sunk panel. The NHS
- * design system's "aim for AAA as far as possible" is a good rule to borrow
- * for a tool whose readers are often reading it because something went wrong.
- */
-export const BRAND_TEXT = TURVA_PURPLE[8];
-
-/** The logo yellow, and the only text colour that may sit on it. */
-export const ACCENT = TURVA_YELLOW[6];
-export const ACCENT_INK = "#1a1a2e";
 
 /**
  * The brand colours by role, for the shared components and the colour
- * stories. Each is one of the constants above, so nothing here is a new
- * colour.
+ * stories. Each is a shade of the two scales above, or the one ink that may
+ * sit on the yellow, so nothing here is a new colour.
  */
 export const brandColours = {
-  primary: BRAND,
-  secondary: ACCENT,
+  /** The logo purple. Fills that carry white text. */
+  primary: primaryScale[6],
+  /** The logo yellow. Only `accentInk` may sit on it. */
+  secondary: secondaryScale[6],
   background: "#ffffff",
-  mark: BRAND,
+  mark: primaryScale[6],
+  /** The only text colour permitted on the yellow. */
+  accentInk: "#1a1a2e",
 } as const;
 
 export type BrandColours = typeof brandColours;
@@ -203,24 +190,24 @@ export const DISPLAY_FONT = "'Cormorant Garamond Variable', serif";
  * Link colours for each colour scheme. Mantine's `Anchor` reads
  * `--mantine-color-anchor`, which points at `--link-color`.
  *
- * In light mode it is primary shade 7, one step paler than `BRAND_TEXT`, so
+ * In light mode it is primary shade 7, one step paler than primary shade 8, so
  * a link stands apart from the primary shade 9 body text: 6.33:1 on white and
  * 5.61:1 on the sunk panel, AA rather than AAA. Against the text it is only
  * 1.42:1, so the underline `TextLink` always draws is what marks a link. On
- * hover it darkens to `BRAND_TEXT`, stopping short of the text's own shade.
+ * hover it darkens to shade 8, stopping short of the text's own shade.
  *
  * In dark mode it is purple shade 1, with shade 0 on hover, which are light
- * enough to read on Mantine's dark body; `BRAND_TEXT` was 2.1:1 there.
+ * enough to read on Mantine's dark body; shade 8 was 2.1:1 there.
  */
 export const linkColourVariables = {
   light: {
     "--link-color": primaryScale[7],
-    "--link-hover-color": BRAND_TEXT,
+    "--link-hover-color": primaryScale[8],
     "--mantine-color-anchor": "var(--link-color)",
   },
   dark: {
-    "--link-color": TURVA_PURPLE[1],
-    "--link-hover-color": TURVA_PURPLE[0],
+    "--link-color": primaryScale[1],
+    "--link-hover-color": primaryScale[0],
     "--mantine-color-anchor": "var(--link-color)",
   },
 } as const;
@@ -229,7 +216,7 @@ export const linkColourVariables = {
  * The surfaces of dark mode: deep purples beneath the brand's, so a page
  * reads as Turva's in the dark rather than as Mantine's grey. The body is
  * the darkest, cards one step lighter, and inputs a step lighter again,
- * with near-black borders. Separate from `TURVA_PURPLE`, which
+ * with near-black borders. Separate from `primaryScale`, which
  * `app/config/tests/test_palette.py` pins and which stays as it is.
  */
 export const DARK_SURFACES = {
@@ -273,8 +260,8 @@ export const cssVariablesResolver: CSSVariablesResolver = (theme) => ({
     "--brand-background": brandColours.background,
     "--brand-mark": brandColours.mark,
     // Text on the yellow accent fill: the only ink permitted on it.
-    "--button-text-dark": ACCENT_INK,
-    "--button-active-bg": TURVA_YELLOW[7],
+    "--button-text-dark": brandColours.accentInk,
+    "--button-active-bg": secondaryScale[7],
     "--typo-xs": typographyTokens.fontSizes.xs,
     "--typo-sm": typographyTokens.fontSizes.sm,
     "--typo-md": typographyTokens.fontSizes.md,
@@ -302,7 +289,7 @@ export const cssVariablesResolver: CSSVariablesResolver = (theme) => ({
     "--card-border": "var(--mantine-color-gray-3)",
     "--card-border-color": "var(--mantine-color-gray-3)",
     // The ribbon carries the brand purple in light mode.
-    "--ribbon-bg": BRAND,
+    "--ribbon-bg": brandColours.primary,
     ...statusTextVariables(statusTextColourValues.light),
   },
   dark: {
@@ -335,22 +322,19 @@ export const theme = createTheme({
    * draws in black, such as a default button's label. 9.02:1 on white and
    * 7.99:1 on the sunk panel. Dark mode keeps Mantine's grey text. With
    * `autoContrast` off, Mantine never puts it on the yellow, whose text is
-   * `ACCENT_INK`.
+   * `brandColours.accentInk`.
    */
   black: primaryScale[9],
   fontFamily: BODY_FONT,
   fontFamilyMonospace:
     "'SF Mono', SFMono-Regular, ui-monospace, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
   colors: {
-    turva: [...TURVA_PURPLE],
-    turvaYellow: [...TURVA_YELLOW],
-    // The same two scales under the role names the shared components use,
-    // `var(--mantine-color-primary-6)` and `var(--mantine-color-secondary-6)`.
-    // Aliases, not new colours: shade 6 is still the logo colour.
-    primary: [...TURVA_PURPLE],
-    secondary: [...TURVA_YELLOW],
+    // Read by the shared components as `var(--mantine-color-primary-6)` and
+    // `var(--mantine-color-secondary-6)`. Shade 6 is the logo colour.
+    primary: [...primaryScale],
+    secondary: [...secondaryScale],
   },
-  primaryColor: "turva",
+  primaryColor: "primary",
   // Stated rather than left to the default. It is load-bearing - it decides
   // which shade a filled button uses - and a future Mantine major changing
   // the default should not silently restyle the interface.
@@ -370,7 +354,7 @@ export const theme = createTheme({
     // headings need normal text contrast (the default yellow heading fails AA).
     Alert: { styles: { title: { color: "var(--mantine-color-text)" } } },
     // No fixed colour on Anchor: `--mantine-color-anchor` is `--link-color`,
-    // primary shade 7 in light mode and a pale purple in dark, where BRAND_TEXT
+    // primary shade 7 in light mode and a pale purple in dark, where shade 8
     // would be 2.1:1 on the dark body.
     //
     // Buttons, fields and cards set no radius, so they all take Mantine's
