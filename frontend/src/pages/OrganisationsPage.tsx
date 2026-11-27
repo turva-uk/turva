@@ -2,7 +2,7 @@ import { Box, Stack } from "@mantine/core";
 
 import type { OrganisationSummary } from "../api/types";
 import { useApiResource } from "../api/useApiResource";
-import { DataTable } from "../components/tables";
+import { DataTableControlled, filterGroups, type FilterGroup } from "../components/tables";
 import type { Column } from "../components/tables/DataTable";
 import { BodyText, PageHeader, TextLink } from "../components/typography";
 
@@ -18,6 +18,15 @@ function appointmentOf(organisation: OrganisationSummary): string {
 
   return "No CSO appointment";
 }
+
+const FILTER_GROUPS: FilterGroup<OrganisationSummary>[] = [
+  {
+    key: "role",
+    label: "Your role",
+    valueOf: roleOf,
+    values: ["Organisation administrator", "Member"],
+  },
+];
 
 const COLUMNS: Column<OrganisationSummary>[] = [
   {
@@ -46,6 +55,7 @@ const COLUMNS: Column<OrganisationSummary>[] = [
 
 export function OrganisationsPage() {
   const { data, error } = useApiResource<OrganisationSummary[]>("/organisations/");
+  const organisations = data ?? [];
 
   return (
     <Box maw={960}>
@@ -56,8 +66,12 @@ export function OrganisationsPage() {
           file. Federation and practice files are not shared automatically.
         </BodyText>
 
-        <DataTable<OrganisationSummary>
-          data={data ?? []}
+        <DataTableControlled<OrganisationSummary>
+          data={organisations}
+          {...filterGroups(organisations, FILTER_GROUPS)}
+          filterLabel="Filter organisations"
+          filterAriaLabel="Filter organisations"
+          searchFields={(organisation) => [organisation.name, organisation.id]}
           columns={COLUMNS}
           getRowKey={(organisation) => organisation.id}
           loading={!data && !error}

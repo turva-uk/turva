@@ -11,15 +11,21 @@ import type {
 } from "../api/types";
 import { useApiResource } from "../api/useApiResource";
 import { BaseCard, FieldsetCard } from "../components/base-card";
-import { SecondaryButton } from "../components/button";
+import { AddButton, SecondaryButton } from "../components/button";
 import ConfirmModal from "../components/confirm-modal/ConfirmModal";
 import { CheckboxField, EMAIL_PATTERN, EmailField } from "../components/form";
+import { FormModal } from "../components/form-modal";
 import { Form, FormStatus, SubmitButton, useFormContext } from "../components/form/Form";
 import type { FormSubmitResult } from "../components/form/Form";
 import { IconAlertCircle, IconAlertTriangle } from "../components/icons/appIcons";
 import { PageSpinner } from "../components/loading-spinner";
 import { GuidanceNote, StateMessage } from "../components/message-cards";
-import { DataTable } from "../components/tables";
+import {
+  DataTable,
+  DataTableControlled,
+  filterGroups,
+  type FilterGroup,
+} from "../components/tables";
 import type { Column } from "../components/tables/DataTable";
 import { BodyText, ExternalTextLink, Heading, PageHeader } from "../components/typography";
 import { usePageSublink } from "../components/navigation";
@@ -138,16 +144,13 @@ function AdministratorView({
       ))}
 
       <BaseCard>
-        <Stack gap="lg">
-          <Stack gap="sm">
-            <Heading>Recent invitations</Heading>
-            <InvitationsTable
-              invitations={data.invitations ?? []}
-              organisationId={data.id}
-              onSaved={onSaved}
-            />
-          </Stack>
-          <InviteForm organisationId={data.id} onSaved={onSaved} />
+        <Stack gap="sm">
+          <Heading>Invitations</Heading>
+          <InvitationsTable
+            invitations={data.invitations ?? []}
+            organisationId={data.id}
+            onSaved={onSaved}
+          />
         </Stack>
       </BaseCard>
 
@@ -177,8 +180,9 @@ function AdministratorView({
             Operational history, not the safety evidence audit trail. File-team decisions and
             clinical changes are attributed in each file&apos;s history.
           </BodyText>
-          <DataTable<NonNullable<OrganisationDetail["events"]>[number]>
+          <DataTableControlled<AdministrationEvent>
             data={data.events ?? []}
+            searchFields={(event) => [event.action, event.subject, event.actor__email]}
             columns={EVENT_COLUMNS}
             getRowKey={(event) => `${event.created_at}:${event.action}:${event.subject}`}
             label="Administration history"
@@ -246,23 +250,48 @@ function appointmentOf(member: OrganisationMember): string {
   return "Not appointed";
 }
 
+/** Whether a member administers the organisation. */
+function administrationOf(member: OrganisationMember): string {
+  return member.is_administrator ? "Administrator" : "Member";
+}
+
 const MEMBER_COLUMNS: Column<OrganisationMember>[] = [
   {
     header: "Person",
     render: (member) => `${member.name}, ${member.email}`,
     accessor: (member) => member.name,
   },
-  {
-    header: "Administration",
-    render: (member) => (member.is_administrator ? "Administrator" : "Member"),
-  },
+  { header: "Administration", render: administrationOf, accessor: administrationOf },
   { header: "CSO appointment", render: appointmentOf, accessor: appointmentOf },
+];
+
+const MEMBER_FILTERS: FilterGroup<OrganisationMember>[] = [
+  {
+    key: "administration",
+    label: "Administration",
+    valueOf: administrationOf,
+    values: ["Administrator", "Member"],
+  },
+  {
+    key: "appointment",
+    label: "CSO appointment",
+    valueOf: appointmentOf,
+    values: [
+      "Appointed (not professional verification)",
+      "Appointment needs review",
+      "Not appointed",
+    ],
+  },
 ];
 
 function MembersTable({ members }: { members: OrganisationMember[] }) {
   return (
-    <DataTable<OrganisationMember>
+    <DataTableControlled<OrganisationMember>
       data={members}
+      {...filterGroups(members, MEMBER_FILTERS)}
+      filterLabel="Filter members"
+      filterAriaLabel="Filter members"
+      searchFields={(member) => [member.name, member.email]}
       columns={MEMBER_COLUMNS}
       getRowKey={(member) => member.id}
       label="Members of this organisation"
@@ -417,35 +446,31 @@ type InviteValues = { email: string };
 function InviteFields() {
   const { methods } = useFormContext<InviteValues>();
 
-  // 560 pixels, as the signed-out email forms are: room for a long NHS
-  // address without the field running the whole width of the card.
   return (
-    <Box maw={560}>
-      <EmailField
-        label="Invitee's email address"
-        required
-        {...methods.register("email", {
-          required: "Enter the invitee's email address",
-          pattern: EMAIL_PATTERN,
-        })}
-        error={methods.formState.errors.email?.message}
-      />
-    </Box>
+    <EmailField
+      label="Invitee's email address"
+      required
+      data-autofocus
+      {...methods.register("email", {
+        required: "Enter the invitee's email address",
+        pattern: EMAIL_PATTERN,
+      })}
+      error={methods.formState.errors.email?.message}
+    />
   );
 }
 
-function InviteForm({
+function InviteModal({
   organisationId,
+  opened,
+  onClose,
   onSaved,
 }: {
   organisationId: string;
+  opened: boolean;
+  onClose: () => void;
   onSaved: () => Promise<void>;
 }) {
-  // A sent invitation clears the field by starting a fresh form, and its
-  // notice is shown above that form.
-  const [round, setRound] = useState(0);
-  const [sentNotice, setSentNotice] = useState(false);
-
   async function invite(values: InviteValues): Promise<FormSubmitResult<InviteValues>> {
     try {
       const result = await api.post<{ email_sent: boolean }>(
@@ -455,7 +480,13 @@ function InviteForm({
       await onSaved();
 
       if (result.email_sent) {
-        return { state: "success", message: { title: "Invitation sent" } };
+        return {
+          state: "success",
+          message: {
+            title: "Invitation sent",
+            description: "The invitation email has been sent. It expires in seven days.",
+          },
+        };
       }
 
       return {
@@ -472,38 +503,18 @@ function InviteForm({
   }
 
   return (
-    <Stack component="section" gap="sm">
-      <Heading>Invite a member</Heading>
-      <BodyText>
-        An invitation grants membership only after the recipient accepts using the same verified
-        email address. It does not appoint a CSO or share a safety file.
-      </BodyText>
-      {sentNotice && (
-        <FormStatus
-          variant="success"
-          title="Invitation sent"
-          description="Invitation email sent. It expires in seven days."
-          onDismiss={() => setSentNotice(false)}
-        />
-      )}
-      <Form<InviteValues>
-        key={round}
-        defaultValues={{ email: "" }}
-        onSubmit={invite}
-        onSuccess={() => {
-          setSentNotice(true);
-          setRound((current) => current + 1);
-        }}
-        submitLabel="Send membership invitation"
-        submittingLabel="Sending…"
-      >
-        <Stack>
-          <FormStatus retainsDraft />
-          <InviteFields />
-          <SubmitButton />
-        </Stack>
-      </Form>
-    </Stack>
+    <FormModal<InviteValues>
+      opened={opened}
+      onClose={onClose}
+      title="Invite a member"
+      intro="An invitation grants membership only after the recipient accepts using the same verified email address. It does not appoint a CSO or share a safety file."
+      defaultValues={{ email: "" }}
+      onSubmit={invite}
+      submitLabel="Send membership invitation"
+      submittingLabel="Sending…"
+    >
+      <InviteFields />
+    </FormModal>
   );
 }
 
@@ -527,6 +538,7 @@ function InvitationsTable({
 }) {
   const [openedAt] = useState(() => Date.now());
   const [revoking, setRevoking] = useState<OrganisationInvitation | null>(null);
+  const [inviting, setInviting] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
 
   async function revoke() {
@@ -577,12 +589,30 @@ function InvitationsTable({
           onDismiss={() => setFailure(null)}
         />
       )}
-      <DataTable<OrganisationInvitation>
+      <DataTableControlled<OrganisationInvitation>
         data={invitations}
+        {...filterGroups(invitations, [
+          {
+            key: "status",
+            label: "Status",
+            valueOf: (invitation) => invitationStatus(invitation, openedAt),
+            values: ["Pending", "Accepted", "Revoked", "Expired"],
+          },
+        ])}
+        filterLabel="Filter invitations"
+        filterAriaLabel="Filter invitations"
+        searchFields={(invitation) => [invitation.email]}
         columns={columns}
         getRowKey={(invitation) => invitation.id}
         emptyMessage="No invitations recorded."
         label="Invitations"
+        action={<AddButton label="Invite a member" onClick={() => setInviting(true)} />}
+      />
+      <InviteModal
+        organisationId={organisationId}
+        opened={inviting}
+        onClose={() => setInviting(false)}
+        onSaved={onSaved}
       />
       <ConfirmModal
         opened={revoking !== null}

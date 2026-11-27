@@ -54,4 +54,27 @@ describe("SafetyFilesPage", () => {
       await screen.findByRole("button", { name: "Create safety file" }),
     ).toBeInTheDocument();
   });
+
+  it("puts the create button in the table's bar, not the page heading", async () => {
+    answer([file]);
+    renderWithRouter(<SafetyFilesPage />);
+
+    const create = await screen.findByRole("button", { name: "Create safety file" });
+    const heading = screen.getByRole("heading", { level: 1, name: "Your safety files" });
+
+    const bar = create.closest(".mantine-Group-root");
+
+    expect(bar).toContainElement(screen.getByRole("button", { name: "Open search" }));
+    expect(bar).not.toContainElement(heading);
+  });
+
+  it("keeps the create button while the files load", () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => new Promise<Response>(() => {})),
+    );
+    renderWithRouter(<SafetyFilesPage />);
+
+    expect(screen.getByRole("button", { name: "Create safety file" })).toBeInTheDocument();
+  });
 });

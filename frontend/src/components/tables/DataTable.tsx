@@ -337,16 +337,25 @@ function DataTableView<T>({
   const showNav = totalPages > 1;
 
   // Error state
+  // The controls show while the rows load and after they fail too, so a
+  // table's own action, such as an add button, never disappears with them.
+  const controlRow = controls && (
+    <Group justify="flex-end" mih={42} align="center">
+      {controls}
+    </Group>
+  );
+
   if (error) {
     return (
-      <div ref={measureRef}>
+      <Stack gap="md" ref={measureRef}>
+        {controlRow}
         <StateMessage
           icon={<IconAlertCircle />}
           title="Error loading data"
           description={error}
           colour="alert"
         />
-      </div>
+      </Stack>
     );
   }
 
@@ -355,6 +364,7 @@ function DataTableView<T>({
     if (useCards) {
       return (
         <Stack gap="md" ref={measureRef}>
+          {controlRow}
           {Array.from({ length: 3 }, (_, i) => (
             <DataCardSkeleton key={i} />
           ))}
@@ -363,7 +373,8 @@ function DataTableView<T>({
     }
 
     return (
-      <div ref={measureRef}>
+      <Stack gap="md" ref={measureRef}>
+        {controlRow}
         <Table striped stripedColor={stripedColor} aria-label={label}>
           <Table.Thead>
             <Table.Tr>
@@ -390,7 +401,7 @@ function DataTableView<T>({
             ))}
           </Table.Tbody>
         </Table>
-      </div>
+      </Stack>
     );
   }
 
@@ -398,11 +409,7 @@ function DataTableView<T>({
   if (sortedData.length === 0) {
     return (
       <Stack gap="md" ref={measureRef}>
-        {controls && (
-          <Group justify="flex-end" mih={42} align="center">
-            {controls}
-          </Group>
-        )}
+        {controlRow}
         <Center p="xl">
           <BodyText>{emptyMessage}</BodyText>
         </Center>
@@ -415,11 +422,7 @@ function DataTableView<T>({
   if (useCards) {
     return (
       <Stack gap="md" ref={measureRef}>
-        {controls && (
-          <Group justify="flex-end" mih={42} align="center">
-            {controls}
-          </Group>
-        )}
+        {controlRow}
         {cardSortOptions.length > 0 && (
           <NativeSelect
             label="Sort rows"
@@ -459,11 +462,7 @@ function DataTableView<T>({
   // Table layout, where the columns fit
   return (
     <Stack gap="md" ref={measureRef}>
-      {controls && (
-        <Group justify="flex-end" mih={42} align="center">
-          {controls}
-        </Group>
-      )}
+      {controlRow}
       <Table
         striped
         stripedColor={stripedColor}

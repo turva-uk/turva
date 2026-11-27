@@ -243,6 +243,40 @@ describe("DataTable", () => {
     });
   });
 
+  describe("The controls row", () => {
+    const columns: Column<TestUser>[] = [{ header: "Name", render: (u) => u.name }];
+    const controls = <button type="button">Add user</button>;
+
+    it("keeps the table's action while the rows load", () => {
+      renderWithMantine(
+        <DataTable
+          data={[]}
+          columns={columns}
+          getRowKey={(u) => u.id}
+          controls={controls}
+          loading
+        />,
+      );
+
+      expect(screen.getByRole("button", { name: "Add user" })).toBeInTheDocument();
+    });
+
+    it("keeps the table's action when the rows fail to load", () => {
+      renderWithMantine(
+        <DataTable
+          data={[]}
+          columns={columns}
+          getRowKey={(u) => u.id}
+          controls={controls}
+          error="Failed to load data"
+        />,
+      );
+
+      expect(screen.getByRole("button", { name: "Add user" })).toBeInTheDocument();
+      expect(screen.getByText("Failed to load data")).toBeInTheDocument();
+    });
+  });
+
   describe("Error state", () => {
     it("shows error alert when error is provided", () => {
       const columns: Column<TestUser>[] = [{ header: "Name", render: (u) => u.name }];
