@@ -6,7 +6,9 @@
  * commit attributed to the person who made it, so this is the record a
  * regulator or a court would examine.
  *
- * The safety file, hazard and mitigation pages each show one.
+ * The safety file, hazard and mitigation pages each show one. It is a
+ * record, so its bar has search, a filter by the person who made each
+ * change and sortable headings, but never an add button.
  *
  * @example
  * ```tsx
@@ -16,8 +18,9 @@
 
 import { Stack } from "@mantine/core";
 
-import DataTable from "@/components/tables/DataTable";
 import type { Column } from "@/components/tables/DataTable";
+import DataTableControlled from "@/components/tables/DataTableControlled";
+import { filterGroups, type FilterGroup } from "@/components/tables/filterGroups";
 import { BodyTextInline } from "@/components/typography";
 import type { Commit } from "@/lib/safety";
 
@@ -25,11 +28,13 @@ const columns: Column<Commit>[] = [
   {
     header: "Commit",
     render: (commit) => <code>{commit.short_sha}</code>,
+    accessor: (commit) => commit.short_sha,
     width: "8rem",
   },
   {
     header: "Change",
     render: (commit) => commit.subject,
+    accessor: (commit) => commit.subject,
   },
   {
     header: "By",
@@ -39,6 +44,7 @@ const columns: Column<Commit>[] = [
         <BodyTextInline c="dimmed">{commit.author_email}</BodyTextInline>
       </Stack>
     ),
+    accessor: (commit) => commit.author_name,
   },
   {
     header: "When",
@@ -50,7 +56,12 @@ const columns: Column<Commit>[] = [
         })}
       </time>
     ),
+    accessor: (commit) => commit.committed_at,
   },
+];
+
+const FILTER_GROUPS: FilterGroup<Commit>[] = [
+  { key: "author", label: "Changed by", valueOf: (commit) => commit.author_name },
 ];
 
 export interface AuditTrailTableProps {
@@ -61,9 +72,20 @@ export interface AuditTrailTableProps {
 }
 
 export default function AuditTrailTable({ history, label }: AuditTrailTableProps) {
+  const rows = [...history];
+
   return (
-    <DataTable<Commit>
-      data={[...history]}
+    <DataTableControlled<Commit>
+      data={rows}
+      {...filterGroups(rows, FILTER_GROUPS)}
+      filterLabel="Filter changes"
+      filterAriaLabel="Filter changes by who made them"
+      searchFields={(commit) => [
+        commit.short_sha,
+        commit.subject,
+        commit.author_name,
+        commit.author_email,
+      ]}
       columns={columns}
       getRowKey={(commit) => commit.short_sha}
       label={label}

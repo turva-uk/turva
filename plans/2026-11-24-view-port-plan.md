@@ -340,11 +340,20 @@ As built:
 
 ## Phase 19: The table bar on a safety file's tables
 
-- [ ] Give the tables on a safety file's page, a hazard's page and a mitigation's page the same bar: `HazardTable` and the mitigations table on `SafetyFileDetailPage`, and `AuditTrailTable` on the safety file, hazard and mitigation pages. Move "Record hazard" and "Record mitigation" into their tables' bars through the `action` prop, keeping their permission checks. Move the mitigations table from `DataTable` onto `DataTableControlled`. The audit trail tables are records, so they get search, a filter and sorting but no add button.
-- [ ] Filters, for now: hazards by status, which `HazardTable` already has; mitigations by status and by control type; the audit trail by the person who made the change. Sortable headings: identifiers, titles, statuses, control types, people and dates.
-- [ ] Risk levels sort only by the value the server sent in each `Assessment`. No column works a risk level out in the browser to sort by it (TH-008 in `SAFETY.md`), and a test on `HazardTable` checks that sorting reads the served value.
-- [ ] Update each table's stories and tests, as in Phase 18. Screenshot the safety file, hazard and mitigation pages, wide and on a phone, in light and dark mode, into the pull request and `local/screenshots/phase-19-table-bar/`, each with a short description above it.
-- [ ] Check: `./s/frontend`, `./s/frontend test-storybook:ci`, `./s/lint` and `./s/test` pass. `SAFETY.md` needs no change: sorting reorders served rows and works out no risk level, and no permission changes. Keep the description short, for Marcus or Grant.
+- [x] Give the tables on a safety file's page, a hazard's page and a mitigation's page the same bar: `HazardTable` and the mitigations table on `SafetyFileDetailPage`, and `AuditTrailTable` on the safety file, hazard and mitigation pages. Move "Record hazard" and "Record mitigation" into their tables' bars through the `action` prop, keeping their permission checks. Move the mitigations table from `DataTable` onto `DataTableControlled`. The audit trail tables are records, so they get search, a filter and sorting but no add button.
+- [x] Filters, for now: hazards by status, which `HazardTable` already has; mitigations by status and by control type; the audit trail by the person who made the change. Sortable headings: identifiers, titles, statuses, control types, people and dates.
+- [x] Risk levels sort only by the value the server sent in each `Assessment`. No column works a risk level out in the browser to sort by it (TH-008 in `SAFETY.md`), and a test on `HazardTable` checks that sorting reads the served value.
+- [x] Update each table's stories and tests, as in Phase 18. Screenshot the safety file, hazard and mitigation pages, wide and on a phone, in light and dark mode, into the pull request and `local/screenshots/phase-19-table-bar/`, each with a short description above it.
+- [x] Check: `./s/frontend`, `./s/frontend test-storybook:ci`, `./s/lint` and `./s/test` pass. `SAFETY.md` needs no change: sorting reorders served rows and works out no risk level, and no permission changes. Keep the description short, for Marcus or Grant.
+
+As built:
+
+- **"Record hazard" was already in `HazardTable`'s bar**, from Phase 9, behind `can_edit`. "Record mitigation" moves from a row above the mitigations table into its bar, behind the same `can_edit` check, so nobody sees a button they could not use before.
+- **The mitigations table moves from `DataTable` to `DataTableControlled`**, with search by identifier, title and linked hazard, and filters by status and control type through `filterGroups`, offering the values the mitigations hold. Its identifier, title, status and control type columns already sorted.
+- **`AuditTrailTable` moves onto `DataTableControlled`**, so the safety file, hazard and mitigation pages all get it at once: search, a filter by the person who made each change, and sortable commit, change, person and date headings. It has no add button, since it is a record.
+- **`HazardTable` sorts its risk columns by the served `risk_level`**, as it already did. A new test gives two hazards levels at odds with their scores and checks the sorted order follows the served level, so a sort that worked a level out in the browser would fail it (TH-008).
+- **Tests**: `AuditTrailTable.test.tsx` filters by person, sorts by date and finds no add button. `SafetyFileDetailPage.test.tsx` finds "Record mitigation" in the mitigations table's bar and filters by control type. The permission tests for both record buttons are unchanged and pass. `AuditTrailTable` has a story with changes by two people.
+- **As run on 25 November 2026**: `./s/frontend` passed (1,322 unit tests, the build and the Storybook build), `./s/frontend test-storybook:ci` passed (1,072 tests in 229 files), `./s/lint` passed, and `./s/test` passed (611 Django tests, and the host suites). Screenshots of the safety file, hazard and mitigation pages, light and dark, wide and at a phone's width, are in `local/screenshots/phase-19-table-bar/`.
 
 ## Decisions
 

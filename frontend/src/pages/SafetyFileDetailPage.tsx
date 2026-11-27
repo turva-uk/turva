@@ -1,4 +1,4 @@
-import { Box, Group, Stack } from "@mantine/core";
+import { Box, Stack } from "@mantine/core";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 
@@ -11,7 +11,12 @@ import { PageSpinner } from "../components/loading-spinner";
 import { StateMessage } from "../components/message-cards";
 import AuditTrailTable from "../components/safety/AuditTrailTable";
 import HazardTable from "../components/safety/HazardTable";
-import { CellLines, DataTable } from "../components/tables";
+import {
+  CellLines,
+  DataTableControlled,
+  filterGroups,
+  type FilterGroup,
+} from "../components/tables";
 import type { Column } from "../components/tables/DataTable";
 import { BodyText, Heading, PageHeader, TextLink } from "../components/typography";
 import { documentPath, getFile, isNotFound } from "../lib/safety";
@@ -53,6 +58,12 @@ function mitigationColumns(slug: string): Column<Mitigation>[] {
     },
   ];
 }
+
+/** Filter mitigations by where each stands and by the kind of control. */
+const MITIGATION_FILTERS: FilterGroup<Mitigation>[] = [
+  { key: "status", label: "Status", valueOf: (mitigation) => mitigation.status },
+  { key: "control", label: "Control type", valueOf: (mitigation) => mitigation.control_type },
+];
 
 export function SafetyFileDetailPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -108,6 +119,7 @@ export function SafetyFileDetailPage() {
 function SafetyFile({ detail }: { detail: SafetyFileDetail }) {
   const navigate = useNavigate();
   const file = detail.safety_file;
+  const mitigations = detail.mitigations ?? [];
 
   return (
     <Stack gap="lg">
@@ -224,16 +236,24 @@ function SafetyFile({ detail }: { detail: SafetyFileDetail }) {
 
           <Stack gap="xs" id="mitigations">
             <Heading>Mitigations</Heading>
-            {detail.can_edit && (
-              <Group justify="flex-end">
-                <AddButton
-                  label="Record mitigation"
-                  onClick={() => void navigate(`/safety-files/${file.slug}/mitigations/new`)}
-                />
-              </Group>
-            )}
-            <DataTable<Mitigation>
-              data={detail.mitigations ?? []}
+            <DataTableControlled<Mitigation>
+              data={mitigations}
+              {...filterGroups(mitigations, MITIGATION_FILTERS)}
+              filterLabel="Filter mitigations"
+              filterAriaLabel="Filter mitigations"
+              searchFields={(mitigation) => [
+                mitigation.id,
+                mitigation.title,
+                ...mitigation.hazards,
+              ]}
+              action={
+                detail.can_edit ? (
+                  <AddButton
+                    label="Record mitigation"
+                    onClick={() => void navigate(`/safety-files/${file.slug}/mitigations/new`)}
+                  />
+                ) : undefined
+              }
               columns={mitigationColumns(file.slug)}
               getRowKey={(mitigation) => mitigation.id}
               label="Mitigations and their linked hazards"
