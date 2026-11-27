@@ -63,6 +63,16 @@ export const Compact: Story = {
   ),
 };
 
+/** With the scores in front, as the hazard log shows them: "S4 L3", then the level. */
+export const WithScores: Story = {
+  render: () => (
+    <VariantStack>
+      <RiskScoreBadge assessment={assessment(4, 3)} withScores />
+      <RiskScoreBadge assessment={assessment(4, 1)} withScores />
+    </VariantStack>
+  ),
+};
+
 export const DarkMode: Story = {
   ...AllLevels,
   globals: { colorScheme: "dark" },

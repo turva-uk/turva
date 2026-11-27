@@ -51,6 +51,14 @@ describe("RiskScoreBadge", () => {
     ).toBeInTheDocument();
   });
 
+  it("shows the severity and likelihood in front, with withScores", () => {
+    renderWithMantine(<RiskScoreBadge assessment={assessment(4, 3)} withScores />);
+
+    expect(
+      screen.getByRole("img", { name: /^Risk level 4, Mandatory elimination/ }),
+    ).toHaveTextContent(/^S4 L3\s*4\s*Mandatory elimination$/);
+  });
+
   describe("compact, for a table", () => {
     it("shows the level's number alone", () => {
       renderWithMantine(<RiskScoreBadge assessment={assessment(4, 1)} compact />);
