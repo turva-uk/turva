@@ -265,10 +265,19 @@ As built:
 
 ## Phase 15: Clean-up
 
-- [ ] Delete `SaveFailure`, and `useSubmission` in `frontend/src/api/useSubmission.ts` once no page imports it.
-- [ ] Delete `frontend/src/app.css` and its import in `App.tsx`. By this phase the pages that used its table, form and evidence rules have moved onto catalogue components, which style themselves, and Phase 14 moved the document rules into the document components' CSS modules. Move the three app-wide rules into `frontend/src/styles/`, which `main.tsx` and Storybook already load: the skip link, long words wrapping in `body`, and the reduced-motion rule. Before deleting, check that no `className` in `frontend/src/` still names a class from it.
+- [x] Delete `SaveFailure`, and `useSubmission` in `frontend/src/api/useSubmission.ts` once no page imports it.
+- [x] Delete `frontend/src/app.css` and its import in `App.tsx`. By this phase the pages that used its table, form and evidence rules have moved onto catalogue components, which style themselves, and Phase 14 moved the document rules into the document components' CSS modules. Move the three app-wide rules into `frontend/src/styles/`, which `main.tsx` and Storybook already load: the skip link, long words wrapping in `body`, and the reduced-motion rule. Before deleting, check that no `className` in `frontend/src/` still names a class from it.
 - [ ] Remove `@mantine/form` from `frontend/package.json` once no file imports it, and run `npm install` through `./s/frontend` to update the lock.
-- [ ] Check: `./s/frontend`, `./s/lint` and `./s/test` pass. A search of `frontend/src/pages/` finds no import from `@mantine/form` and no component from outside `components/`.
+- [x] Check: `./s/frontend`, `./s/lint` and `./s/test` pass. A search of `frontend/src/pages/` finds no import from `@mantine/form` and no component from outside `components/`.
+
+As built:
+
+- **`PDFDownload` was the last user of `SaveFailure` and `useSubmission`**, which the plan did not name. It moved into the catalogue as `components/safety/PDFDownload`, on `SecondaryButton`, `FormStatus` and `BodyText`, with stories and tests. It takes the download as a prop that defaults to `downloadPdf`, as `previewAssessment` does, keeps its one-request-at-a-time guard, and still sends the opened version (TH-007). `SecondaryButton` gained a `loading` state for it, with a story and a test. Both old helpers and their test are deleted.
+- **`app.css` is deleted.** Its skip link, long-word wrapping and reduced-motion rules moved to `styles/global.css`, which the app and Storybook both load. The skip link's colours moved off the old theme's `turva` scale, which no longer exists. No `className` named any of its other classes.
+- **`@mantine/form` is still in `package.json`**, unused. `./s/frontend install` runs `npm ci`, which installs from the lock but cannot change it, and no script or recipe removes a dependency. That step waits for one. Nothing imports the package.
+- **The final search passed**: no page imports `@mantine/form`, and pages import from Mantine only its layout primitives (`Box`, `Stack`, `Group`, `Fieldset`) and, in tests, `MantineProvider`. `Form.mdx` no longer says pages still use `@mantine/form`.
+- **The pages rule is out of date.** `.claude/rules/pages.md` still says pages are moving one view at a time and keep `@mantine/form` until they do. It is a read-only copy of a file outside this repository, so this run did not change it.
+- **As run on 24 November 2026**: `./s/frontend` passed (1,526 tests, the build and the Storybook build), the Storybook check passed all 356 safety and button story runs, `./s/lint` passed, and `./s/test` passed (611 Django tests, and the host suites).
 
 ## Decisions
 

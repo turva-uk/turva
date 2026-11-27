@@ -1,0 +1,35 @@
+/*
+ * Rules for the whole page, loaded by the app and by Storybook alike.
+ */
+
+/* The skip link: off screen until the keyboard reaches it, then on top. */
+.skip-link {
+  position: fixed;
+  top: -100px;
+  left: 1rem;
+  z-index: 1000;
+  padding: 0.75rem;
+  background: var(--mantine-color-body);
+  color: var(--link-color);
+  border: 2px solid var(--mantine-primary-color-filled);
+  border-radius: var(--mantine-radius-md);
+}
+
+.skip-link:focus {
+  top: 0.5rem;
+}
+
+/* A long identifier or address wraps rather than widening the page. */
+body {
+  overflow-wrap: anywhere;
+}
+
+/* Nothing moves for someone who has asked their system for less motion. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

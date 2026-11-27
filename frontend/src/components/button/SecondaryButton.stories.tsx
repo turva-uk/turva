@@ -46,6 +46,11 @@ export const OnARow: Story = {
   },
 };
 
+/** Under way, such as while a PDF is prepared. */
+export const Loading: Story = {
+  args: { children: "Download draft safety file (PDF)", loading: true },
+};
+
 export const DarkMode: Story = {
   globals: { colorScheme: "dark" },
 };

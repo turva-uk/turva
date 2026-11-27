@@ -9,6 +9,7 @@ import "../src/styles/typography.css";
 import "../src/styles/dark-overrides.css";
 import "../src/styles/touch-targets.css";
 import "../src/styles/disabled-controls.css";
+import "../src/styles/global.css";
 
 import { MantineProvider } from "@mantine/core";
 import type { Decorator, Preview } from "@storybook/react-vite";
