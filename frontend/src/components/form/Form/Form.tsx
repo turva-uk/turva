@@ -61,11 +61,15 @@ export interface FormConfirmConfig {
 export interface FormProps<T extends FieldValues> {
   /** Default form values */
   defaultValues?: DefaultValues<T>;
-  /** Submit handler, sync or async: receives validated data, returns result */
-  onSubmit: (
-    data: T,
-    context: { signal: AbortSignal },
-  ) => FormSubmitResult | Promise<FormSubmitResult>;
+  /**
+   * Submit handler, sync or async: receives validated data, returns result.
+   *
+   * It is given no abort signal, on purpose. Cancelling a save only stops the
+   * browser waiting; the server may still write. The form keeps the save
+   * button held until this promise settles, so a second press cannot write
+   * twice, and that only holds while the request runs to its real answer.
+   */
+  onSubmit: (data: T) => FormSubmitResult | Promise<FormSubmitResult>;
   /** Synchronous navigation after full success, only when no newer edits exist. */
   onSuccess?: (data: T) => void;
   /** Label for the submit button (defaults to "Save") */
@@ -194,7 +198,8 @@ export default function Form<T extends FieldValues>({
   const methods = useForm<T>({ defaultValues, mode: "onChange" });
   const [formState, setFormState] = useState<FormState>("idle");
   const [statusMessage, setStatusMessage] = useState<FormStatusMessage | null>(null);
-  const abortRef = useRef<AbortController | null>(null);
+  // True from the moment a save is sent until its handler settles.
+  const inFlightRef = useRef(false);
   const busyRef = useRef(false);
   const mountedRef = useRef(false);
   const revisionRef = useRef(0);
@@ -218,7 +223,6 @@ export default function Form<T extends FieldValues>({
     mountedRef.current = true;
     return () => {
       mountedRef.current = false;
-      abortRef.current?.abort();
     };
   }, []);
   const allowNavigation = useCallback(() => navigationRef.current, []);
@@ -243,13 +247,13 @@ export default function Form<T extends FieldValues>({
       setSubmissionPending(true);
       setStatusMessage(null);
 
-      const controller = new AbortController();
-      abortRef.current = controller;
+      inFlightRef.current = true;
 
+      // The timeout only says the outcome is unknown. It never cancels the
+      // request, which the server may still be writing.
       let timedOut = false;
       const timeoutId = setTimeout(() => {
         timedOut = true;
-        controller.abort();
         if (!mountedRef.current) return;
         setFormState("timeout");
         setStatusMessage({
@@ -260,7 +264,7 @@ export default function Form<T extends FieldValues>({
       }, timeoutMs);
 
       try {
-        const result = await onSubmit(data, { signal: controller.signal });
+        const result = await onSubmit(data);
 
         clearTimeout(timeoutId);
         // A late answer cannot turn an uncertain outcome into a fresh save.
@@ -288,26 +292,17 @@ export default function Form<T extends FieldValues>({
             navigationRef.current = false;
           }
         }
-      } catch (err) {
+      } catch {
         clearTimeout(timeoutId);
         if (!mountedRef.current || timedOut) return;
-        if (err instanceof DOMException && err.name === "AbortError") {
-          setFormState("timeout");
-          setStatusMessage({
-            title: "Request timed out",
-            description:
-              "The server did not respond in time. Your changes may not have been saved.",
-          });
-        } else {
-          setFormState("error");
-          setStatusMessage({
-            title: "Something went wrong",
-            description: "An unexpected error occurred. Please try again.",
-          });
-        }
+        setFormState("error");
+        setStatusMessage({
+          title: "Something went wrong",
+          description: "An unexpected error occurred. Please try again.",
+        });
       } finally {
         clearTimeout(timeoutId);
-        abortRef.current = null;
+        inFlightRef.current = false;
         busyRef.current = false;
         if (mountedRef.current) setSubmissionPending(false);
       }
@@ -354,7 +349,7 @@ export default function Form<T extends FieldValues>({
     setConfirmOpen(false);
     pendingDataRef.current = null;
     // ConfirmModal's completion also calls this; never unlock an active write.
-    if (!abortRef.current) busyRef.current = false;
+    if (!inFlightRef.current) busyRef.current = false;
   }, []);
 
   const contextValue: FormContextValue = {

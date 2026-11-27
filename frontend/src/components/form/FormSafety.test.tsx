@@ -56,13 +56,14 @@ function TestForm(props: Omit<FormProps<Values>, "children">) {
     </Form>
   );
 }
-function routed(onSubmit: FormProps<Values>["onSubmit"], redirect = false) {
+function routed(onSubmit: FormProps<Values>["onSubmit"], redirect = false, timeoutMs?: number) {
   function Page() {
     const navigate = useNavigate();
     return (
       <>
         <TestForm
           onSubmit={onSubmit}
+          timeoutMs={timeoutMs}
           onSuccess={
             redirect
               ? () => {
@@ -155,7 +156,8 @@ describe("TH-001/TH-003: opened drafts and request boundaries", () => {
     await user.type(screen.getByLabelText("Hazard narrative"), " unsaved");
     await user.click(screen.getByTestId("submit-button"));
     await screen.findByText("Request timed out");
-    expect(submit.mock.calls[0]![1].signal.aborted).toBe(true);
+    // The save is handed only its data: nothing it could cancel itself with.
+    expect(submit.mock.calls[0]).toHaveLength(1);
     expect(screen.getByTestId("submit-button")).toHaveAttribute("aria-disabled", "true");
     await user.click(screen.getByTestId("submit-button"));
     fireEvent.submit(screen.getByTestId("submit-button").closest("form")!);
@@ -165,6 +167,22 @@ describe("TH-001/TH-003: opened drafts and request boundaries", () => {
     expect(screen.getByLabelText("Hazard narrative")).toHaveValue("Opened judgement unsaved");
     await user.click(screen.getByTestId("submit-button"));
     expect(submit.mock.calls[1]![0].expected_head).toBe("opened-version");
+  });
+
+  it("lets a save that succeeds after its timeout neither navigate nor clear the draft", async () => {
+    const user = userEvent.setup();
+    const pending = deferred<FormSubmitResult>();
+    const router = routed(() => pending.promise, true, 30);
+    await user.type(screen.getByLabelText("Hazard narrative"), " unsaved");
+    await user.click(screen.getByTestId("submit-button"));
+    await screen.findByText("Request timed out");
+    expect(screen.getByTestId("submit-button")).toHaveAttribute("aria-disabled", "true");
+
+    await act(async () => pending.resolve(saved));
+
+    expect(router.state.location.pathname).toBe("/edit");
+    expect(screen.getByTestId("state")).toHaveTextContent("timeout:true");
+    expect(screen.getByLabelText("Hazard narrative")).toHaveValue("Opened judgement unsaved");
   });
 
   it("blocks cancellation while an accepted request remains unresolved, including timeout", async () => {
