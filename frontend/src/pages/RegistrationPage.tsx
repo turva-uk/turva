@@ -1,4 +1,4 @@
-import { Box, Stack } from "@mantine/core";
+import { Stack } from "@mantine/core";
 import { useRef } from "react";
 import { useNavigate } from "react-router";
 
@@ -7,6 +7,7 @@ import { EMAIL_PATTERN, EmailField, PasswordField, TextField } from "../componen
 import { Form, FormStatusNarrow, SubmitButton, useFormContext } from "../components/form/Form";
 import type { FormSubmitResult } from "../components/form/Form";
 import { BodyText, PageHeader, TextLink } from "../components/typography";
+import { WelcomeLayout } from "../components/layouts";
 import { apiFailure } from "../lib/forms";
 
 type RegistrationValues = {
@@ -90,7 +91,7 @@ export function RegistrationPage() {
 
   if (user) {
     return (
-      <Box maw={560} mx="auto">
+      <WelcomeLayout>
         <Stack>
           <PageHeader title="You are already signed in" />
           <BodyText>Sign out to create another account.</BodyText>
@@ -98,7 +99,7 @@ export function RegistrationPage() {
             Open your account
           </TextLink>
         </Stack>
-      </Box>
+      </WelcomeLayout>
     );
   }
 
@@ -121,7 +122,7 @@ export function RegistrationPage() {
   }
 
   return (
-    <Box maw={560} mx="auto">
+    <WelcomeLayout>
       <Stack>
         <PageHeader title="Create your account" />
         <BodyText>
@@ -156,6 +157,6 @@ export function RegistrationPage() {
           Already have an account? Sign in
         </TextLink>
       </Stack>
-    </Box>
+    </WelcomeLayout>
   );
 }

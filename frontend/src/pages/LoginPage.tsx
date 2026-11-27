@@ -1,4 +1,4 @@
-import { Box, Stack } from "@mantine/core";
+import { Stack } from "@mantine/core";
 import { useNavigate } from "react-router";
 
 import { useSession } from "../auth/useSession";
@@ -6,6 +6,7 @@ import { EMAIL_PATTERN, EmailField, PasswordField } from "../components/form";
 import { Form, FormStatusNarrow, SubmitButton, useFormContext } from "../components/form/Form";
 import type { FormSubmitResult } from "../components/form/Form";
 import { BodyText, PageHeader, TextLink } from "../components/typography";
+import { WelcomeLayout } from "../components/layouts";
 import { apiFailure } from "../lib/forms";
 
 type SignInValues = { email: string; password: string };
@@ -58,7 +59,7 @@ export function LoginPage() {
   }
 
   return (
-    <Box maw={420} mx="auto" mt="xl">
+    <WelcomeLayout>
       <Stack>
         <PageHeader title="Sign in" />
 
@@ -91,6 +92,6 @@ export function LoginPage() {
           not replace a Clinical Safety Officer.
         </BodyText>
       </Stack>
-    </Box>
+    </WelcomeLayout>
   );
 }

@@ -1,0 +1,8 @@
+/*
+ * The yellow square takes the corners every card and button has: the
+ * theme's `md` radius, the same at any size the logo is drawn.
+ */
+.logo {
+  border-radius: var(--mantine-radius-md);
+  overflow: hidden;
+}

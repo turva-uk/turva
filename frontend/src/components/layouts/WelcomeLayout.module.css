@@ -1,0 +1,38 @@
+/*
+ * The panel's column stays still while a long form, such as registration,
+ * scrolls past it, with its text centred in the window.
+ *
+ * It sticks where it already starts, so it never moves: below the app
+ * shell's header and padding, and the layout's own `md` top margin. It is
+ * the window's height less that and the shell's bottom padding, so the end
+ * of its row never pushes it up at the foot of the page. Outside the app
+ * shell, as in Storybook, the shell's variables fall back to nothing.
+ */
+.column {
+  --welcome-panel-top: calc(
+    var(--app-shell-header-offset, 0rem) + var(--app-shell-padding, 0rem) +
+      var(--mantine-spacing-md)
+  );
+
+  position: sticky;
+  top: var(--welcome-panel-top);
+  align-self: flex-start;
+  height: calc(100dvh - var(--welcome-panel-top) - var(--app-shell-padding, 0rem));
+}
+
+/* The panel's logo, heading and lines, centred in the column. */
+.panel {
+  height: 100%;
+  justify-content: center;
+}
+
+/*
+ * With the panel showing, the form keeps the same space from the page's
+ * right edge as the panel's text keeps from its left: the panel's own
+ * `xl` padding.
+ */
+@media (min-width: $mantine-breakpoint-md) {
+  .form {
+    padding-right: var(--mantine-spacing-xl);
+  }
+}
