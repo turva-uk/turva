@@ -18,6 +18,24 @@ function OrganisationSublink() {
   return null;
 }
 
+/** Stands in for the file team page, which names a trail two deep. */
+function FileTeamSublinks() {
+  usePageSublink([
+    {
+      parent: "/safety-files",
+      to: "/safety-files/demo-bp-at-home",
+      label: "BP@Home remote blood pressure monitoring",
+    },
+    {
+      parent: "/safety-files/demo-bp-at-home",
+      to: "/safety-files/demo-bp-at-home/team",
+      label: "File team",
+    },
+  ]);
+
+  return null;
+}
+
 const meta: Meta<typeof SideNav> = {
   title: "Layout/Side navigation",
   component: SideNav,
@@ -71,6 +89,22 @@ export const InAnOrganisation: Story = {
     (Story) => (
       <NavSublinkProvider>
         <OrganisationSublink />
+        <Story />
+      </NavSublinkProvider>
+    ),
+  ],
+};
+
+/**
+ * On a file's team page: the file names itself beneath Safety files, and
+ * "File team" sits beneath the file, indented once more.
+ */
+export const InAFileTeam: Story = {
+  parameters: { routerPath: "/safety-files/demo-bp-at-home/team" },
+  decorators: [
+    (Story) => (
+      <NavSublinkProvider>
+        <FileTeamSublinks />
         <Story />
       </NavSublinkProvider>
     ),

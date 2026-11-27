@@ -161,7 +161,7 @@ function start(
     { initialEntries: [route] },
   );
   render(
-    <MantineProvider>
+    <MantineProvider env="test">
       <RouterProvider router={router} />
     </MantineProvider>,
   );
@@ -179,6 +179,31 @@ it("names the organisation under Organisations in the side bar, with no link bac
   expect(
     screen.queryByRole("link", { name: "Back to your organisations" }),
   ).not.toBeInTheDocument();
+});
+
+it("names the file and its team beneath Safety files in the side bar, with no link elsewhere", async () => {
+  start("/safety-files/demo/team");
+
+  const navigation = await screen.findByRole("navigation", { name: "Main navigation" });
+  const team = await within(navigation).findByRole("link", { name: "File team" });
+
+  // The trail reads down the side bar: Safety files, the file, its team.
+  expect(
+    within(navigation)
+      .getAllByRole("link")
+      .map((link) => [link.textContent, link.getAttribute("href")]),
+  ).toEqual([
+    ["Safety files", "/safety-files"],
+    ["Fictional deployment", "/safety-files/demo"],
+    ["File team", "/safety-files/demo/team"],
+    ["Settings", "/settings"],
+    ["Organisations", "/organisations"],
+  ]);
+  expect(team).toHaveAttribute("aria-current", "page");
+  expect(
+    within(navigation).getByRole("link", { name: "Fictional deployment" }),
+  ).not.toHaveAttribute("aria-current");
+  expect(screen.queryByRole("link", { name: "Your organisations" })).not.toBeInTheDocument();
 });
 
 it("shows an honest empty organisation state without an invitation or file grant", async () => {
@@ -482,12 +507,34 @@ it("requires explicit adoption and sends only opened CSO appointments on whole-t
   const select = await screen.findByRole("combobox", { name: "Organisation for this file" });
   const save = screen.getByRole("button", { name: "Adopt file into this organisation" });
   expect(select).toHaveValue("");
-  expect(save).toBeDisabled();
-  await actor.selectOptions(select, organisation.id);
-  expect(screen.getByRole("combobox", { name: "One accountable CSO" })).toHaveValue(self.id);
+  // The shared submit button stays focusable while unavailable: it says so
+  // with aria-disabled, and a press sends nothing.
+  expect(save).toHaveAttribute("aria-disabled", "true");
+  await actor.click(save);
+  expect(writes).toHaveLength(0);
+  // The catalogue's select is a combobox: open it, then choose.
+  await actor.click(select);
   await actor.click(
-    screen.getByRole("checkbox", { name: `${colleague.name} (${colleague.email})` }),
+    await screen.findByRole("option", {
+      name: `${organisation.name} (${organisation.id.slice(0, 8)})`,
+    }),
   );
+  expect(screen.getByRole("combobox", { name: "One accountable CSO" })).toHaveValue(
+    `${self.name} (${self.email})`,
+  );
+  // The collaborators are one group, named for what choosing them does,
+  // and described by what being chosen allows.
+  const collaborators = screen.getByRole("group", {
+    name: "Explicitly named CSO collaborators",
+  });
+  expect(collaborators).toHaveAccessibleDescription(
+    "Every selected person can read and edit the whole file. Do not use this to delegate a single mitigation.",
+  );
+  // Each person is named by their name alone, with their email as the
+  // checkbox's own description, as on the organisation's member cards.
+  const colleagueBox = within(collaborators).getByRole("checkbox", { name: colleague.name });
+  expect(colleagueBox).toHaveAccessibleDescription(colleague.email);
+  await actor.click(colleagueBox);
   await actor.type(
     screen.getByRole("textbox", { name: "Reason for this team decision" }),
     "Explicit fictional adoption.",
@@ -509,6 +556,17 @@ it("requires explicit adoption and sends only opened CSO appointments on whole-t
       },
     },
   });
+});
+
+it("gives the team-change warning as guidance beside the form, not as a page state", async () => {
+  start("/safety-files/demo/team", { teamDetail: { team: null } });
+  const title = await screen.findByText("A team change is not a clinical judgement");
+
+  // A guidance note sits in the page's flow as advice; a state message is
+  // kept for what has happened, such as a refused save.
+  const note = title.closest('[data-testid="guidance-note"]');
+  expect(note).not.toBeNull();
+  expect(note).toHaveTextContent("It does not change risk scores");
 });
 
 it("retains a rejected team draft and never refreshes its opened version or appointments", async () => {
@@ -553,9 +611,7 @@ it("does not preselect a renewed appointment as though an old grant was still cu
     },
   });
   await screen.findByText("Some recorded appointments are no longer current");
-  expect(
-    screen.getByRole("checkbox", { name: `${colleague.name} (${colleague.email})` }),
-  ).not.toBeChecked();
+  expect(screen.getByRole("checkbox", { name: colleague.name })).not.toBeChecked();
 });
 
 it("accepts an invitation only on click and never sends the fragment token in a URL", async () => {
@@ -580,6 +636,34 @@ it("does not invent an eligible organisation or silently change an owner-control
   expect(
     screen.queryByRole("button", { name: "Adopt file into this organisation" }),
   ).not.toBeInTheDocument();
+  // With no form to cancel, the way back is a button to the file itself.
+  expect(screen.queryByRole("button", { name: "Cancel" })).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Back to the safety file" })).toBeInTheDocument();
+  expect(writes).toHaveLength(0);
+});
+
+it("cancels a team decision with a button beside the save, back to the file", async () => {
+  const { actor, writes, fetcher } = start("/safety-files/demo/team", {
+    teamDetail: { team: null },
+  });
+  const save = await screen.findByRole("button", { name: "Adopt file into this organisation" });
+  const cancel = screen.getByRole("button", { name: "Cancel" });
+
+  // The two sit together, as a form's actions do, and nothing else offers a way out.
+  expect(save.parentElement).toBe(cancel.parentElement);
+  expect(screen.queryByRole("link", { name: /Cancel and return/ })).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole("button", { name: "Back to the safety file" }),
+  ).not.toBeInTheDocument();
+
+  await actor.click(cancel);
+
+  await waitFor(() =>
+    expect(fetcher).toHaveBeenCalledWith(
+      expect.stringMatching(/\/safety-files\/demo\/$/),
+      expect.anything(),
+    ),
+  );
   expect(writes).toHaveLength(0);
 });
 

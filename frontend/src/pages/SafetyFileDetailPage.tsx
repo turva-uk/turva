@@ -8,6 +8,7 @@ import { HistoryTable } from "../components/HistoryTable";
 import { PDFDownload } from "../components/PDFDownload";
 import { MitigationList } from "../components/MitigationList";
 import { documentPath } from "../lib/safety/api";
+import { usePageSublink } from "../components/navigation";
 
 const NOT_FOUND = "That safety file does not exist, or you do not have access to it.";
 
@@ -18,6 +19,18 @@ export function SafetyFileDetailPage() {
     error,
     loading,
   } = useApiResource<SafetyFileDetail>(`/safety-files/${slug}/`, NOT_FOUND);
+
+  // The file names itself beneath "Safety files" in the side bar, in place
+  // of a link back to the list.
+  usePageSublink(
+    detail
+      ? {
+          parent: "/safety-files",
+          to: `/safety-files/${detail.safety_file.slug}`,
+          label: detail.safety_file.name,
+        }
+      : null,
+  );
 
   if (error) {
     return (
@@ -59,9 +72,6 @@ export function SafetyFileDetailPage() {
           </Anchor>
         )}
       </Box>
-      <Anchor component={Link} to="/safety-files">
-        All safety files
-      </Anchor>
 
       {detail.repository_missing ? (
         <Alert color="red" mt="md" role="alert" title="The repository is not on disk">

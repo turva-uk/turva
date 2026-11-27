@@ -147,8 +147,16 @@ As built:
 
 ## Phase 7: The file team
 
-- [ ] Move `FileTeamPage` onto `DataTable`, the form fields and `ConfirmModal`. Keep its writes, and the `expected_head` they send, as they are. This page changes who can edit a safety file only through the same API calls it makes today; the phase changes none of them, so it is not the irreversible kind and `/f` does not stop before committing it.
-- [ ] Check: `./s/frontend` and `./s/lint` pass. Put screenshots of each view this phase moves, in light and dark mode, in the pull request description under a `## Screenshots` heading, uploaded with `gh pr edit --attach`.
+- [x] Move `FileTeamPage` onto `DataTable`, the form fields and `ConfirmModal`. Keep its writes, and the `expected_head` they send, as they are. This page changes who can edit a safety file only through the same API calls it makes today; the phase changes none of them, so it is not the irreversible kind and `/f` does not stop before committing it.
+- [x] Check: `./s/frontend` and `./s/lint` pass. Put screenshots of each view this phase moves, in light and dark mode, in the pull request description under a `## Screenshots` heading, uploaded with `gh pr edit --attach`.
+
+As built:
+
+- **The team save sends the same `PUT` body**: `organisation_id`, `accountable_id`, `collaborator_ids`, `reason`, `expected_appointments` for the people chosen as the form opened, and `expected_head`. The test of it is unchanged apart from how it picks from the selects.
+- **The two selects are `SelectField`s with placeholders**, not native selects with an empty first option, as the pages rule forbids a clear button. Choosing an organisation still names the person adopting as the accountable CSO and clears the collaborators.
+- **The page's notices are `StateMessage`s**, and a refused save adds the link to open the latest team in another tab, as before.
+- **`organisation-workflows.test.tsx` renders Mantine in its test mode**, `env="test"`, as the catalogue's own test helpers do, so a select's options and a modal's buttons are there as soon as they open.
+- **As run on 24 November 2026**: `./s/frontend` passed (1,449 tests, the build and the Storybook build), `./s/lint` passed, and `./s/test` passed (611 Django tests, and the host suites).
 
 ## Phase 8: The safety files list and the new safety file form
 
