@@ -1,5 +1,5 @@
 import { MantineProvider } from "@mantine/core";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { describe, expect, it, vi } from "vitest";
@@ -74,7 +74,7 @@ function start(path: string, mutate: (url: string, init: RequestInit) => Promise
     { initialEntries: [path] },
   );
   render(
-    <MantineProvider theme={theme} cssVariablesResolver={cssVariablesResolver}>
+    <MantineProvider theme={theme} cssVariablesResolver={cssVariablesResolver} env="test">
       <RouterProvider router={router} />
     </MantineProvider>,
   );
@@ -237,6 +237,61 @@ describe("withdrawing the CSO declaration", () => {
 });
 
 describe("safety file creation", () => {
+  it("cancels with a button beside the create button, back to the list", async () => {
+    const writes: unknown[] = [];
+    const { actor } = start("/safety-files/new", async (_, init) => {
+      writes.push(init.body);
+      return json({}, 201);
+    });
+    const create = await screen.findByRole("button", { name: "Create safety file" });
+    const cancel = screen.getByRole("button", { name: "Cancel" });
+
+    expect(create.parentElement).toBe(cancel.parentElement);
+    expect(screen.queryByRole("link", { name: /Cancel and return/ })).not.toBeInTheDocument();
+
+    await actor.click(cancel);
+
+    expect(
+      await screen.findByRole("heading", { name: "Your safety files" }),
+    ).toBeInTheDocument();
+    expect(writes).toHaveLength(0);
+  });
+
+  it("says whose name the file is recorded in, as a quiet note with a button to check the profile", async () => {
+    start("/safety-files/new", async () => json({}, 201));
+
+    expect(
+      await screen.findByText(`Recorded in your name: ${person.full_name}`),
+    ).toBeInTheDocument();
+    const note = screen.getByTestId("guidance-note");
+    // A link drawn as an outline button, so it can open in a new tab and
+    // "Create safety file" keeps the filled one.
+    const check = within(note).getByRole("link", { name: "Check your profile" });
+    expect(check).toHaveAttribute("href", "/settings/profile");
+    expect(check).toHaveAttribute("data-variant", "outline");
+    expect(
+      screen.queryByRole("link", { name: "Check your profile and CSO declaration" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("names the page Create beneath Safety files in the side bar", async () => {
+    start("/safety-files/new", async () => json({}, 201));
+
+    const navigation = await screen.findByRole("navigation", { name: "Main navigation" });
+    const create = await within(navigation).findByRole("link", { name: "Create" });
+
+    expect(
+      within(navigation)
+        .getAllByRole("link")
+        .map((link) => link.textContent),
+    ).toEqual(["Safety files", "Create", "Settings", "Organisations"]);
+    expect(create).toHaveAttribute("href", "/safety-files/new");
+    expect(create).toHaveAttribute("aria-current", "page");
+    expect(within(navigation).getByRole("link", { name: "Safety files" })).not.toHaveAttribute(
+      "aria-current",
+    );
+  });
+
   it("prefills the organisation, waits for a successful save, then opens the file", async () => {
     const writes: Record<string, unknown>[] = [];
     const { actor } = start("/safety-files/new", async (_, init) => {
@@ -273,6 +328,11 @@ describe("safety file creation", () => {
     });
     const name = await screen.findByRole("textbox", { name: "System name" });
     await actor.type(name, "My draft");
+    // Every required field, so the form sends and the server refuses it.
+    await actor.type(
+      screen.getByRole("textbox", { name: "Intended use" }),
+      "Fictional remote monitoring.",
+    );
     await actor.click(screen.getByRole("button", { name: "Create safety file" }));
     await screen.findByRole("alert");
     expect(name).toHaveValue("My draft");
@@ -282,10 +342,15 @@ describe("safety file creation", () => {
 
   it("warns that the manufacture template is not implemented", async () => {
     const { actor } = start("/safety-files/new", async () => json({}));
-    await actor.selectOptions(
-      await screen.findByRole("combobox", { name: "Standard" }),
-      "DCB0129",
+    // The catalogue's select is a combobox: open it, then choose.
+    await actor.click(await screen.findByRole("combobox", { name: "Standard" }));
+    await actor.click(
+      await screen.findByRole("option", {
+        name: "DCB0129 - manufacturing a system (template not yet available)",
+      }),
     );
     expect(screen.getByRole("alert")).toHaveTextContent("This is not a DCB0129 document set");
+    // A guidance note, not a filled warning card.
+    expect(within(screen.getByRole("alert")).getByTestId("guidance-note")).toBeInTheDocument();
   });
 });

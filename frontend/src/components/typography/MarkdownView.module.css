@@ -2,7 +2,7 @@
  * MarkdownView styles
  *
  * Typography for sanitised HTML rendered from markdown.
- * Matches BodyText: md size (16px → 19px), weight 500, theme text colour.
+ * Matches BodyText: md size (19px), weight 500, theme text colour.
  */
 
 .markdown {
@@ -43,7 +43,8 @@
 
 .markdown code {
   font-family: var(--mantine-font-family-monospace);
-  font-size: 0.9em;
+  /* The same size as the text around it: 19px is the minimum. */
+  font-size: 1em;
   background: var(--card-bg, var(--mantine-color-gray-1));
   padding: 0.125em 0.25em;
   border-radius: var(--mantine-radius-xs);

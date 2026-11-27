@@ -49,6 +49,8 @@ Scheduled overnight runs must also follow [the overnight instructions](specifica
 - **PDF builds do not run repository configuration.** Capture committed sources, use the controlled page/appendix scope and trusted build config, and keep generated output outside the repository. Embedded/active content fails visibly; never allow arbitrary local/network fetching to make a failed export appear complete. See [ADR 0005](specifications/adr/0005-controlled-pdf-exports.md).
 - **Prettier must not touch `.html`.** Jinja2 templates live there and Prettier mangles `{% %}` and `{{ }}`. Do not add `html` to `types_or` in `.pre-commit-config.yaml`.
 - **British English.** cspell runs with `en-GB`.
+- **No text below 19px.** Body text, labels, buttons, badges, captions, table cells and headings are all at least 19px, the GOV.UK and NHS minimum. The theme's `xs` and `sm` text sizes are 19px too, so a smaller size prop never shrinks the text. `frontend/src/theme.test.tsx` checks every size.
+- **WCAG 2.2 AA is the accessibility standard.** Every page and component meets level AA. AAA is not required: a 36px button passes AA's 24px target size, so do not enlarge controls for AAA's 44px. The 19px text minimum above is stricter than AA, on purpose.
 - **One ruff config**, `ruff.toml` at the repo root. It sets `src = ["."]` and excludes `specifications/archive/`. Do not add `[tool.ruff]` to `pyproject.toml`.
 - **GitHub Actions are pinned to full commit SHAs** with a `# vX.Y.Z` comment. Confirm the current latest tag from the action's own repo before bumping; never pin from memory.
 

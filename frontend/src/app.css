@@ -222,7 +222,8 @@ body {
 }
 
 .document-link-note {
-  font-size: 0.85em;
+  /* No smaller than the text around it: 19px is the minimum. */
+  font-size: 1em;
 }
 
 .document-tabs {
