@@ -9,6 +9,7 @@ import {
   createFile,
   downloadPdf,
   documentPath,
+  getDocument,
   getFile,
   getHazard,
   getMitigation,
@@ -320,6 +321,22 @@ describe("risk level", () => {
       expect(init.body).toEqual(expect.any(String));
       expect(String(init.body)).not.toMatch(/risk_level|risk_label/);
     }
+  });
+});
+
+describe("documents", () => {
+  it("reads one by its file and key", async () => {
+    respond(200, {});
+    await getDocument("ward-list", "safety-case");
+
+    expect(sent()).toMatchObject({
+      url: "/api/v1/safety-files/ward-list/documents/safety-case/",
+      method: "GET",
+    });
+  });
+
+  it("refuses a key that is not an identifier, before any request", () => {
+    expect(() => getDocument("ward-list", "../members")).toThrow(/identifier/i);
   });
 });
 

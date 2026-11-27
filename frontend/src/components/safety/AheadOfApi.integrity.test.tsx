@@ -48,15 +48,12 @@ describe("ahead-of-API evidence presentation (TH-001/TH-008/TH-010/TH-011)", () 
     expect(screen.queryByText("Accepted for go-live")).not.toBeInTheDocument();
   });
 
-  it("keeps the complete source version and comment content in the document view", () => {
+  it("keeps the complete source version and the document it is given", () => {
     const commit = "abcdef12" + "3".repeat(32);
     renderWithMantine(
-      <SafetyDocumentSheet
-        system="Fictional system"
-        status="draft"
-        commit={commit}
-        text="Before <!-- a recorded qualification --> after."
-      />,
+      <SafetyDocumentSheet system="Fictional system" status="draft" commit={commit}>
+        Before a recorded qualification after.
+      </SafetyDocumentSheet>,
     );
     expect(screen.getByText(`As at commit ${commit}`)).toBeInTheDocument();
     expect(screen.getByText(/a recorded qualification/)).toBeInTheDocument();
@@ -66,12 +63,9 @@ describe("ahead-of-API evidence presentation (TH-001/TH-008/TH-010/TH-011)", () 
     "warns when a document has no supported full source version: %s",
     (commit) => {
       renderWithMantine(
-        <SafetyDocumentSheet
-          system="Fictional system"
-          status="accepted"
-          commit={commit}
-          text="Report"
-        />,
+        <SafetyDocumentSheet system="Fictional system" status="accepted" commit={commit}>
+          Report
+        </SafetyDocumentSheet>,
       );
       expect(
         screen.getByRole("alert", { name: "Source version unavailable" }),
